@@ -22,7 +22,7 @@ public abstract class CreeperVariant extends MobVariant {
 
     /**
      * @param radius rayon d'explosion de base (3 = creeper de Minecraft)
-     * @param damage dégâts de base à bout portant (43 = creeper de Minecraft)
+     * @param damage dégâts de base à bout portant en Normal (43 = creeper de Minecraft) ; le serveur est en Difficile : × 1,5
      */
     protected CreeperVariant(String id, Rarity rarity, String name, double radius, double damage) {
         super(id, EntityType.CREEPER, rarity, name);

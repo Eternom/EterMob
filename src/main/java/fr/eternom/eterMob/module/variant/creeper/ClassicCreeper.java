@@ -6,6 +6,6 @@ import fr.eternom.eterMob.module.mob.Rarity;
 public class ClassicCreeper extends CreeperVariant {
 
     public ClassicCreeper() {
-        super("creeper", Rarity.COMMUN, "Sibilus", 3, 30);
+        super("creeper", Rarity.COMMUN, "Sibilus", 3, 20);
     }
 }
