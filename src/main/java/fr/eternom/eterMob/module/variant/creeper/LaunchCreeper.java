@@ -22,6 +22,12 @@ public class LaunchCreeper extends CreeperVariant {
         super("creeper_launch", Rarity.PEU_COMMUN, "Volatus", 2, 10, 2);
     }
 
+    /** Résistant : il doit venir au contact, il doit tenir le coup. */
+    @Override
+    public double health() {
+        return 1.3;
+    }
+
     @Override
     public void onAttack(ActiveMob mob, LivingEntity victim, EntityDamageByEntityEvent event) {
         super.onAttack(mob, victim, event);

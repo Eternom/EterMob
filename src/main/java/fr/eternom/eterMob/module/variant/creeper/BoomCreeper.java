@@ -13,4 +13,10 @@ public class BoomCreeper extends CreeperVariant {
     public BoomCreeper() {
         super("creeper_boom", Rarity.RARE, "Fragor", 6, 24, 5);
     }
+
+    /** Fragile : il frappe de loin et fort, mais meurt vite si on le voit venir. */
+    @Override
+    public double health() {
+        return 0.7;
+    }
 }
