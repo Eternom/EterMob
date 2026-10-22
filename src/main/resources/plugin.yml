@@ -1,0 +1,19 @@
+name: EterMob
+version: '${version}'
+
+main: fr.eternom.eterMob.Main
+api-version: '26.2'
+load: POSTWORLD
+authors: [ NadTum ]
+description: Variants de mobs avec capacités, apparition selon le lieu, ratio de puissance.
+
+commands:
+  etermob:
+    description: Variants de mobs (liste, apparition de test).
+    usage: /etermob <list|spawn <variant> [ratio]>
+    permission: etermob.admin
+
+permissions:
+  etermob.admin:
+    description: Lister les variants et en faire apparaître pour les tester.
+    default: op

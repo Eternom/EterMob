@@ -1,0 +1,52 @@
+# ============================================================
+#  EterMob : variants de mobs
+# ============================================================
+#
+#  Chaque mob qui apparaît naturellement (jamais ceux des spawners, des œufs ni des commandes) devient un variant de
+#  son type, s'il en existe : le variant est tiré parmi ceux dont les conditions d'apparition (codées dans le plugin)
+#  sont remplies, selon sa rareté. Puis son ratio est tiré : il multiplie tout ce que fait le variant (vie, dégâts,
+#  capacités), à partir des valeurs de base propres à chaque variant.
+#  Toute modification nécessite un redémarrage du serveur.
+
+# Ratios, du plus faible au plus fort (ratio 1 = premier de la liste).
+#  multiplier : multiplie les valeurs de base du variant (vie, dégâts, rayon, durée...).
+#  weight     : chance d'être tiré, relative aux autres ratios (à la surface).
+#  status     : statut affiché au-dessus de la tête (MiniMessage).
+ratios:
+  - multiplier: 1.0
+    weight: 40
+    status: '<gray>Ordinaire'
+  - multiplier: 1.25
+    weight: 30
+    status: '<green>Robuste'
+  - multiplier: 1.5
+    weight: 18
+    status: '<yellow>Dangereux'
+  - multiplier: 1.8
+    weight: 9
+    status: '<gold>Élite'
+  - multiplier: 2.2
+    weight: 3
+    status: '<red>Fléau'
+
+# Plus on est profond, plus les ratios forts sortent : chaque bloc sous le niveau de la mer du monde augmente la
+# chance du ratio n de (n - 1) × depth-bonus. Avec 0.01, à Y = -60 dans le monde normal, le ratio 5 sort environ
+# 6 fois plus souvent qu'à la surface. 0 : la profondeur ne compte pas.
+depth-bonus: 0.01
+
+# Rareté des variants : chance d'être choisi, relative aux autres variants du même mob qui peuvent apparaître là.
+rarities:
+  commun: 100
+  peu-commun: 40
+  rare: 15
+  epique: 5
+  legendaire: 1
+
+# Tag au-dessus de la tête : <status> = statut du ratio, <name> = nom du variant.
+tag:
+  format: '<status> <dark_gray>·</dark_gray> <white><name>'
+  # true : visible de loin ; false : seulement en visant le mob.
+  always-visible: true
+
+# Variants désactivés (identifiants de /etermob list) : ils n'apparaissent plus naturellement.
+disabled-variants: []
