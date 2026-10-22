@@ -21,8 +21,6 @@ import java.util.Map;
 /** Variants de mobs : chaque apparition naturelle devient un variant de son mob, avec un ratio de puissance. */
 public final class Main extends JavaPlugin {
 
-    private MobService mobs;
-
     /** Tous les variants : en ajouter un = l'écrire dans module/variant puis l'ajouter ici. */
     private static List<MobVariant> variants() {
         return List.of(
@@ -40,9 +38,8 @@ public final class Main extends JavaPlugin {
             rarityWeights.put(rarity, getConfig().getDouble("rarities." + rarity.id(), 0));
         }
         Variants all = new Variants(variants(), new HashSet<>(getConfig().getStringList("disabled-variants")), rarityWeights);
-        mobs = new MobService(this, all, Ratios.load(getConfig()),
-                getConfig().getString("tag.format", "<status> <dark_gray>·</dark_gray> <white><name>"),
-                getConfig().getDouble("tag.distance", 32));
+        MobService mobs = new MobService(this, all, Ratios.load(getConfig()),
+                getConfig().getString("tag.format", "<status> <dark_gray>·</dark_gray> <white><name>"));
 
         getServer().getPluginManager().registerEvents(new MobListener(mobs, getConfig().getBoolean("creeper-block-damage", false)), this);
         PluginCommand command = getCommand("etermob");
@@ -52,12 +49,5 @@ public final class Main extends JavaPlugin {
             command.setTabCompleter(executor);
         }
         mobs.start();
-    }
-
-    @Override
-    public void onDisable() {
-        if (mobs != null) {
-            mobs.stop();
-        }
     }
 }

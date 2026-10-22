@@ -81,7 +81,6 @@ public class MobListener implements Listener {
         ActiveMob mob = mobs.get(event.getEntity());
         if (mob != null) {
             mob.variant().onDeath(mob, event);
-            mobs.removeTag(event.getEntity());
         }
     }
 

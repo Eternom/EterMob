@@ -1,6 +1,5 @@
 package fr.eternom.eterMob.module.mob;
 
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
@@ -9,16 +8,11 @@ import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
-import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.TextDisplay;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.Transformation;
-import org.joml.AxisAngle4f;
-import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,9 +22,6 @@ import java.util.Map;
  * Transforme un mob en variant et suit les variants chargés. Le variant et le ratio sont écrits sur le mob (données
  * persistantes) : ils survivent aux redémarrages sans base de données. Les variants chargés sont gardés en mémoire par
  * identifiant d'entité, pour que les événements les retrouvent sans relire le mob. Thread principal.
- *
- * Tag : un texte flottant (TextDisplay) assis sur le mob, pas son nom : un nom visible se voit à travers les blocs, le
- * texte flottant non. Il n'est jamais sauvegardé : créé quand le mob entre dans le monde, retiré quand il en sort.
  */
 public class MobService {
 
@@ -43,8 +34,6 @@ public class MobService {
     private final Variants variants;
     private final Ratios ratios;
     private final String tagFormat;
-    /** Distance de vue du tag, en fois 64 blocs (unité de Minecraft pour les TextDisplay). */
-    private final float tagViewRange;
     private final NamespacedKey variantKey;
     private final NamespacedKey ratioKey;
     /** Clé des modificateurs de vie et de dégâts posés par EterMob. */
@@ -53,16 +42,13 @@ public class MobService {
     private final Map<Integer, ActiveMob> active = new HashMap<>();
     /** Sous-ensemble de active : les variants qui ont une capacité périodique. */
     private final Map<Integer, ActiveMob> ticking = new HashMap<>();
-    /** Tag de chaque variant chargé. */
-    private final Map<Integer, TextDisplay> tags = new HashMap<>();
     private long ticks;
 
-    public MobService(JavaPlugin plugin, Variants variants, Ratios ratios, String tagFormat, double tagDistance) {
+    public MobService(JavaPlugin plugin, Variants variants, Ratios ratios, String tagFormat) {
         this.plugin = plugin;
         this.variants = variants;
         this.ratios = ratios;
         this.tagFormat = tagFormat;
-        this.tagViewRange = (float) Math.max(0.05, tagDistance / 64);
         this.variantKey = new NamespacedKey(plugin, "variant");
         this.ratioKey = new NamespacedKey(plugin, "ratio");
         this.modifierKey = new NamespacedKey(plugin, "ratio");
@@ -86,15 +72,9 @@ public class MobService {
         Bukkit.getScheduler().runTaskTimer(plugin, this::tick, TICK_PERIOD, TICK_PERIOD);
     }
 
-    /** Arrêt du plugin : retire les tags (ils seraient de toute façon perdus, jamais sauvegardés). */
-    public void stop() {
-        tags.values().forEach(Entity::remove);
-        tags.clear();
-    }
-
     /**
-     * Fait de ce mob un variant de ce ratio : données, vie et dégâts, puis MobVariant#onSpawn. Appelé avant que le mob
-     * entre dans le monde : il sera suivi (et recevra son tag) par track (EntityAddToWorldEvent).
+     * Fait de ce mob un variant de ce ratio : données, vie et dégâts, tag, puis MobVariant#onSpawn. Appelé avant que le
+     * mob entre dans le monde : il sera suivi par track (EntityAddToWorldEvent).
      */
     public void apply(LivingEntity entity, MobVariant variant, int ratio) {
         ratio = ratios.clamp(ratio);
@@ -109,6 +89,13 @@ public class MobService {
         if (health != null) {
             entity.setHealth(health.getValue());
         }
+
+        entity.customName(MiniMessage.miniMessage().deserialize(tagFormat,
+                Placeholder.parsed("status", ratios.status(ratio)), Placeholder.unparsed("name", variant.name())));
+        // Visible seulement en visant le mob : rien à afficher ni à calculer pour les autres, jamais à travers les blocs
+        entity.setCustomNameVisible(false);
+        // Un nom ne doit pas le rendre permanent : il disparaît loin des joueurs comme un mob normal
+        entity.setRemoveWhenFarAway(true);
 
         variant.onSpawn(new ActiveMob(entity, variant, ratio, power));
     }
@@ -140,48 +127,19 @@ public class MobService {
             return;
         }
         int ratio = ratios.clamp(data.getOrDefault(ratioKey, PersistentDataType.INTEGER, 1));
+        // Variants d'EterMob 1.0.0 à 1.0.2 : tag toujours visible, à travers les blocs
+        living.setCustomNameVisible(false);
         ActiveMob mob = new ActiveMob(living, variant, ratio, ratios.multiplier(ratio));
         active.put(living.getEntityId(), mob);
         if (variant.tickInterval() > 0) {
             ticking.put(living.getEntityId(), mob);
         }
-        // Au tick suivant : pas de nouvelle entité pendant qu'une autre entre dans le monde (chargement de chunk)
-        Bukkit.getScheduler().runTask(plugin, () -> addTag(mob));
     }
 
-    /** Mob sorti du monde (mort, déchargé) : plus suivi, son tag est retiré. */
+    /** Mob sorti du monde (mort, déchargé) : plus suivi. */
     public void untrack(Entity entity) {
         active.remove(entity.getEntityId());
         ticking.remove(entity.getEntityId());
-        removeTag(entity);
-    }
-
-    /** Retire le tag sans attendre (mort : le corps reste encore un instant). */
-    public void removeTag(Entity entity) {
-        TextDisplay tag = tags.remove(entity.getEntityId());
-        if (tag != null) {
-            tag.remove();
-        }
-    }
-
-    private void addTag(ActiveMob mob) {
-        LivingEntity entity = mob.entity();
-        if (!entity.isValid() || entity.isDead() || active.get(entity.getEntityId()) != mob || tags.containsKey(entity.getEntityId())) {
-            return;
-        }
-        Component text = MiniMessage.miniMessage().deserialize(tagFormat,
-                Placeholder.parsed("status", ratios.status(mob.ratio())), Placeholder.unparsed("name", mob.variant().name()));
-        TextDisplay tag = entity.getWorld().spawn(entity.getLocation(), TextDisplay.class, display -> {
-            display.text(text);
-            display.setPersistent(false);
-            display.setBillboard(Display.Billboard.CENTER);
-            display.setViewRange(tagViewRange);
-            // Un peu au-dessus de la tête (le passager est posé au sommet du mob)
-            display.setTransformation(new Transformation(new Vector3f(0, 0.25f, 0), new AxisAngle4f(),
-                    new Vector3f(1, 1, 1), new AxisAngle4f()));
-        });
-        entity.addPassenger(tag);
-        tags.put(entity.getEntityId(), tag);
     }
 
     /** Variant chargé de cette entité, ou null. */
