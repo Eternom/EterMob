@@ -13,6 +13,7 @@ import fr.eternom.eterMob.module.variant.creeper.FragmentCreeper;
 import fr.eternom.eterMob.module.variant.creeper.FrostCreeper;
 import fr.eternom.eterMob.module.variant.creeper.LaunchCreeper;
 import fr.eternom.eterMob.module.variant.creeper.LightningCreeper;
+import fr.eternom.eterMob.module.variant.creeper.PoisonCreeper;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -32,7 +33,8 @@ public final class Main extends JavaPlugin {
                 new FrostCreeper(),
                 new LaunchCreeper(),
                 new FragmentCreeper(),
-                new LightningCreeper());
+                new LightningCreeper(),
+                new PoisonCreeper());
     }
 
     @Override

@@ -1,0 +1,51 @@
+package fr.eternom.eterMob.module.variant.creeper;
+
+import fr.eternom.eterMob.module.mob.ActiveMob;
+import fr.eternom.eterMob.module.mob.Rarity;
+import org.bukkit.Color;
+import org.bukkit.entity.AreaEffectCloud;
+import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+
+/**
+ * Petite explosion qui laisse un nuage de poison (comme une potion persistante) : empoisonne ceux qui restent dedans,
+ * pas ceux que l'explosion touche. Le nuage rétrécit jusqu'à moitié avant de disparaître. Rayon, durée du nuage et du
+ * poison selon le ratio ; Poison II à partir du ratio 4. Le poison de Minecraft ne tue pas (il laisse un demi-cœur).
+ */
+public class PoisonCreeper extends CreeperVariant {
+
+    /** Rayon du nuage (blocs) : 3 au ratio 1, environ 6,6 au ratio 5. */
+    private static final double CLOUD_RADIUS = 3;
+    /** Durée du nuage (ticks) : 6 s au ratio 1, environ 13 s au ratio 5. */
+    private static final double CLOUD_TICKS = 120;
+    /** Durée du poison donné à chaque passage dans le nuage (ticks). */
+    private static final double POISON_TICKS = 60;
+    /** Poison II à partir de ce ratio. */
+    private static final int STRONG_RATIO = 4;
+    private static final Color GREEN = Color.fromRGB(0x4E9331);
+
+    public PoisonCreeper() {
+        super("creeper_poison", Rarity.PEU_COMMUN, "Venenum", 2, 10);
+    }
+
+    @Override
+    public void onExplode(ActiveMob mob, EntityExplodeEvent event) {
+        float radius = (float) mob.scale(CLOUD_RADIUS);
+        int duration = mob.scaleInt(CLOUD_TICKS);
+        PotionEffect poison = new PotionEffect(PotionEffectType.POISON, mob.scaleInt(POISON_TICKS),
+                mob.ratio() >= STRONG_RATIO ? 1 : 0);
+        event.getLocation().getWorld().spawn(event.getLocation(), AreaEffectCloud.class, cloud -> {
+            cloud.setRadius(radius);
+            cloud.setDuration(duration);
+            cloud.setRadiusPerTick(-radius / 2 / duration);
+            // Ne rétrécit pas quand quelqu'un est touché : c'est une zone, pas une dose
+            cloud.setRadiusOnUse(0);
+            cloud.setDurationOnUse(0);
+            cloud.setWaitTime(10);
+            cloud.setReapplicationDelay(20);
+            cloud.setColor(GREEN);
+            cloud.addCustomEffect(poison, true);
+        });
+    }
+}
