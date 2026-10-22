@@ -21,7 +21,7 @@ public class FrostCreeper extends CreeperVariant {
     private static final double SNOW_TEMPERATURE = 0.15;
 
     public FrostCreeper() {
-        super("creeper_frost", Rarity.PEU_COMMUN, "Gelidus", 2, 12);
+        super("creeper_frost", Rarity.PEU_COMMUN, "Gelidus", 2, 20);
     }
 
     @Override
