@@ -42,11 +42,12 @@ rarities:
   epique: 5
   legendaire: 1
 
-# Tag au-dessus de la tête : <status> = statut du ratio, <name> = nom du variant.
+# Tag au-dessus de la tête : <status> = statut du ratio, <name> = nom du variant. C'est un texte flottant : caché par
+# les blocs comme le mob lui-même (jamais visible à travers un mur).
 tag:
   format: '<status> <dark_gray>·</dark_gray> <white><name>'
-  # true : visible de loin ; false : seulement en visant le mob.
-  always-visible: true
+  # Distance (blocs) jusqu'à laquelle le tag se voit.
+  distance: 32
 
 # Les explosions de creepers (variants ou non) cassent-elles les blocs, cadres et tableaux ? Les dégâts aux joueurs
 # et aux mobs restent. false conseillé : un creeper de ratio fort ferait de très gros trous.
