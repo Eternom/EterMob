@@ -48,5 +48,9 @@ tag:
   # true : visible de loin ; false : seulement en visant le mob.
   always-visible: true
 
+# Les explosions de creepers (variants ou non) cassent-elles les blocs, cadres et tableaux ? Les dégâts aux joueurs
+# et aux mobs restent. false conseillé : un creeper de ratio fort ferait de très gros trous.
+creeper-block-damage: false
+
 # Variants désactivés (identifiants de /etermob list) : ils n'apparaissent plus naturellement.
 disabled-variants: []

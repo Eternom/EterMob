@@ -2,6 +2,7 @@ package fr.eternom.eterMob.module.mob;
 
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
+import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Projectile;
@@ -13,14 +14,18 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 
 /** Apparitions naturelles transformées en variants, suivi des variants chargés, et capacités déclenchées par les événements. */
 public class MobListener implements Listener {
 
     private final MobService mobs;
+    /** false : les explosions de creepers (variants ou non) ne cassent ni blocs, ni cadres, ni tableaux. */
+    private final boolean creeperBlockDamage;
 
-    public MobListener(MobService mobs) {
+    public MobListener(MobService mobs, boolean creeperBlockDamage) {
         this.mobs = mobs;
+        this.creeperBlockDamage = creeperBlockDamage;
     }
 
     /** Seulement les apparitions naturelles : jamais les spawners, les œufs, les commandes ni les autres plugins. */
@@ -84,6 +89,16 @@ public class MobListener implements Listener {
         ActiveMob mob = mobs.get(event.getEntity());
         if (mob != null) {
             mob.variant().onExplode(mob, event);
+        }
+        if (!creeperBlockDamage && event.getEntity() instanceof Creeper) {
+            event.blockList().clear();
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onHangingBreak(HangingBreakByEntityEvent event) {
+        if (!creeperBlockDamage && event.getRemover() instanceof Creeper) {
+            event.setCancelled(true);
         }
     }
 }

@@ -42,7 +42,7 @@ public final class Main extends JavaPlugin {
                 getConfig().getString("tag.format", "<status> <dark_gray>·</dark_gray> <white><name>"),
                 getConfig().getBoolean("tag.always-visible", true));
 
-        getServer().getPluginManager().registerEvents(new MobListener(mobs), this);
+        getServer().getPluginManager().registerEvents(new MobListener(mobs, getConfig().getBoolean("creeper-block-damage", false)), this);
         PluginCommand command = getCommand("etermob");
         if (command != null) {
             MobCommand executor = new MobCommand(mobs);
