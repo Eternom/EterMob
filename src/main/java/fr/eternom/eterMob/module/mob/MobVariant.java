@@ -68,6 +68,10 @@ public abstract class MobVariant {
     public void onSpawn(ActiveMob mob) {
     }
 
+    /** Chaque fois que le mob entre dans le monde (apparu ou rechargé) : ce que Minecraft ne sauvegarde pas (IA...). */
+    public void onLoad(ActiveMob mob) {
+    }
+
     /** Le mob frappe (de près, ou avec un projectile qu'il a tiré). */
     public void onAttack(ActiveMob mob, LivingEntity victim, EntityDamageByEntityEvent event) {
     }

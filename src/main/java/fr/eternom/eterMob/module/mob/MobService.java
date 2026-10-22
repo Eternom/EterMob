@@ -134,6 +134,7 @@ public class MobService {
         if (variant.tickInterval() > 0) {
             ticking.put(living.getEntityId(), mob);
         }
+        variant.onLoad(mob);
     }
 
     /** Mob sorti du monde (mort, déchargé) : plus suivi. */

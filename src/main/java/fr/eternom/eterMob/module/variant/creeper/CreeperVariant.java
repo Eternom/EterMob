@@ -1,8 +1,10 @@
 package fr.eternom.eterMob.module.variant.creeper;
 
+import com.destroystokyo.paper.entity.ai.VanillaGoal;
 import fr.eternom.eterMob.module.mob.ActiveMob;
 import fr.eternom.eterMob.module.mob.MobVariant;
 import fr.eternom.eterMob.module.mob.Rarity;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -15,8 +17,9 @@ import org.bukkit.event.entity.EntityDamageEvent;
  * damage (à bout portant, difficulté Normal, avant armure), en gardant la baisse avec la distance et les murs, et la
  * difficulté du serveur. Une grande zone ne rend donc pas l'explosion plus mortelle.
  *
- * Déclenchement : Minecraft fait gonfler un creeper à 3 blocs de sa cible. Avec une distance plus grande, le variant
- * s'allume dès qu'il voit sa cible à cette distance ; une fois allumé, il explose même si elle s'éloigne.
+ * Déclenchement : Minecraft fait gonfler un creeper à 3 blocs de sa cible. Avec une autre distance, le variant s'allume
+ * dès qu'il voit sa cible à cette distance ; une fois allumé, il explose même si elle s'éloigne. Plus près que 3 blocs,
+ * le gonflement de Minecraft lui est retiré (à chaque chargement : Minecraft ne sauvegarde pas l'IA).
  */
 public abstract class CreeperVariant extends MobVariant {
 
@@ -62,10 +65,17 @@ public abstract class CreeperVariant extends MobVariant {
         event.setDamage(event.getDamage() / vanillaMax * mob.scale(damage));
     }
 
-    /** Seulement si le déclenchement est plus lointain que celui de Minecraft (sinon Minecraft s'en charge). */
+    @Override
+    public void onLoad(ActiveMob mob) {
+        if (trigger < VANILLA_TRIGGER) {
+            Bukkit.getMobGoals().removeGoal((Creeper) mob.entity(), VanillaGoal.CREEPER_SWELL);
+        }
+    }
+
+    /** Seulement si le déclenchement n'est pas celui de Minecraft (sinon Minecraft s'en charge). */
     @Override
     public int tickInterval() {
-        return trigger > VANILLA_TRIGGER ? TRIGGER_CHECK : 0;
+        return trigger != VANILLA_TRIGGER ? TRIGGER_CHECK : 0;
     }
 
     @Override

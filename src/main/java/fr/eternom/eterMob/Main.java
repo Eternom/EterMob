@@ -10,6 +10,7 @@ import fr.eternom.eterMob.module.mob.Variants;
 import fr.eternom.eterMob.module.variant.creeper.BoomCreeper;
 import fr.eternom.eterMob.module.variant.creeper.ClassicCreeper;
 import fr.eternom.eterMob.module.variant.creeper.FrostCreeper;
+import fr.eternom.eterMob.module.variant.creeper.LaunchCreeper;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -26,7 +27,8 @@ public final class Main extends JavaPlugin {
         return List.of(
                 new ClassicCreeper(),
                 new BoomCreeper(),
-                new FrostCreeper());
+                new FrostCreeper(),
+                new LaunchCreeper());
     }
 
     @Override
