@@ -12,7 +12,7 @@ public class ClassicCreeper extends MobVariant {
     private static final double RADIUS = 3;
 
     public ClassicCreeper() {
-        super("creeper", EntityType.CREEPER, Rarity.COMMUN, "Creeper");
+        super("creeper", EntityType.CREEPER, Rarity.COMMUN, "Sibilus");
     }
 
     @Override

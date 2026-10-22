@@ -39,7 +39,7 @@ public final class Main extends JavaPlugin {
         }
         Variants all = new Variants(variants(), new HashSet<>(getConfig().getStringList("disabled-variants")), rarityWeights);
         MobService mobs = new MobService(this, all, Ratios.load(getConfig()),
-                getConfig().getString("tag.format", "<status> <dark_gray>·</dark_gray> <white><name>"));
+                getConfig().getString("tag.format", "<white><name> <dark_gray>·</dark_gray> <status>"));
 
         getServer().getPluginManager().registerEvents(new MobListener(mobs, getConfig().getBoolean("creeper-block-damage", false)), this);
         PluginCommand command = getCommand("etermob");

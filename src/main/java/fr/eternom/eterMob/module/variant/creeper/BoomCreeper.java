@@ -20,7 +20,7 @@ public class BoomCreeper extends MobVariant {
     private static final double DAMAGE = 1;
 
     public BoomCreeper() {
-        super("creeper_boom", EntityType.CREEPER, Rarity.RARE, "Creeper Boom");
+        super("creeper_boom", EntityType.CREEPER, Rarity.RARE, "Fragor");
     }
 
     @Override

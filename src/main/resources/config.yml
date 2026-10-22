@@ -44,7 +44,7 @@ rarities:
 
 # Tag au-dessus de la tête, visible seulement en visant le mob : <status> = statut du ratio, <name> = nom du variant.
 tag:
-  format: '<status> <dark_gray>·</dark_gray> <white><name>'
+  format: '<white><name> <dark_gray>·</dark_gray> <status>'
 
 # Les explosions de creepers (variants ou non) cassent-elles les blocs, cadres et tableaux ? Les dégâts aux joueurs
 # et aux mobs restent. false conseillé : un creeper de ratio fort ferait de très gros trous.

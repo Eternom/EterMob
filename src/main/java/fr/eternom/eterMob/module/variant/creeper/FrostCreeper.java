@@ -25,7 +25,7 @@ public class FrostCreeper extends MobVariant {
     private static final double SNOW_TEMPERATURE = 0.15;
 
     public FrostCreeper() {
-        super("creeper_frost", EntityType.CREEPER, Rarity.PEU_COMMUN, "Creeper givrant");
+        super("creeper_frost", EntityType.CREEPER, Rarity.PEU_COMMUN, "Gelidus");
     }
 
     @Override
