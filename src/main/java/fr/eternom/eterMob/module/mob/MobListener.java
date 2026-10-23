@@ -17,6 +17,7 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 
@@ -109,6 +110,16 @@ public class MobListener implements Listener {
         ActiveMob mob = mobs.get(event.getEntity());
         if (mob != null) {
             mob.variant().onDeath(mob, event);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onProjectileHit(ProjectileHitEvent event) {
+        if (event.getEntity().getShooter() instanceof Entity shooter) {
+            ActiveMob mob = mobs.get(shooter);
+            if (mob != null) {
+                mob.variant().onProjectileHit(mob, event);
+            }
         }
     }
 

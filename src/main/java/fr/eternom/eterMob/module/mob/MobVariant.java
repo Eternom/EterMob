@@ -12,6 +12,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.util.Vector;
 import org.bukkit.event.entity.EntityExplodeEvent;
 
@@ -112,6 +113,10 @@ public abstract class MobVariant {
 
     /** Le mob tire à l'arc (squelette) : la flèche est event.getProjectile(). */
     public void onShoot(ActiveMob mob, EntityShootBowEvent event) {
+    }
+
+    /** Un projectile tiré par le mob touche quelque chose (bloc ou entité), avant les dégâts éventuels. */
+    public void onProjectileHit(ActiveMob mob, ProjectileHitEvent event) {
     }
 
     /** Le mob prend une cible (event.getTarget(), jamais null ici). */
