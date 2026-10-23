@@ -10,6 +10,8 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
+import java.util.List;
+
 /**
  * Doit venir tout près (2 blocs) et explose sur une petite zone, avec peu de dégâts, mais envoie en l'air tout ce qu'il
  * touche : la hauteur du saut, et donc la chute, grandit avec le ratio (environ 4 blocs au ratio 1, 17 au ratio 5).
@@ -21,6 +23,14 @@ public class LaunchCreeper extends CreeperVariant {
 
     public LaunchCreeper() {
         super("creeper_launch", Rarity.PEU_COMMUN, "Volatus", 2, 10, 2);
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "S'allume à 2 blocs, envoie en l'air (4 à 17 blocs).",
+                "Résistant et rapide.",
+                "Biomes : partout.");
     }
 
     /** Contact : il doit coller sa cible, donc il est résistant et plus rapide. */

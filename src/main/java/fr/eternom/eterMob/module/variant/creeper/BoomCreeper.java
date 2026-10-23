@@ -5,6 +5,8 @@ import fr.eternom.eterMob.module.mob.Rarity;
 import org.bukkit.Particle;
 import org.bukkit.entity.Creeper;
 
+import java.util.List;
+
 /**
  * Canon de verre : il s'allume dès 5 blocs de sa cible (3 pour un creeper normal), explose sur une grande zone (6 blocs,
  * environ 13 au ratio le plus fort) et fait les plus gros dégâts des creepers. En contrepartie il est fragile, lent, et
@@ -18,6 +20,14 @@ public class BoomCreeper extends CreeperVariant {
 
     public BoomCreeper() {
         super("creeper_boom", Rarity.RARE, "Fragor", 6, 24, 5);
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "S'allume à 5 blocs, grande zone (6 à 13 blocs).",
+                "Fragile, lent, mèche de 2 s.",
+                "Biomes : partout.");
     }
 
     @Override

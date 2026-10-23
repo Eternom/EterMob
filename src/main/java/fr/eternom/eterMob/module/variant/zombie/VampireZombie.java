@@ -71,6 +71,14 @@ public class VampireZombie extends ZombieVariant {
         super("zombie_vampire", Rarity.RARE, "Sanguis");
     }
 
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Saignement à travers l'armure, qui le soigne.",
+                "Nuée de chauves-souris sous 30 % de vie.",
+                "Biomes : forêts sombres, marais, jungles.");
+    }
+
     /** Forêts sombres, jardin pâle, marais, jungles. */
     @Override
     protected boolean spawnsHere(LivingEntity entity) {

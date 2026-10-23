@@ -8,6 +8,8 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import java.util.List;
+
 /**
  * Petite explosion aux faibles dégâts, mais gèle tout ce qui l'entoure : givre à l'écran et lenteur, rayon et durée selon le ratio.
  * N'apparaît que dans le froid : là où il neige au lieu de pleuvoir (biomes de neige et de glace, haut des montagnes).
@@ -22,6 +24,13 @@ public class FrostCreeper extends CreeperVariant {
 
     public FrostCreeper() {
         super("creeper_frost", Rarity.PEU_COMMUN, "Gelidus", 2, 13);
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Petite explosion, puis gel autour (givre, lenteur).",
+                "Biomes : le froid (là où il neige).");
     }
 
     /** Contrôle : un peu plus solide et plus lent, il compte sur le gel pour que sa cible ne s'échappe pas. */

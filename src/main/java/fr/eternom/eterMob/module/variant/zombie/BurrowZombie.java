@@ -19,6 +19,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -65,6 +66,14 @@ public class BurrowZombie extends ZombieVariant {
 
     public BurrowZombie() {
         super("zombie_burrow", Rarity.RARE, "Fossor");
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Creuse vers toi (sillon visible) et sort du sol.",
+                "Frappé en sortant : étourdi 2 s.",
+                "Biomes : grottes, secs, montagnes.");
     }
 
     @Override

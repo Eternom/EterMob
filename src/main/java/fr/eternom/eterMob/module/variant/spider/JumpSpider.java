@@ -21,6 +21,7 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,6 +62,14 @@ public class JumpSpider extends SpiderVariant {
 
     public JumpSpider() {
         super("spider_jump", Rarity.PEU_COMMUN, "Saltatrix");
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Bondit, onde de choc à l'atterrissage.",
+                "Rebond dès le ratio 3, onde qui sonne au Fléau.",
+                "Biomes : plaines, secs, montagnes, rivières.");
     }
 
     @Override

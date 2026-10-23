@@ -1,14 +1,13 @@
 package fr.eternom.eterMob.module.mob;
 
 import fr.eternom.eterMob.module.boss.BossCommand;
+import fr.eternom.eterMob.module.menu.MobMenu;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.event.entity.CreatureSpawnEvent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,14 +18,24 @@ public class MobCommand implements TabExecutor {
 
     private final MobService mobs;
     private final BossCommand bosses;
+    private final MobMenu menu;
 
-    public MobCommand(MobService mobs, BossCommand bosses) {
+    public MobCommand(MobService mobs, BossCommand bosses, MobMenu menu) {
         this.mobs = mobs;
         this.bosses = bosses;
+        this.menu = menu;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("menu")) {
+            if (sender instanceof Player player) {
+                menu.open(player);
+            } else {
+                sender.sendMessage(Component.text("En jeu seulement.", NamedTextColor.RED));
+            }
+            return true;
+        }
         if (args.length >= 1 && args[0].equalsIgnoreCase("boss")) {
             bosses.handle(sender, args);
             return true;
@@ -58,16 +67,11 @@ public class MobCommand implements TabExecutor {
                 return true;
             }
             int finalRatio = mobs.ratios().clamp(ratio);
-            player.getWorld().spawnEntity(player.getLocation(), variant.type(), CreatureSpawnEvent.SpawnReason.COMMAND,
-                    entity -> {
-                        if (entity instanceof LivingEntity living) {
-                            mobs.apply(living, variant, finalRatio);
-                        }
-                    });
+            mobs.spawn(variant, finalRatio, player.getLocation());
             sender.sendMessage(Component.text(variant.name() + " apparu, ratio " + finalRatio + ".", NamedTextColor.GREEN));
             return true;
         }
-        sender.sendMessage(Component.text("/etermob list | /etermob spawn <variant> [ratio] | /etermob boss ...", NamedTextColor.RED));
+        sender.sendMessage(Component.text("/etermob menu | list | spawn <variant> [ratio] | boss ...", NamedTextColor.RED));
         return true;
     }
 
@@ -75,7 +79,7 @@ public class MobCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         List<String> options = new ArrayList<>();
         if (args.length == 1) {
-            options.addAll(List.of("list", "spawn", "boss"));
+            options.addAll(List.of("menu", "list", "spawn", "boss"));
         } else if (args[0].equalsIgnoreCase("boss")) {
             options.addAll(bosses.complete(args));
         } else if (args.length == 2 && args[0].equalsIgnoreCase("spawn")) {

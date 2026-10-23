@@ -1,9 +1,12 @@
 package fr.eternom.eterMob.module.boss;
 
 import net.kyori.adventure.bossbar.BossBar;
+import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDamageEvent;
+
+import java.util.List;
 
 /**
  * Un boss, codé en dur : son mob, sa vie, ses phases et ses capacités. Le socle (BossService) s'occupe de la barre, des
@@ -48,6 +51,16 @@ public abstract class Boss {
     /** Pour rattacher ses entités au combat (BossService#own) et parler (BossService#say). */
     protected BossService service() {
         return service;
+    }
+
+    /** Icône dans le menu. */
+    public Material icon() {
+        return Material.WITHER_SKELETON_SKULL;
+    }
+
+    /** Description courte pour le menu. */
+    public List<String> lore() {
+        return List.of();
     }
 
     /** Vie (1 024 au plus) ; en groupe, sa résistance augmente (BossFight#toughness, recomptée en continu), pas sa vie. */

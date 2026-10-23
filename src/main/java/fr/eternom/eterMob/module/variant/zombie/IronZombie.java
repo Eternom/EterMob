@@ -21,6 +21,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -53,6 +54,14 @@ public class IronZombie extends ZombieVariant {
 
     public IronZombie() {
         super("zombie_iron", Rarity.PEU_COMMUN, "Ferreus");
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Tank en fer : moitié des dégâts des projectiles.",
+                "Charge toutes les 8 s.",
+                "Biomes : montagnes, neige, profondeurs.");
     }
 
     @Override

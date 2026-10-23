@@ -36,6 +36,13 @@ public class ClassicZombie extends ZombieVariant {
     }
 
     @Override
+    public List<String> lore() {
+        return List.of(
+                "Appel de la horde : réveille les zombies proches.",
+                "Biomes : partout.");
+    }
+
+    @Override
     public void onTarget(ActiveMob mob, EntityTargetLivingEntityEvent event) {
         // CUSTOM : cible donnée par un plugin (dont un autre appel) : pas d'appel en chaîne
         if (!(event.getTarget() instanceof Player player) || event.getReason() == EntityTargetEvent.TargetReason.CUSTOM) {

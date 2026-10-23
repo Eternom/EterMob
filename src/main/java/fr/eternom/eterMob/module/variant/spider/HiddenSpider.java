@@ -13,6 +13,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -51,6 +52,14 @@ public class HiddenSpider extends SpiderVariant {
 
     public HiddenSpider() {
         super("spider_hidden", Rarity.PEU_COMMUN, "Latens");
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Invisible jusqu'à 6 blocs, embuscade à double dégâts.",
+                "Frappe et disparaît dès le ratio 3.",
+                "Biomes : grottes, forêts, forêts sombres, neige.");
     }
 
     @Override

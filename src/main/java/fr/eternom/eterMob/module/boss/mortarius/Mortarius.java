@@ -154,6 +154,19 @@ public class Mortarius extends Boss {
     // ---- Définition ----
 
     @Override
+    public Material icon() {
+        return Material.ZOMBIE_HEAD;
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Zombie géant, 3 phases : ~10 min seul en diamant.",
+                "Levée des morts, bouclier d'os, charge,",
+                "onde sismique (sauter !), drain de vie.");
+    }
+
+    @Override
     public double baseHealth() {
         return 1000;
     }

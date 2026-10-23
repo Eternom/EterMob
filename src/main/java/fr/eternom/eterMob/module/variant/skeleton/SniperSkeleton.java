@@ -21,6 +21,7 @@ import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -60,6 +61,14 @@ public class SniperSkeleton extends SkeletonVariant {
 
     public SniperSkeleton() {
         super("skeleton_sniper", Rarity.PEU_COMMUN, "Sagitta");
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Tire de 24 blocs après une ligne de visée.",
+                "Recule quand on approche.",
+                "Biomes : montagnes, secs, neige, plaines.");
     }
 
     @Override

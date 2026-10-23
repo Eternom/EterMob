@@ -11,6 +11,8 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.List;
+
 /**
  * Chaque joueur touché par son explosion se prend la foudre sur la tête, une fois au ratio 1 et 2, deux fois à partir du
  * ratio 3. La foudre ignore l'armure et les enchantements (l'armure réduirait un petit coup à presque rien) : elle
@@ -30,6 +32,13 @@ public class LightningCreeper extends CreeperVariant {
 
     public LightningCreeper() {
         super("creeper_lightning", Rarity.RARE, "Fulmen", 3, 15);
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Foudroie les joueurs touchés (à travers l'armure).",
+                "Biomes : partout.");
     }
 
     /** Fléau : étincelles électriques sur lui, plus fortes pendant la mèche. */

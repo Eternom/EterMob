@@ -13,6 +13,8 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
+import java.util.List;
+
 /**
  * Harceleur : très rapide mais fragile. Il frappe et recule : après chaque coup, il bondit en arrière de quelques
  * blocs puis revient, et le joueur touché a Lenteur (1 s au ratio 1, environ 2,2 s au ratio 5) : il ne le rattrape
@@ -28,6 +30,13 @@ public class FastZombie extends ZombieVariant {
 
     public FastZombie() {
         super("zombie_fast", Rarity.PEU_COMMUN, "Celer");
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Très rapide : frappe, recule, Lenteur 1 à 2,2 s.",
+                "Biomes : plaines, secs, rivières.");
     }
 
     @Override

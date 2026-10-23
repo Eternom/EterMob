@@ -63,6 +63,14 @@ public class ReviveSkeleton extends SkeletonVariant {
     }
 
     @Override
+    public List<String> lore() {
+        return List.of(
+                "Se relève si on n'écrase pas ses os.",
+                "Bébés zombies et éclats dès le ratio 3.",
+                "Biomes : secs, montagnes, profondeurs.");
+    }
+
+    @Override
     protected boolean spawnsHere(LivingEntity entity) {
         return Spawns.biome(entity, Spawns.DRY, Spawns.MOUNTAINS) || Spawns.below(entity, 0);
     }

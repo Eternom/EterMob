@@ -14,6 +14,8 @@ import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 
+import java.util.List;
+
 /**
  * Un variant de mob, codé en dur : conditions d'apparition et capacités. Chaque capacité part de valeurs de base propres
  * au variant, multipliées par le ratio du mob (ActiveMob#scale). Les méthodes on... ne font rien par défaut : un variant
@@ -64,6 +66,11 @@ public abstract class MobVariant {
     /** Pour les variants qui font apparaître un variant (résurrection...). */
     protected MobService service() {
         return service;
+    }
+
+    /** Description courte (capacités, biomes) pour le menu. */
+    public List<String> lore() {
+        return List.of();
     }
 
     /** Conditions d'apparition (biome, hauteur, lumière, heure, mob bébé...), au point d'apparition. Par défaut : partout. */

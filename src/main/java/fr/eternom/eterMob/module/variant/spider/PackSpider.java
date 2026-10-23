@@ -54,6 +54,14 @@ public class PackSpider extends SpiderVariant {
     }
 
     @Override
+    public List<String> lore() {
+        return List.of(
+                "Meute d'araignées venimeuses.",
+                "Ponte dès le ratio 3, reine protégée au Fléau.",
+                "Biomes : jungles, marais, forêts.");
+    }
+
+    @Override
     protected boolean spawnsHere(LivingEntity entity) {
         return Spawns.biome(entity, Spawns.JUNGLES, Spawns.SWAMPS, Spawns.FORESTS);
     }

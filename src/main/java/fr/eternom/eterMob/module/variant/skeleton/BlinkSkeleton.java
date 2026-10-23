@@ -24,6 +24,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -63,6 +64,14 @@ public class BlinkSkeleton extends SkeletonVariant {
 
     public BlinkSkeleton() {
         super("skeleton_blink", Rarity.PEU_COMMUN, "Umbra");
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Se téléporte quand on approche, laisse un leurre.",
+                "Flèche d'ombre aveuglante dès le ratio 3.",
+                "Biomes : grottes, forêts sombres, jungles.");
     }
 
     @Override

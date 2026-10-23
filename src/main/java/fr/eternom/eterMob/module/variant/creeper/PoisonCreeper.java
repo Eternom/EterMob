@@ -9,6 +9,8 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import java.util.List;
+
 /**
  * Petite explosion qui laisse un nuage de poison (comme une potion persistante) : empoisonne ceux qui restent dedans,
  * pas ceux que l'explosion touche. Le nuage rétrécit jusqu'à moitié avant de disparaître. Rayon, durée du nuage et du
@@ -28,6 +30,13 @@ public class PoisonCreeper extends CreeperVariant {
 
     public PoisonCreeper() {
         super("creeper_poison", Rarity.PEU_COMMUN, "Venenum", 2, 10);
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Laisse un nuage de poison (Poison II dès le ratio 4).",
+                "Biomes : partout.");
     }
 
     /** Usure : son nuage agit dans la durée, lui est solide et un peu lent. */

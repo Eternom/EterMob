@@ -20,6 +20,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -62,6 +63,14 @@ public class HookSkeleton extends SkeletonVariant {
 
     public HookSkeleton() {
         super("skeleton_hook", Rarity.PEU_COMMUN, "Uncus");
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Attire vers la meute, ou vers lui puis crochet.",
+                "Peut désarmer dès le ratio 3.",
+                "Biomes : forêts, jungles, marais, rivières, neige.");
     }
 
     @Override

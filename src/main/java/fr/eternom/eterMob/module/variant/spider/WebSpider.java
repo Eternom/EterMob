@@ -19,6 +19,7 @@ import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -60,6 +61,14 @@ public class WebSpider extends SpiderVariant {
 
     public WebSpider() {
         super("spider_web", Rarity.PEU_COMMUN, "Textor");
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Toile aux pieds à chaque morsure.",
+                "Crache des toiles dès le ratio 3, croix au Fléau.",
+                "Biomes : grottes, forêts, jungles, marais.");
     }
 
     @Override

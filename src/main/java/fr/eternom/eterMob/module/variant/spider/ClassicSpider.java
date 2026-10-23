@@ -11,6 +11,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Spider;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.List;
+
 /**
  * L'araignée de base, la référence des autres.
  * <ul>
@@ -31,6 +33,13 @@ public class ClassicSpider extends SpiderVariant {
 
     public ClassicSpider() {
         super("spider", Rarity.COMMUN, "Aranea");
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Agressive en plein jour dès le ratio 3.",
+                "Biomes : partout.");
     }
 
     private NamespacedKey nightKey() {

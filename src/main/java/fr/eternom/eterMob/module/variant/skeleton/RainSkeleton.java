@@ -16,6 +16,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
@@ -51,6 +52,14 @@ public class RainSkeleton extends SkeletonVariant {
 
     public RainSkeleton() {
         super("skeleton_rain", Rarity.RARE, "Imber");
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Pluie de flèches sous un nuage.",
+                "Suit dès le ratio 3, enflammée au Fléau.",
+                "Biomes : plaines, secs, rivières, neige.");
     }
 
     @Override

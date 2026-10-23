@@ -23,6 +23,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -66,6 +67,14 @@ public class DarkSpider extends SpiderVariant {
 
     public DarkSpider() {
         super("spider_dark", Rarity.RARE, "Caligo");
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Éteint ta lumière, forte dans le noir.",
+                "Obscurité à chaque morsure.",
+                "Biomes : profondeurs, forêts sombres, marais.");
     }
 
     @Override

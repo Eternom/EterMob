@@ -74,6 +74,14 @@ public class SummonerZombie extends ZombieVariant {
         super("zombie_summoner", Rarity.RARE, "Vocator");
     }
 
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Nécromancien à distance, rituel interruptible.",
+                "Sbires à demi-vie.",
+                "Biomes : forêts, neige.");
+    }
+
     /** Forêts, taïgas, neige. */
     @Override
     protected boolean spawnsHere(LivingEntity entity) {

@@ -17,6 +17,7 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -36,6 +37,13 @@ public class SplitZombie extends ZombieVariant {
 
     public SplitZombie() {
         super("zombie_split", Rarity.PEU_COMMUN, "Divisus");
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Se divise comme un slime (1 à 3 générations).",
+                "Biomes : marais, jungles, rivières.");
     }
 
     /** Marais, jungles (grottes luxuriantes comprises), rivières et plages. */

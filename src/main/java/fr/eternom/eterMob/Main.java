@@ -5,6 +5,7 @@ import fr.eternom.eterMob.module.boss.BossListener;
 import fr.eternom.eterMob.module.boss.BossRegistry;
 import fr.eternom.eterMob.module.boss.BossService;
 import fr.eternom.eterMob.module.boss.mortarius.Mortarius;
+import fr.eternom.eterMob.module.menu.MobMenu;
 import fr.eternom.eterMob.module.mob.MobCommand;
 import fr.eternom.eterMob.module.mob.MobListener;
 import fr.eternom.eterMob.module.mob.MobService;
@@ -99,9 +100,11 @@ public final class Main extends JavaPlugin {
         // Boss : seulement par commande pour l'instant (pas d'apparition naturelle)
         bosses = new BossService(this, new BossRegistry(this), List.of(new Mortarius()));
         getServer().getPluginManager().registerEvents(new BossListener(bosses), this);
+        MobMenu menu = new MobMenu(mobs, bosses);
+        getServer().getPluginManager().registerEvents(menu, this);
         PluginCommand command = getCommand("etermob");
         if (command != null) {
-            MobCommand executor = new MobCommand(mobs, new BossCommand(bosses));
+            MobCommand executor = new MobCommand(mobs, new BossCommand(bosses), menu);
             command.setExecutor(executor);
             command.setTabCompleter(executor);
         }

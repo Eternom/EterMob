@@ -9,6 +9,7 @@ import org.bukkit.World;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -30,6 +31,13 @@ public class FragmentCreeper extends CreeperVariant {
 
     public FragmentCreeper() {
         super("creeper_fragment", Rarity.RARE, "Fractus", 2, 12);
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Se fragmente : 3 à 7 éclats explosent autour.",
+                "Biomes : partout.");
     }
 
     /** Zone : ses éclats font le travail, lui est un peu plus fragile. */

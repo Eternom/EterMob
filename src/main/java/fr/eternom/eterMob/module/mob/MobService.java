@@ -3,6 +3,7 @@ package fr.eternom.eterMob.module.mob;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
@@ -10,6 +11,7 @@ import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -105,6 +107,13 @@ public class MobService {
         entity.setRemoveWhenFarAway(true);
 
         variant.onSpawn(new ActiveMob(entity, variant, ratio, power));
+    }
+
+    /** Fait apparaître ce variant de ce ratio ici (hors apparition naturelle : commande, menu). */
+    public LivingEntity spawn(MobVariant variant, int ratio, Location location) {
+        int clamped = ratios.clamp(ratio);
+        return (LivingEntity) location.getWorld().spawnEntity(location, variant.type(), CreatureSpawnEvent.SpawnReason.COMMAND,
+                entity -> apply((LivingEntity) entity, variant, clamped));
     }
 
     /** Multiplie l'attribut par factor (rien si le mob ne l'a pas : un creeper n'a pas de dégâts d'attaque). */

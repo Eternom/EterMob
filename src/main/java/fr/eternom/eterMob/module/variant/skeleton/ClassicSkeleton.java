@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -31,6 +32,13 @@ public class ClassicSkeleton extends SkeletonVariant {
 
     public ClassicSkeleton() {
         super("skeleton", Rarity.COMMUN, "Ossis");
+    }
+
+    @Override
+    public List<String> lore() {
+        return List.of(
+                "Tir qui s'affine : +10 % par flèche d'affilée.",
+                "Biomes : partout.");
     }
 
     /** Arrive avant les dégâts : la série est à jour quand onAttack calcule le bonus. */

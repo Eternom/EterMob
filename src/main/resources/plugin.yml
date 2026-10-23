@@ -10,7 +10,7 @@ description: Variants de mobs avec capacités, apparition selon le lieu, ratio d
 commands:
   etermob:
     description: Variants de mobs et boss (liste, apparition de test, suppression des boss).
-    usage: /etermob <list|spawn <variant> [ratio]|boss <id|list|remove [numéro|all]>>
+    usage: /etermob <menu|list|spawn <variant> [ratio]|boss <id|list|remove [numéro|all]>>
     permission: etermob.admin
 
 permissions:
