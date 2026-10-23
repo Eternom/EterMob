@@ -15,12 +15,13 @@ import org.bukkit.util.Vector;
 
 /**
  * Harceleur : très rapide mais fragile. Il frappe et recule : après chaque coup, il bondit en arrière de quelques
- * blocs puis revient, et le joueur touché a Lenteur 1 s pour ne pas le rattraper. Plaines, savanes, prairies, déserts,
+ * blocs puis revient, et le joueur touché a Lenteur (1 s au ratio 1, environ 2,2 s au ratio 5) : il ne le rattrape
+ * pas, et les autres zombies le rattrapent, lui. Plaines, savanes, prairies, déserts,
  * badlands, rivières et plages.
  */
 public class FastZombie extends ZombieVariant {
 
-    private static final int SLOWNESS_TICKS = 20;
+    private static final double SLOWNESS_TICKS = 20;
     /** Bond en arrière après un coup (blocs par tick). */
     private static final double RETREAT = 0.8;
     private static final double RETREAT_LIFT = 0.35;
@@ -54,7 +55,7 @@ public class FastZombie extends ZombieVariant {
         if (event.getDamager() != mob.entity() || !(victim instanceof Player)) {
             return;
         }
-        victim.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, SLOWNESS_TICKS, 0));
+        victim.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, mob.scaleInt(SLOWNESS_TICKS), 0));
         LivingEntity zombie = mob.entity();
         Bukkit.getScheduler().runTask(JavaPlugin.getProvidingPlugin(FastZombie.class), () -> {
             if (!zombie.isValid() || zombie.getWorld() != victim.getWorld()) {
