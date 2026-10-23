@@ -56,7 +56,10 @@ import java.util.concurrent.ThreadLocalRandom;
  * <ul>
  *   <li>Combat : il choisit sa cible à la menace (les dégâts reçus, plus pour les tireurs, et la proximité ; il ne change
  *   que pour une menace nettement plus forte), frappe à 4,5 blocs (sa taille), et s'il ne peut pas atteindre sa cible
- *   pendant 3 s (perchée, coincée), il bondit sur elle (onde de choc à l'atterrissage) ou en change.</li>
+ *   pendant 3 s (perchée, coincée), il bondit sur elle ou en change. Il bondit aussi sur qui le tient à distance : une
+ *   flèche qui le touche de plus de 10 blocs, ou une cible à plus de 14 blocs pendant 3 s. Le bond se voit venir : il
+ *   s'accroupit 0,6 s et un cercle rouge marque au sol le point visé (il ne suit pas en l'air) ; à l'atterrissage, les
+ *   joueurs dans le cercle prennent des dégâts et décollent.</li>
  *   <li>Passifs : pas lourds (poussière et son sourd) ; aura de pourriture (à moins de 5 blocs, 1 PV toutes les 2 s à
  *   travers l'armure, qui le soigne) ; seigneur de la horde (les zombies à moins de 16 blocs chassent sa cible, plus
  *   vite).</li>
@@ -84,6 +87,12 @@ public class Mortarius extends Boss {
     private static final int UNREACHABLE_CHECKS = 3;
     private static final double LEAP_DAMAGE = 10;
     private static final double LEAP_RADIUS = 3.5;
+    private static final long LEAP_COOLDOWN_MILLIS = 8_000;
+    private static final int LEAP_WINDUP = 12;
+    /** Tenu à distance : flèche reçue de plus de FAR_HIT blocs (récente : moins de 3 s), ou cible à plus de FAR_TARGET. */
+    private static final double FAR_HIT = 10;
+    private static final double FAR_TARGET = 14;
+    private static final long FAR_HIT_MEMORY_MILLIS = 3_000;
 
     private static final double AURA_RADIUS = 5;
     private static final double AURA_DAMAGE = 1;
@@ -148,6 +157,9 @@ public class Mortarius extends Boss {
         long shieldBackAt;
         Location lastStep;
         int unreachable;
+        int farChecks;
+        UUID farShooter;
+        long farHitAt;
         final Map<UUID, Double> threat = new HashMap<>();
         final Map<UUID, Pillar> pillars = new HashMap<>();
         final List<Zombie> raised = new ArrayList<>();
@@ -353,8 +365,22 @@ public class Mortarius extends Boss {
             return;
         }
         double distance = target.getLocation().distance(boss.getLocation());
+        Player shooter = farShooter(state, boss);
+        if (shooter != null && fight.ready("leap", LEAP_COOLDOWN_MILLIS)) {
+            boss.setTarget(shooter);
+            leap(fight, state, shooter);
+            return;
+        }
+        if (state.ticks % 20 == 0) {
+            state.farChecks = distance > FAR_TARGET ? state.farChecks + 1 : 0;
+            if (state.farChecks >= UNREACHABLE_CHECKS && fight.ready("leap", LEAP_COOLDOWN_MILLIS)) {
+                state.farChecks = 0;
+                leap(fight, state, target);
+                return;
+            }
+        }
         if (state.ticks % 20 == 0 && unreachable(state, boss, target)) {
-            if (fight.ready("leap", 8_000)) {
+            if (fight.ready("leap", LEAP_COOLDOWN_MILLIS)) {
                 leap(fight, state, target);
                 return;
             }
@@ -458,44 +484,83 @@ public class Mortarius extends Boss {
         return false;
     }
 
-    /** Bond sur une cible inaccessible : élan selon la distance et la hauteur, onde de choc à l'atterrissage. */
+    /**
+     * Bond : il s'accroupit 0,6 s pendant qu'un cercle rouge marque au sol le point visé (la position de la cible à ce
+     * moment), puis saute sur ce point fixe ; à l'atterrissage, les joueurs dans le cercle prennent des dégâts et décollent.
+     */
     private void leap(BossFight fight, State state, Player target) {
         Zombie boss = (Zombie) fight.entity();
         state.busy = true;
-        Location from = boss.getLocation();
-        Vector to = target.getLocation().toVector().subtract(from.toVector());
-        double height = Math.max(0, to.getY());
-        double horizontal = Math.hypot(to.getX(), to.getZ());
-        double lift = Math.min(1.6, 0.9 + height * 0.12);
-        double airTicks = 2 * lift / 0.08;
-        Vector flat = to.clone().setY(0);
-        Vector push = flat.lengthSquared() < 0.01 ? new Vector() : flat.normalize().multiply(Math.min(1.8, horizontal / (airTicks * 0.8)));
-        boss.getWorld().playSound(from, Sound.ENTITY_RAVAGER_ROAR, 2f, 0.9f);
-        dust(from, 40, 1.5);
-        boss.setVelocity(push.setY(lift));
+        Location landing = target.getLocation();
+        boss.setAI(false);
+        boss.getWorld().playSound(boss.getLocation(), Sound.ENTITY_RAVAGER_ROAR, 2f, 0.9f);
         int[] elapsed = {0};
         BukkitTask[] task = new BukkitTask[1];
         task[0] = Bukkit.getScheduler().runTaskTimer(plugin(), () -> {
             elapsed[0] += 2;
-            if (!boss.isValid() || elapsed[0] > 60) {
+            if (!boss.isValid() || elapsed[0] > LEAP_WINDUP + 60) {
                 task[0].cancel();
-                state.busy = false;
+                release(boss, target, state);
                 return;
             }
-            if (elapsed[0] > 6 && boss.isOnGround()) {
+            if (elapsed[0] < LEAP_WINDUP) {
+                circle(landing, LEAP_RADIUS);
+                dust(boss.getLocation(), 10, 1);
+                return;
+            }
+            if (elapsed[0] == LEAP_WINDUP) {
+                boss.setAI(true);
+                boss.setVelocity(leapVelocity(boss.getLocation(), landing));
+                dust(boss.getLocation(), 40, 1.5);
+                return;
+            }
+            circle(landing, LEAP_RADIUS);
+            if (elapsed[0] > LEAP_WINDUP + 6 && boss.isOnGround()) {
                 task[0].cancel();
                 Location at = boss.getLocation();
                 boss.getWorld().spawnParticle(Particle.EXPLOSION, at, 3, 1, 0, 1, 0);
                 dust(at, 60, 2);
                 boss.getWorld().playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 1.2f, 0.6f);
-                Hits.shockwave(boss, at, LEAP_RADIUS, LEAP_DAMAGE, 0.8, 0.5);
-                state.busy = false;
+                Hits.shockwave(boss, at, LEAP_RADIUS, LEAP_DAMAGE, 0.5, 0.9);
+                release(boss, target, state);
             }
         }, 2, 2);
     }
 
+    /** Élan pour atterrir à peu près sur ce point : hauteur selon le dénivelé, vitesse selon la distance. */
+    private static Vector leapVelocity(Location from, Location landing) {
+        Vector to = landing.toVector().subtract(from.toVector());
+        double lift = Math.min(1.6, 0.9 + Math.max(0, to.getY()) * 0.12);
+        double airTicks = 2 * lift / 0.08;
+        Vector flat = to.clone().setY(0);
+        double horizontal = flat.length();
+        Vector push = horizontal < 0.1 ? new Vector() : flat.normalize().multiply(Math.min(1.8, horizontal / (airTicks * 0.8)));
+        return push.setY(lift);
+    }
+
+    /** Cercle rouge au sol : la zone d'atterrissage. */
+    private static void circle(Location center, double radius) {
+        Particle.DustOptions red = new Particle.DustOptions(Color.fromRGB(0xD01010), 1.4f);
+        for (int i = 0; i < 24; i++) {
+            double angle = i * Math.PI / 12;
+            center.getWorld().spawnParticle(Particle.DUST, center.clone().add(Math.cos(angle) * radius, 0.15,
+                    Math.sin(angle) * radius), 1, 0, 0, 0, 0, red);
+        }
+    }
+
+    /** Le tireur qui l'a touché de loin il y a moins de 3 s, s'il est encore dans le combat ; null sinon. */
+    private static Player farShooter(State state, LivingEntity boss) {
+        if (state.farShooter == null || System.currentTimeMillis() - state.farHitAt > FAR_HIT_MEMORY_MILLIS) {
+            return null;
+        }
+        Player shooter = Bukkit.getPlayer(state.farShooter);
+        state.farShooter = null;
+        return shooter != null && Hits.fighting(shooter) && shooter.getWorld() == boss.getWorld()
+                && shooter.getLocation().distance(boss.getLocation()) <= TARGET_RANGE ? shooter : null;
+    }
+
     /** Menace : qui le frappe attire son attention (les tireurs un peu plus). */
-    private static void addThreat(State state, EntityDamageEvent event) {
+    private static void addThreat(State state, LivingEntity boss, EntityDamageEvent event) {
         if (!(event instanceof org.bukkit.event.entity.EntityDamageByEntityEvent byEntity)) {
             return;
         }
@@ -504,6 +569,10 @@ public class Mortarius extends Boss {
         } else if (byEntity.getDamager() instanceof org.bukkit.entity.Projectile projectile
                 && projectile.getShooter() instanceof Player player) {
             state.threat.merge(player.getUniqueId(), event.getDamage() * RANGED_THREAT, Double::sum);
+            if (player.getWorld() == boss.getWorld() && player.getLocation().distance(boss.getLocation()) > FAR_HIT) {
+                state.farShooter = player.getUniqueId();
+                state.farHitAt = System.currentTimeMillis();
+            }
         }
     }
 
@@ -858,7 +927,7 @@ public class Mortarius extends Boss {
     /** Bouclier levé : le boss ne prend aucun dégât. */
     @Override
     public void onDamaged(BossFight fight, EntityDamageEvent event) {
-        addThreat(state(fight), event);
+        addThreat(state(fight), fight.entity(), event);
         if (fight.phase() == 2 && !state(fight).pillars.isEmpty()) {
             event.setCancelled(true);
             LivingEntity boss = fight.entity();
