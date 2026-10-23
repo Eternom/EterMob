@@ -277,6 +277,7 @@ public class BossService {
             if (phase > fight.phase()) {
                 transition(fight, phase);
             }
+            capHealth(fight);
             refreshBar(fight);
             if (near && !fight.invulnerable()) {
                 fight.boss().tick(fight);
@@ -299,6 +300,24 @@ public class BossService {
         }
         fight.participants().values().removeIf(seen -> now - seen > PARTICIPANT_MEMORY_MILLIS);
         fight.toughness(1 + TOUGHNESS_PER_EXTRA_PLAYER * Math.max(0, fight.participants().size() - 1));
+    }
+
+    /** Vie maximale autorisée dans la phase en cours : il ne remonte jamais au-dessus du seuil de sa phase. */
+    public double healthCap(BossFight fight) {
+        AttributeInstance max = fight.entity().getAttribute(Attribute.MAX_HEALTH);
+        double full = max == null ? fight.entity().getHealth() : max.getValue();
+        double[] thresholds = fight.boss().phaseThresholds();
+        int phase = fight.phase();
+        return phase <= 1 || phase - 2 >= thresholds.length ? (phase <= 1 ? full : full * thresholds[thresholds.length - 1])
+                : full * thresholds[phase - 2];
+    }
+
+    /** Soins (aura, drain...) plafonnés au seuil de la phase : sinon le combat pourrait durer à l'infini. */
+    private void capHealth(BossFight fight) {
+        double cap = healthCap(fight);
+        if (fight.entity().getHealth() > cap) {
+            fight.entity().setHealth(cap);
+        }
     }
 
     private int phaseFor(BossFight fight) {

@@ -791,10 +791,11 @@ public class Mortarius extends Boss {
         return farthest;
     }
 
-    private static void heal(LivingEntity boss, double amount) {
-        AttributeInstance max = boss.getAttribute(Attribute.MAX_HEALTH);
-        if (max != null && boss.isValid() && !boss.isDead()) {
-            boss.setHealth(Math.min(max.getValue(), boss.getHealth() + amount));
+    /** Soin plafonné au seuil de sa phase (il ne remonte jamais dans la phase précédente). */
+    private void heal(BossFight fight, double amount) {
+        LivingEntity boss = fight.entity();
+        if (boss.isValid() && !boss.isDead()) {
+            boss.setHealth(Math.min(service().healthCap(fight), boss.getHealth() + amount));
         }
     }
 
@@ -841,13 +842,13 @@ public class Mortarius extends Boss {
             int phase = Math.min(3, fight.phase());
             double damage = auraDamage[phase - 1] + (has(state, Role.AURA) ? PILLAR_AURA_DAMAGE : 0);
             if (has(state, Role.HEAL)) {
-                heal(boss, PILLAR_HEAL);
+                heal(fight, PILLAR_HEAL);
                 boss.getWorld().spawnParticle(Particle.HEART, boss.getLocation().add(0, boss.getHeight() + 0.3, 0), 2, 0.4, 0.2, 0.4, 0);
             }
             for (Player player : nearby(boss, auraRadius(fight, state))) {
                 Hits.trueDamage(player, damage, boss);
                 fight.taken(player, damage);
-                heal(boss, AURA_HEAL);
+                heal(fight, AURA_HEAL);
                 if (phase == 2) {
                     player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 50, 0));
                 } else if (phase >= 3) {
@@ -1522,7 +1523,7 @@ public class Mortarius extends Boss {
                 beam(chest(player), heart);
                 Hits.trueDamage(player, drainDamage, boss);
                 fight.taken(player, drainDamage);
-                heal(boss, drainDamage);
+                heal(fight, drainDamage);
                 // Il les attire vers lui, dans son aura
                 Vector toward = boss.getLocation().toVector().subtract(player.getLocation().toVector()).setY(0);
                 if (toward.lengthSquared() > 1) {
