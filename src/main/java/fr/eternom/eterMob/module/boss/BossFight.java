@@ -19,6 +19,7 @@ public class BossFight {
     private final Boss boss;
     private final LivingEntity entity;
     private final Location home;
+    private final double toughness;
     private final BossBar bar;
     private final Set<Entity> owned = new HashSet<>();
     private final Set<UUID> viewers = new HashSet<>();
@@ -27,10 +28,11 @@ public class BossFight {
     private long invulnerableUntil;
     private long lastPlayerNear = System.currentTimeMillis();
 
-    BossFight(Boss boss, LivingEntity entity, Location home, BossBar bar) {
+    BossFight(Boss boss, LivingEntity entity, Location home, double toughness, BossBar bar) {
         this.boss = boss;
         this.entity = entity;
         this.home = home;
+        this.toughness = toughness;
         this.bar = bar;
     }
 
@@ -49,6 +51,11 @@ public class BossFight {
     /** Point d'apparition : la laisse le ramène ici. */
     public Location home() {
         return home.clone();
+    }
+
+    /** Résistance selon les joueurs présents à l'apparition : les dégâts reçus (boss et piliers) en sont divisés. */
+    public double toughness() {
+        return toughness;
     }
 
     public int phase() {

@@ -47,8 +47,8 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Mortarius, Seigneur des Tombes : un zombie 2,5 fois plus grand, réglé pour un joueur seul en diamant (300 PV, +50 % par
- * joueur en plus). Il ne brûle pas au soleil. Aucun vrai bloc n'est posé ni cassé : piliers, sillons et ondes sont des
+ * Mortarius, Seigneur des Tombes : un zombie 2,5 fois plus grand, 1 000 PV (en groupe, +35 % de résistance par joueur
+ * en plus), dont les coups sont réglés pour un joueur en diamant. Il ne brûle pas au soleil. Aucun vrai bloc n'est posé ni cassé : piliers, sillons et ondes sont des
  * affichages et des particules.
  * <ul>
  *   <li>Passifs : pas lourds (poussière et son sourd) ; aura de pourriture (à moins de 5 blocs, 1 PV toutes les 2 s à
@@ -83,7 +83,7 @@ public class Mortarius extends Boss {
     private static final int FURROW_TICKS = 20;
 
     private static final int PILLARS = 4;
-    private static final double PILLAR_HEALTH = 25;
+    private static final double PILLAR_HEALTH = 60;
     private static final double PILLAR_RADIUS = 5;
     private static final long SHIELD_BACK_MILLIS = 30_000;
 
@@ -154,7 +154,7 @@ public class Mortarius extends Boss {
 
     @Override
     public double baseHealth() {
-        return 300;
+        return 1000;
     }
 
     @Override
@@ -709,7 +709,7 @@ public class Mortarius extends Boss {
             return;
         }
         event.setCancelled(true);
-        pillar.health -= event.getDamage();
+        pillar.health -= event.getDamage() / fight.toughness();
         Location at = owned.getLocation().add(0, 1.2, 0);
         at.getWorld().spawnParticle(Particle.BLOCK, at, 12, 0.3, 0.5, 0.3, 0.05, Material.BONE_BLOCK.createBlockData());
         at.getWorld().playSound(at, Sound.BLOCK_BONE_BLOCK_HIT, 1f, 0.8f);

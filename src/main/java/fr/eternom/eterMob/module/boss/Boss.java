@@ -50,7 +50,7 @@ public abstract class Boss {
         return service;
     }
 
-    /** Vie pour un joueur seul ; +50 % par joueur en plus présent à l'apparition. */
+    /** Vie (1 024 au plus) ; en groupe, sa résistance augmente (BossFight#toughness), pas sa vie. */
     public abstract double baseHealth();
 
     /** Hauteur de la place libre nécessaire pour le faire apparaître (blocs). */

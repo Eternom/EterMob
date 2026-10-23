@@ -50,6 +50,7 @@ public class BossListener implements Listener {
                 event.setCancelled(true);
                 return;
             }
+            event.setDamage(event.getDamage() / fight.toughness());
             fight.boss().onDamaged(fight, event);
             return;
         }

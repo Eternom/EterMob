@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Le socle des boss : apparition (place libre, vie selon les joueurs), barre de boss, phases selon la vie (avec une
+ * Le socle des boss : apparition (place libre, résistance selon les joueurs), barre de boss, phases selon la vie (avec une
  * transition intouchable de 2 s), laisse (ramené à son point d'apparition au-delà de 40 blocs), remise à zéro (plus de
  * joueur à 64 blocs pendant 30 s : soigné, phase 1), registre persistant et suppression. Le boss est sauvegardé ; ce
  * qu'il crée (piliers, sbires, affichages) ne l'est jamais. Thread principal.
@@ -45,7 +45,11 @@ public class BossService {
     private static final double RESET_RANGE = 64;
     private static final long RESET_MILLIS = 30_000;
     private static final long TRANSITION_MILLIS = 2_000;
-    private static final double HEALTH_PER_EXTRA_PLAYER = 0.5;
+    /**
+     * Par joueur en plus présent à l'apparition : sa résistance augmente d'autant (les dégâts qu'il reçoit sont divisés
+     * par 1 + 0,35 par joueur en plus). Plutôt qu'une vie plus grande : la vie d'un mob est plafonnée à 1 024.
+     */
+    private static final double TOUGHNESS_PER_EXTRA_PLAYER = 0.35;
     /** Position du boss enregistrée dans le registre toutes les 30 s. */
     private static final int SAVE_TICKS = 600;
     /** Chunk chargé pour supprimer un boss lointain : relâché après ce délai (ticks). */
@@ -58,6 +62,7 @@ public class BossService {
     private final Map<UUID, BossFight> owners = new HashMap<>();
     private final NamespacedKey bossKey;
     private final NamespacedKey homeKey;
+    private final NamespacedKey toughnessKey;
     private long ticks;
 
     public BossService(JavaPlugin plugin, BossRegistry registry, List<Boss> bosses) {
@@ -69,6 +74,7 @@ public class BossService {
         });
         this.bossKey = new NamespacedKey(plugin, "boss");
         this.homeKey = new NamespacedKey(plugin, "boss_home");
+        this.toughnessKey = new NamespacedKey(plugin, "boss_toughness");
     }
 
     public Collection<Boss> bosses() {
@@ -114,11 +120,13 @@ public class BossService {
             }
         }
         long players = at.getNearbyPlayers(BAR_RANGE).stream().filter(Hits::fighting).count();
-        double health = boss.baseHealth() * (1 + HEALTH_PER_EXTRA_PLAYER * Math.max(0, players - 1));
+        double health = boss.baseHealth();
+        double toughness = 1 + TOUGHNESS_PER_EXTRA_PLAYER * Math.max(0, players - 1);
         LivingEntity entity = at.getWorld().spawn(at, boss.type(), CreatureSpawnEvent.SpawnReason.CUSTOM, mob -> {
             PersistentDataContainer data = mob.getPersistentDataContainer();
             data.set(bossKey, PersistentDataType.STRING, boss.id());
             data.set(homeKey, PersistentDataType.STRING, at.getX() + ";" + at.getY() + ";" + at.getZ());
+            data.set(toughnessKey, PersistentDataType.DOUBLE, toughness);
             mob.addScoreboardTag(TAG);
             // Avant son entrée dans le monde : attach le trouve déjà dans le registre
             registry.add(mob.getUniqueId(), boss.id(), at);
@@ -160,7 +168,8 @@ public class BossService {
         if (entry == null) {
             registry.add(living.getUniqueId(), boss.id(), living.getLocation());
         }
-        BossFight fight = new BossFight(boss, living, home(living), BossBar.bossBar(Component.empty(), 1f, boss.color(1),
+        double toughness = Math.max(1, data.getOrDefault(toughnessKey, PersistentDataType.DOUBLE, 1.0));
+        BossFight fight = new BossFight(boss, living, home(living), toughness, BossBar.bossBar(Component.empty(), 1f, boss.color(1),
                 BossBar.Overlay.NOTCHED_10));
         fights.put(living.getUniqueId(), fight);
         int phase = phaseFor(fight);
