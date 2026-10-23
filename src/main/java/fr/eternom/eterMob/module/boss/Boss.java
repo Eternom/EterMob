@@ -53,6 +53,14 @@ public abstract class Boss {
     /** Vie (1 024 au plus) ; en groupe, sa résistance augmente (BossFight#toughness), pas sa vie. */
     public abstract double baseHealth();
 
+    /**
+     * Résistance de base : les dégâts qu'il reçoit en sont divisés (la vie d'un mob ne dépasse pas 1 024, c'est donc ici
+     * qu'on allonge un combat). Multipliée par la résistance de groupe ; ne s'applique pas à ses entités (piliers...).
+     */
+    public double toughness() {
+        return 1;
+    }
+
     /** Hauteur de la place libre nécessaire pour le faire apparaître (blocs). */
     public abstract double height();
 

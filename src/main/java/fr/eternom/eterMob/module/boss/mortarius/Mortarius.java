@@ -47,8 +47,9 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Mortarius, Seigneur des Tombes : un zombie 2,5 fois plus grand, 1 000 PV (en groupe, +35 % de résistance par joueur
- * en plus), dont les coups sont réglés pour un joueur en diamant. Il ne brûle pas au soleil. Aucun vrai bloc n'est posé ni cassé : piliers, sillons et ondes sont des
+ * Mortarius, Seigneur des Tombes : un zombie 2,5 fois plus grand, 1 000 PV et une résistance de base de 2,5 (en groupe,
+ * +35 % par joueur en plus) : environ 10 minutes seul en diamant Tranchant V, il faut venir préparé. Ses coups sont
+ * réglés pour un joueur en diamant. Il ne brûle pas au soleil. Aucun vrai bloc n'est posé ni cassé : piliers, sillons et ondes sont des
  * affichages et des particules.
  * <ul>
  *   <li>Passifs : pas lourds (poussière et son sourd) ; aura de pourriture (à moins de 5 blocs, 1 PV toutes les 2 s à
@@ -155,6 +156,11 @@ public class Mortarius extends Boss {
     @Override
     public double baseHealth() {
         return 1000;
+    }
+
+    @Override
+    public double toughness() {
+        return 2.5;
     }
 
     @Override
