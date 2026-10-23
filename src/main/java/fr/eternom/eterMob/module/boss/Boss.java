@@ -115,6 +115,27 @@ public abstract class Boss {
     public void onPhase(BossFight fight, int phase, boolean resumed) {
     }
 
+    /** Réglages de config.yml (bosses.&lt;id&gt;), lus au démarrage ; section null si absente : valeurs par défaut. */
+    public void configure(org.bukkit.configuration.ConfigurationSection section) {
+    }
+
+    /** Minutes de combat avant la rage de fin (ses coups font +50 %). */
+    public double enrageMinutes() {
+        return 15;
+    }
+
+    /**
+     * Entrée en scène, juste après l'apparition (le boss est déjà dans le monde) ; renvoie sa durée en ticks, pendant
+     * laquelle il est intouchable et n'attaque pas.
+     */
+    public int intro(BossFight fight) {
+        return 0;
+    }
+
+    /** Personne ne le frappe depuis 60 s alors que des joueurs sont là : il relance le combat. */
+    public void onStall(BossFight fight) {
+    }
+
     /** Chaque fois que le boss entre dans le monde (apparu ou rechargé) : ce que Minecraft garde et qu'il faut remettre (IA...). */
     public void onLoad(BossFight fight) {
     }

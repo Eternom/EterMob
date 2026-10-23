@@ -19,6 +19,7 @@ import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -75,7 +76,6 @@ import java.util.concurrent.ThreadLocalRandom;
 public class Mortarius extends Boss {
 
     private static final double SCALE = 2.5;
-    private static final double ATTACK_DAMAGE = 12;
     /** Allonge de ses coups (blocs) : celle d'un mob de sa taille, et délai entre deux coups. */
     private static final double MELEE_REACH = 4.5;
     private static final long MELEE_COOLDOWN_MILLIS = 1_000;
@@ -91,7 +91,6 @@ public class Mortarius extends Boss {
     private static final double THREAT_SWITCH = 1.3;
     /** Inaccessible depuis ce nombre de vérifications (une par seconde) : il bondit ou change de cible. */
     private static final int UNREACHABLE_CHECKS = 3;
-    private static final double LEAP_DAMAGE = 10;
     private static final double LEAP_RADIUS = 3.5;
     private static final long LEAP_COOLDOWN_MILLIS = 8_000;
     private static final int LEAP_WINDUP = 12;
@@ -102,14 +101,12 @@ public class Mortarius extends Boss {
 
     /** Aura de pourriture par phase (1 à 3) : rayon et dégâts toutes les 2 s ; elle le soigne d'AURA_HEAL par joueur. */
     private static final double[] AURA_RADIUS = {5, 5, 7};
-    private static final double[] AURA_DAMAGE = {1, 2, 3};
     private static final double AURA_HEAL = 1;
     private static final double LAST_STAND_AURA = 10;
     private static final double HORDE_RADIUS = 16;
     private static final double TARGET_RANGE = 32;
 
     private static final double SLAM_REACH = 4.5;
-    private static final double SLAM_DAMAGE = 16;
     private static final double SLAM_ANGLE = Math.toRadians(60);
     private static final int SLAM_WINDUP = 16;
 
@@ -127,17 +124,34 @@ public class Mortarius extends Boss {
     private static final double PILLAR_SCALE = 1.7;
     private static final float PILLAR_HEIGHT = 3.4f;
     private static final long SHIELD_BACK_MILLIS = 30_000;
+    /** Bonus des piliers tant qu'ils tiennent : soin (toutes les 2 s), vitesse, force, aura (dégâts et rayon). */
+    private static final double PILLAR_HEAL = 3;
+    private static final double PILLAR_SPEED = 0.2;
+    private static final double PILLAR_STRENGTH = 0.3;
+    private static final double PILLAR_AURA_DAMAGE = 1;
+    private static final double PILLAR_AURA_RADIUS = 2;
+    /** Il titube quand un pilier tombe (ticks). */
+    private static final int PILLAR_STAGGER = 20;
+
+    /** Charge finie contre un mur : sonné (ticks), et dégâts reçus multipliés pendant ce temps. */
+    private static final int STUN_TICKS = 60;
+    private static final double STUN_DAMAGE = 1.5;
+
+    /** Entrée : il sort de terre depuis cette profondeur, en tant de ticks. */
+    private static final double INTRO_DEPTH = 5;
+    private static final int INTRO_TICKS = 60;
+
+    /** Coup de masse bloqué au bouclier : bouclier désactivé (ticks). */
+    private static final int SHIELD_DISABLE_TICKS = 100;
 
     private static final double CHARGE_MIN = 6;
     private static final double CHARGE_RANGE = 24;
-    private static final double CHARGE_DAMAGE = 10;
     private static final double CHARGE_STEP = 0.9;
     private static final int CHARGE_TICKS = 16;
     private static final int CHARGE_WINDUP = 20;
 
     /** Onde sismique : 3 anneaux, de plus en plus rapides (blocs par tick), épais (on ne passe pas entre), espacés. */
     private static final double WAVE_RADIUS = 14;
-    private static final double WAVE_DAMAGE = 14;
     private static final double[] WAVE_SPEEDS = {0.8, 1.1, 1.4};
     private static final int WAVE_GAP = 16;
     private static final double WAVE_THICKNESS = 1.3;
@@ -145,7 +159,6 @@ public class Mortarius extends Boss {
 
     /** Les tombes : un cercle sous chaque joueur, des os en jaillissent après TOMB_WINDUP ticks. */
     private static final double TOMB_RADIUS = 1.8;
-    private static final double TOMB_DAMAGE = 16;
     private static final int TOMB_WINDUP = 30;
 
     /** Dernier souffle : sous cette part de vie, une fois. */
@@ -153,7 +166,6 @@ public class Mortarius extends Boss {
     private static final int LAST_STAND_RAISED = 6;
 
     private static final double DRAIN_RANGE = 10;
-    private static final double DRAIN_DAMAGE = 5;
     /** Le drain attire les joueurs vers lui (blocs par tick). */
     private static final double DRAIN_PULL = 1.1;
     private static final int DRAIN_WINDUP = 20;
@@ -162,15 +174,33 @@ public class Mortarius extends Boss {
     private static final Color ROT = Color.fromRGB(0x5E8C31);
     private static final Color BLOOD = Color.fromRGB(0x8A0303);
 
-    /** Un pilier d'os : le bloc affiché, son corps invisible (qui reçoit les coups) et ses PV. */
+    /** Rôle d'un pilier : le bonus qu'il donne à Mortarius tant qu'il tient, et sa couleur (lueur et rayon). */
+    private enum Role {
+        HEAL("soin", Color.fromRGB(0x3FD15A)),
+        SPEED("vitesse", Color.fromRGB(0x3FB8E0)),
+        STRENGTH("force", Color.fromRGB(0xE03F3F)),
+        AURA("aura", Color.fromRGB(0x9B3FE0));
+
+        final String label;
+        final Color color;
+
+        Role(String label, Color color) {
+            this.label = label;
+            this.color = color;
+        }
+    }
+
+    /** Un pilier d'os : le bloc affiché, son corps invisible (qui reçoit les coups), son rôle et ses PV. */
     private static final class Pillar {
         final BlockDisplay display;
         final LivingEntity body;
+        final Role role;
         double health = PILLAR_HEALTH;
 
-        Pillar(BlockDisplay display, LivingEntity body) {
+        Pillar(BlockDisplay display, LivingEntity body, Role role) {
             this.display = display;
             this.body = body;
+            this.role = role;
         }
     }
 
@@ -178,6 +208,7 @@ public class Mortarius extends Boss {
     private static final class State {
         boolean busy;
         long busySince;
+        long stunnedUntil;
         boolean lastStand;
         long ticks;
         long shieldBackAt;
@@ -191,8 +222,23 @@ public class Mortarius extends Boss {
         final List<Zombie> raised = new ArrayList<>();
     }
 
+    /** Réglages (config.yml, bosses.mortarius) : valeurs par défaut ci-dessous. Dégâts avant armure et difficulté. */
+    private double health = 1000;
+    private double toughness = 2.5;
+    private double enrageMinutes = 15;
+    private double attackDamage = 12;
+    private double slamDamage = 16;
+    private double chargeDamage = 10;
+    private double leapDamage = 10;
+    private double waveDamage = 14;
+    private double tombDamage = 16;
+    private double drainDamage = 5;
+    private double[] auraDamage = {1, 2, 3};
+
     private final Map<UUID, State> states = new HashMap<>();
     private NamespacedKey rageKey;
+    private NamespacedKey pillarSpeedKey;
+    private NamespacedKey pillarStrengthKey;
 
     public Mortarius() {
         super("mortarius", "Mortarius", "Seigneur des Tombes");
@@ -207,6 +253,14 @@ public class Mortarius extends Boss {
             rageKey = new NamespacedKey(JavaPlugin.getProvidingPlugin(Mortarius.class), "rage");
         }
         return rageKey;
+    }
+
+    private NamespacedKey pillarKey(boolean speed) {
+        if (pillarSpeedKey == null) {
+            pillarSpeedKey = new NamespacedKey(plugin(), "pillar_speed");
+            pillarStrengthKey = new NamespacedKey(plugin(), "pillar_strength");
+        }
+        return speed ? pillarSpeedKey : pillarStrengthKey;
     }
 
     private static JavaPlugin plugin() {
@@ -230,13 +284,39 @@ public class Mortarius extends Boss {
     }
 
     @Override
+    public void configure(ConfigurationSection section) {
+        if (section == null) {
+            return;
+        }
+        health = Math.clamp(section.getDouble("health", health), 1, 1024);
+        toughness = Math.max(0.1, section.getDouble("toughness", toughness));
+        enrageMinutes = section.getDouble("enrage-minutes", enrageMinutes);
+        attackDamage = section.getDouble("damage.attack", attackDamage);
+        slamDamage = section.getDouble("damage.slam", slamDamage);
+        chargeDamage = section.getDouble("damage.charge", chargeDamage);
+        leapDamage = section.getDouble("damage.leap", leapDamage);
+        waveDamage = section.getDouble("damage.wave", waveDamage);
+        tombDamage = section.getDouble("damage.tombs", tombDamage);
+        drainDamage = section.getDouble("damage.drain", drainDamage);
+        List<Double> aura = section.getDoubleList("damage.aura");
+        if (aura.size() == 3) {
+            auraDamage = new double[]{aura.get(0), aura.get(1), aura.get(2)};
+        }
+    }
+
+    @Override
     public double baseHealth() {
-        return 1000;
+        return health;
     }
 
     @Override
     public double toughness() {
-        return 2.5;
+        return toughness;
+    }
+
+    @Override
+    public double enrageMinutes() {
+        return enrageMinutes;
     }
 
     @Override
@@ -259,7 +339,7 @@ public class Mortarius extends Boss {
         base(zombie, Attribute.SCALE, SCALE);
         base(zombie, Attribute.KNOCKBACK_RESISTANCE, 1);
         base(zombie, Attribute.FOLLOW_RANGE, TARGET_RANGE + 16);
-        base(zombie, Attribute.ATTACK_DAMAGE, ATTACK_DAMAGE);
+        base(zombie, Attribute.ATTACK_DAMAGE, attackDamage);
         EntityEquipment equipment = zombie.getEquipment();
         if (equipment != null) {
             wear(equipment, EquipmentSlot.HEAD, Material.NETHERITE_HELMET);
@@ -327,6 +407,48 @@ public class Mortarius extends Boss {
         Bukkit.getMobGoals().removeGoal(boss, VanillaGoal.ZOMBIE_ATTACK);
     }
 
+    /** Entrée : il sort de terre en 3 s (intouchable pendant ce temps), dans la poussière et le grondement. */
+    @Override
+    public int intro(BossFight fight) {
+        Zombie boss = (Zombie) fight.entity();
+        Location top = boss.getLocation();
+        boss.setAI(false);
+        boss.setGravity(false);
+        boss.teleport(top.clone().subtract(0, INTRO_DEPTH, 0));
+        boss.getWorld().playSound(top, Sound.ENTITY_WARDEN_EMERGE, 2f, 0.6f);
+        int[] elapsed = {0};
+        BukkitTask[] task = new BukkitTask[1];
+        task[0] = Bukkit.getScheduler().runTaskTimer(plugin(), () -> {
+            elapsed[0] += 2;
+            if (!boss.isValid()) {
+                task[0].cancel();
+                return;
+            }
+            boss.teleport(top.clone().subtract(0, INTRO_DEPTH * (1 - (double) elapsed[0] / INTRO_TICKS), 0));
+            dust(top, 30, 1.5);
+            if (elapsed[0] % 20 == 0) {
+                boss.getWorld().playSound(top, Sound.BLOCK_ROOTED_DIRT_BREAK, 2f, 0.5f);
+            }
+            if (elapsed[0] >= INTRO_TICKS) {
+                task[0].cancel();
+                boss.setGravity(true);
+                boss.setAI(true);
+                boss.getWorld().playSound(top, Sound.ENTITY_RAVAGER_ROAR, 2f, 0.5f);
+            }
+        }, 2, 2);
+        return INTRO_TICKS;
+    }
+
+    /** Personne ne le frappe depuis 60 s : il lève des morts autour des joueurs pour relancer le combat. */
+    @Override
+    public void onStall(BossFight fight) {
+        List<Player> players = nearby(fight.entity(), TARGET_RANGE);
+        if (!players.isEmpty()) {
+            service().say(fight, "Vous fuyez ? Mes morts vous trouveront.");
+            raiseDead(fight, state(fight), players.get(0));
+        }
+    }
+
     @Override
     public void onPhase(BossFight fight, int phase, boolean resumed) {
         LivingEntity boss = fight.entity();
@@ -355,8 +477,10 @@ public class Mortarius extends Boss {
         state.unreachable = 0;
         state.farChecks = 0;
         state.farShooter = null;
+        state.stunnedUntil = 0;
         LivingEntity boss = fight.entity();
         rage(boss, false);
+        pillarBuffs(boss, state);
         boss.setAI(true);
         boss.setGlowing(false);
     }
@@ -588,7 +712,7 @@ public class Mortarius extends Boss {
                 boss.getWorld().spawnParticle(Particle.EXPLOSION, at, 3, 1, 0, 1, 0);
                 dust(at, 60, 2);
                 boss.getWorld().playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 1.2f, 0.6f);
-                Hits.shockwave(boss, at, LEAP_RADIUS, LEAP_DAMAGE, 0.5, 0.9);
+                Hits.shockwave(boss, at, LEAP_RADIUS, leapDamage, 0.5, 0.9);
                 release(boss, target, state);
             }
         }, 2, 2);
@@ -697,6 +821,10 @@ public class Mortarius extends Boss {
                 at.getWorld().spawnParticle(Particle.DUST, at.clone().add(Math.cos(angle) * aura, 0.2,
                         Math.sin(angle) * aura), 1, 0.1, 0.05, 0.1, 0, new Particle.DustOptions(ROT, 1.5f));
             }
+            pillarBuffs(boss, state);
+            for (Pillar pillar : state.pillars.values()) {
+                tether(pillar.body.getLocation().add(0, PILLAR_HEIGHT - 0.3, 0), chest(boss), pillar.role.color);
+            }
             if (fight.phase() == 2 && !state.pillars.isEmpty()) {
                 // Bouclier : anneau d'os autour de lui
                 for (int i = 0; i < 10; i++) {
@@ -711,8 +839,14 @@ public class Mortarius extends Boss {
         }
         if (state.ticks % 40 == 0) {
             int phase = Math.min(3, fight.phase());
+            double damage = auraDamage[phase - 1] + (has(state, Role.AURA) ? PILLAR_AURA_DAMAGE : 0);
+            if (has(state, Role.HEAL)) {
+                heal(boss, PILLAR_HEAL);
+                boss.getWorld().spawnParticle(Particle.HEART, boss.getLocation().add(0, boss.getHeight() + 0.3, 0), 2, 0.4, 0.2, 0.4, 0);
+            }
             for (Player player : nearby(boss, auraRadius(fight, state))) {
-                Hits.trueDamage(player, AURA_DAMAGE[phase - 1], boss);
+                Hits.trueDamage(player, damage, boss);
+                fight.taken(player, damage);
                 heal(boss, AURA_HEAL);
                 if (phase == 2) {
                     player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 50, 0));
@@ -731,7 +865,45 @@ public class Mortarius extends Boss {
     }
 
     private static double auraRadius(BossFight fight, State state) {
-        return state.lastStand ? LAST_STAND_AURA : AURA_RADIUS[Math.min(3, fight.phase()) - 1];
+        double radius = state.lastStand ? LAST_STAND_AURA : AURA_RADIUS[Math.min(3, fight.phase()) - 1];
+        return radius + (has(state, Role.AURA) ? PILLAR_AURA_RADIUS : 0);
+    }
+
+    private static boolean has(State state, Role role) {
+        return state.pillars.values().stream().anyMatch(pillar -> pillar.role == role);
+    }
+
+    /** Bonus de vitesse et de force tant que le pilier correspondant tient. */
+    private void pillarBuffs(LivingEntity boss, State state) {
+        buff(boss.getAttribute(Attribute.MOVEMENT_SPEED), pillarKey(true), has(state, Role.SPEED) ? PILLAR_SPEED : 0);
+        buff(boss.getAttribute(Attribute.ATTACK_DAMAGE), pillarKey(false), has(state, Role.STRENGTH) ? PILLAR_STRENGTH : 0);
+    }
+
+    private static void buff(AttributeInstance attribute, NamespacedKey key, double amount) {
+        if (attribute == null) {
+            return;
+        }
+        AttributeModifier current = attribute.getModifier(key);
+        if (current != null && current.getAmount() == amount) {
+            return;
+        }
+        attribute.removeModifier(key);
+        if (amount != 0) {
+            attribute.addTransientModifier(new AttributeModifier(key, amount, AttributeModifier.Operation.MULTIPLY_SCALAR_1));
+        }
+    }
+
+    /** Rayon coloré du sommet d'un pilier jusqu'à lui. */
+    private static void tether(Location from, Location to, Color color) {
+        Vector step = to.toVector().subtract(from.toVector());
+        int points = (int) Math.max(1, step.length() * 1.5);
+        step.multiply(1.0 / points);
+        Location point = from.clone();
+        Particle.DustOptions dust = new Particle.DustOptions(color, 0.9f);
+        for (int i = 0; i < points; i++) {
+            point.add(step);
+            point.getWorld().spawnParticle(Particle.DUST, point, 1, 0, 0, 0, 0, dust);
+        }
     }
 
     /** Seigneur de la horde : les zombies proches chassent sa cible, plus vite, avec une lueur rouge. */
@@ -810,6 +982,7 @@ public class Mortarius extends Boss {
             Location arm = boss.getLocation().add(forward.clone().multiply(0.8)).add(0, boss.getHeight() * 0.9, 0);
             boss.getWorld().spawnParticle(Particle.LARGE_SMOKE, arm, 6, 0.2, 0.2, 0.2, 0.01);
             if (elapsed[0] < SLAM_WINDUP) {
+                crack(boss.getLocation(), forward);
                 return;
             }
             task[0].cancel();
@@ -818,7 +991,14 @@ public class Mortarius extends Boss {
             for (Player player : nearby(boss, SLAM_REACH + 1)) {
                 Vector to = player.getLocation().toVector().subtract(boss.getLocation().toVector()).setY(0);
                 if (to.length() <= SLAM_REACH && (to.lengthSquared() < 0.01 || to.angle(forward) <= SLAM_ANGLE)) {
-                    player.damage(SLAM_DAMAGE, boss);
+                    if (blocks(player, boss)) {
+                        // Bloqué au bouclier : pas de dégâts, mais le bouclier est hors d'usage 5 s (comme une hache)
+                        player.setCooldown(Material.SHIELD, SHIELD_DISABLE_TICKS);
+                        player.getWorld().playSound(player.getLocation(), Sound.ITEM_SHIELD_BREAK, 1.2f, 0.8f);
+                        Hits.knock(player, boss.getLocation(), 0.8, 0.3);
+                        continue;
+                    }
+                    player.damage(slamDamage * (has(state, Role.STRENGTH) ? 1 + PILLAR_STRENGTH : 1), boss);
                     Hits.knock(player, boss.getLocation(), 1.4, 0.5);
                 }
             }
@@ -833,12 +1013,40 @@ public class Mortarius extends Boss {
         }, 0, 4);
     }
 
+    /** Fissure rouge au sol : l'arc que va balayer le coup de masse. */
+    private static void crack(Location center, Vector forward) {
+        Particle.DustOptions red = new Particle.DustOptions(Color.fromRGB(0x8A1010), 1.2f);
+        double base = Math.atan2(forward.getZ(), forward.getX());
+        for (double angle = -SLAM_ANGLE; angle <= SLAM_ANGLE; angle += SLAM_ANGLE / 4) {
+            for (double distance = 1.5; distance <= SLAM_REACH; distance += 1) {
+                center.getWorld().spawnParticle(Particle.DUST, center.clone().add(Math.cos(base + angle) * distance, 0.15,
+                        Math.sin(base + angle) * distance), 1, 0, 0, 0, 0, red);
+            }
+        }
+    }
+
+    /** Le joueur bloque au bouclier, face au boss. */
+    private static boolean blocks(Player player, LivingEntity boss) {
+        if (!player.isBlocking()) {
+            return false;
+        }
+        Vector toBoss = boss.getLocation().toVector().subtract(player.getLocation().toVector()).setY(0);
+        Vector facing = player.getLocation().getDirection().setY(0);
+        return toBoss.lengthSquared() < 0.01 || facing.lengthSquared() < 0.01 || facing.angle(toBoss) < Math.PI / 2;
+    }
+
     /** Levée des morts : sillons 1 s, puis 4 zombies remontent du sol. */
     private void raiseDead(BossFight fight, State state, Player target) {
         Zombie boss = (Zombie) fight.entity();
+        // Autour des joueurs, pour les encercler (autour de lui s'il n'y a pas la place)
+        List<Player> players = nearby(boss, TARGET_RANGE);
         List<Location> spots = new ArrayList<>();
         for (int i = 0; i < RAISED; i++) {
-            Location spot = groundNear(boss.getLocation(), 3, 6);
+            Location around = players.isEmpty() ? boss.getLocation() : players.get(i % players.size()).getLocation();
+            Location spot = groundNear(around, 2, 4);
+            if (spot == null) {
+                spot = groundNear(boss.getLocation(), 3, 6);
+            }
             if (spot != null) {
                 spots.add(spot);
             }
@@ -950,7 +1158,11 @@ public class Mortarius extends Boss {
         }
         LivingEntity boss = fight.entity();
         BlockData bone = Material.BONE_BLOCK.createBlockData();
+        List<Role> roles = new ArrayList<>(List.of(Role.values()));
+        java.util.Collections.shuffle(roles);
+        service().say(fight, "Mes piliers me portent : soin, vitesse, force, aura. Choisissez bien.");
         for (int i = 0; i < PILLARS; i++) {
+            Role role = roles.get(i % roles.size());
             double angle = Math.PI / 4 + i * Math.PI / 2;
             Location spot = ground(boss.getLocation().add(Math.cos(angle) * PILLAR_RADIUS, 0, Math.sin(angle) * PILLAR_RADIUS));
             if (spot == null) {
@@ -961,6 +1173,8 @@ public class Mortarius extends Boss {
                 block.setPersistent(false);
                 block.setTransformation(new Transformation(new Vector3f(-0.5f, 0, -0.5f), new AxisAngle4f(),
                         new Vector3f(1, PILLAR_HEIGHT, 1), new AxisAngle4f()));
+                block.setGlowing(true);
+                block.setGlowColorOverride(role.color);
             });
             Skeleton body = spot.getWorld().spawn(spot, Skeleton.class, support -> {
                 support.setInvisible(true);
@@ -977,7 +1191,7 @@ public class Mortarius extends Boss {
             });
             service().own(fight, display);
             service().own(fight, body);
-            state.pillars.put(body.getUniqueId(), new Pillar(display, body));
+            state.pillars.put(body.getUniqueId(), new Pillar(display, body, role));
             spot.getWorld().spawnParticle(Particle.BLOCK, spot.clone().add(0, 1, 0), 40, 0.4, 1, 0.4, 0.1, bone);
             spot.getWorld().playSound(spot, Sound.BLOCK_BONE_BLOCK_PLACE, 1.5f, 0.6f);
         }
@@ -1007,7 +1221,12 @@ public class Mortarius extends Boss {
     /** Bouclier levé : le boss ne prend aucun dégât. */
     @Override
     public void onDamaged(BossFight fight, EntityDamageEvent event) {
-        addThreat(state(fight), fight.entity(), event);
+        State current = state(fight);
+        addThreat(current, fight.entity(), event);
+        if (System.currentTimeMillis() < current.stunnedUntil) {
+            event.setDamage(event.getDamage() * STUN_DAMAGE);
+            fight.entity().getWorld().spawnParticle(Particle.CRIT, chest(fight.entity()), 12, 0.6, 0.8, 0.6, 0.2);
+        }
         if (fight.phase() == 2 && !state(fight).pillars.isEmpty()) {
             event.setCancelled(true);
             LivingEntity boss = fight.entity();
@@ -1037,9 +1256,39 @@ public class Mortarius extends Boss {
         }
         state.pillars.remove(owned.getUniqueId());
         destroy(pillar);
+        Player breaker = breaker(event);
+        if (breaker != null) {
+            fight.count(breaker, "piliers");
+        }
+        service().say(fight, "Mon pilier de " + pillar.role.label + "... !");
+        stagger(fight, state);
         if (state.pillars.isEmpty()) {
             breakShield(fight, state, true);
         }
+    }
+
+    private static Player breaker(EntityDamageEvent event) {
+        if (!(event instanceof org.bukkit.event.entity.EntityDamageByEntityEvent byEntity)) {
+            return null;
+        }
+        if (byEntity.getDamager() instanceof Player player) {
+            return player;
+        }
+        return byEntity.getDamager() instanceof org.bukkit.entity.Projectile projectile && projectile.getShooter() instanceof Player player
+                ? player : null;
+    }
+
+    /** Il titube 1 s quand un pilier tombe (s'il n'est pas déjà en pleine attaque). */
+    private void stagger(BossFight fight, State state) {
+        Zombie boss = (Zombie) fight.entity();
+        if (state.busy) {
+            return;
+        }
+        state.busy = true;
+        state.busySince = System.currentTimeMillis();
+        boss.setAI(false);
+        boss.getWorld().spawnParticle(Particle.CRIT, chest(boss), 20, 0.6, 0.8, 0.6, 0.1);
+        Bukkit.getScheduler().runTaskLater(plugin(), () -> release(boss, null, state), PILLAR_STAGGER);
     }
 
     /** Coup d'un joueur (de près ou avec un projectile) : seuls ceux-là abîment les piliers (pas le soleil ni les mobs). */
@@ -1082,19 +1331,46 @@ public class Mortarius extends Boss {
             if (blocked || elapsed[0] > CHARGE_WINDUP + CHARGE_TICKS) {
                 task[0].cancel();
                 dust(boss.getLocation(), 40, 1.5);
-                release(boss, target, state);
+                if (blocked) {
+                    stun(boss, target, state);
+                } else {
+                    release(boss, target, state);
+                }
                 return;
             }
             boss.teleport(next);
             boss.getWorld().spawnParticle(Particle.CLOUD, boss.getLocation(), 6, 0.6, 0.1, 0.6, 0.02);
             for (Player player : nearby(boss, 2.5)) {
                 if (hit.add(player.getUniqueId())) {
-                    player.damage(CHARGE_DAMAGE, boss);
+                    player.damage(chargeDamage, boss);
                     Hits.knock(player, boss.getLocation(), 1.8, 0.6);
                     boss.getWorld().playSound(player.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1.5f, 0.6f);
                 }
             }
         }, 1, 1);
+    }
+
+    /** Charge finie contre un mur : sonné 3 s (étoiles), il prend 50 % de dégâts en plus pendant ce temps. */
+    private static void stun(Zombie boss, Player target, State state) {
+        state.stunnedUntil = System.currentTimeMillis() + STUN_TICKS * 50L;
+        state.busySince = System.currentTimeMillis();
+        boss.getWorld().playSound(boss.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 2f, 0.5f);
+        boss.getWorld().playSound(boss.getLocation(), Sound.ENTITY_IRON_GOLEM_DAMAGE, 1.5f, 0.6f);
+        int[] elapsed = {0};
+        BukkitTask[] task = new BukkitTask[1];
+        task[0] = Bukkit.getScheduler().runTaskTimer(plugin(), () -> {
+            elapsed[0] += 5;
+            if (!boss.isValid() || elapsed[0] > STUN_TICKS) {
+                task[0].cancel();
+                release(boss, target, state);
+                return;
+            }
+            Location head = boss.getLocation().add(0, boss.getHeight() + 0.4, 0);
+            for (int i = 0; i < 5; i++) {
+                double angle = elapsed[0] * 0.3 + i * Math.PI * 2 / 5;
+                boss.getWorld().spawnParticle(Particle.ENCHANTED_HIT, head.clone().add(Math.cos(angle) * 0.8, 0, Math.sin(angle) * 0.8), 1);
+            }
+        }, 0, 5);
     }
 
     // ---- Phase 3 ----
@@ -1159,7 +1435,7 @@ public class Mortarius extends Boss {
                     if (Hits.fighting(player) && Math.abs(distance - radius) <= WAVE_THICKNESS
                             && Math.abs(feet.getY() - center.getY()) < 2.5 && ((Entity) player).isOnGround()
                             && hit.get(ring).add(player.getUniqueId())) {
-                        player.damage(WAVE_DAMAGE, boss);
+                        player.damage(waveDamage, boss);
                         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 1));
                         Hits.knock(player, center, 0.5, 0.7);
                     }
@@ -1204,7 +1480,7 @@ public class Mortarius extends Boss {
                 grave.getWorld().playSound(grave, Sound.BLOCK_BONE_BLOCK_BREAK, 1.5f, 0.5f);
                 for (Player player : grave.getNearbyPlayers(TOMB_RADIUS)) {
                     if (Hits.fighting(player) && Math.abs(player.getLocation().getY() - grave.getY()) < 2.5) {
-                        player.damage(TOMB_DAMAGE, boss);
+                        player.damage(tombDamage, boss);
                         Hits.knock(player, grave, 0.3, 1.0);
                     }
                 }
@@ -1244,8 +1520,9 @@ public class Mortarius extends Boss {
             Collection<Player> victims = nearby(boss, DRAIN_RANGE);
             for (Player player : victims) {
                 beam(chest(player), heart);
-                Hits.trueDamage(player, DRAIN_DAMAGE, boss);
-                heal(boss, DRAIN_DAMAGE);
+                Hits.trueDamage(player, drainDamage, boss);
+                fight.taken(player, drainDamage);
+                heal(boss, drainDamage);
                 // Il les attire vers lui, dans son aura
                 Vector toward = boss.getLocation().toVector().subtract(player.getLocation().toVector()).setY(0);
                 if (toward.lengthSquared() > 1) {

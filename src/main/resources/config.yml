@@ -60,3 +60,26 @@ creeper-block-damage: false
 
 # Variants désactivés (identifiants de /etermob list) : ils n'apparaissent plus naturellement.
 disabled-variants: []
+
+# ============================================================
+#  Boss (apparition par /etermob boss ou le menu seulement)
+# ============================================================
+#  Dégâts avant armure et avant la difficulté (Difficile : ×1,5 sur les coups qui passent par l'armure). L'aura et le
+#  drain traversent l'armure. Toute modification nécessite un redémarrage du serveur.
+bosses:
+  mortarius:
+    # Vie (1 024 au plus) et résistance : les dégâts reçus sont divisés par la résistance, ×1,35 par joueur en plus.
+    health: 1000
+    toughness: 2.5
+    # Minutes de combat avant sa rage de fin (ses coups font +50 %).
+    enrage-minutes: 15
+    damage:
+      attack: 12
+      slam: 16
+      charge: 10
+      leap: 10
+      wave: 14
+      tombs: 16
+      drain: 5
+      # Aura de pourriture en phase 1, 2 et 3 (toutes les 2 s, à travers l'armure).
+      aura: [1, 2, 3]

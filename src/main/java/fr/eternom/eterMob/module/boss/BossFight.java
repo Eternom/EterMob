@@ -9,12 +9,24 @@ import org.bukkit.entity.Player;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/** Un combat en cours : le boss chargé, sa phase, sa barre, son point d'apparition, ses entités et ses délais. */
+/**
+ * Un combat en cours : le boss chargé, sa phase, sa barre, son point d'apparition, ses entités, ses délais, et les
+ * statistiques de chaque joueur pour le bilan de fin (jamais enregistrées).
+ */
 public class BossFight {
+
+    /** Ce qu'un joueur a fait pendant le combat. */
+    public static final class Stats {
+        double dealt;
+        double taken;
+        int deaths;
+        final Map<String, Integer> extra = new LinkedHashMap<>();
+    }
 
     private final Boss boss;
     private final LivingEntity entity;
@@ -29,6 +41,11 @@ public class BossFight {
     private int phase = 1;
     private long invulnerableUntil;
     private long lastPlayerNear = System.currentTimeMillis();
+    private final Map<UUID, Stats> stats = new LinkedHashMap<>();
+    private long combatStart;
+    private long lastPlayerDamage;
+    private boolean enraged;
+    private boolean dying;
 
     BossFight(Boss boss, LivingEntity entity, Location home, BossBar bar) {
         this.boss = boss;
@@ -92,7 +109,8 @@ public class BossFight {
         return System.currentTimeMillis() < invulnerableUntil;
     }
 
-    void invulnerableFor(long millis) {
+    /** Intouchable pendant ce temps (transition, entrée...). */
+    public void invulnerableFor(long millis) {
         invulnerableUntil = System.currentTimeMillis() + millis;
     }
 
@@ -116,6 +134,73 @@ public class BossFight {
 
     void clearCooldowns() {
         cooldowns.clear();
+    }
+
+    // ---- Statistiques (bilan de fin) ----
+
+    Stats stats(UUID player) {
+        return stats.computeIfAbsent(player, id -> new Stats());
+    }
+
+    Map<UUID, Stats> allStats() {
+        return stats;
+    }
+
+    /** Dégâts reçus par un joueur venant du boss (à appeler pour ceux qui ne passent pas par un événement : aura, drain...). */
+    public void taken(Player player, double amount) {
+        stats(player.getUniqueId()).taken += amount;
+    }
+
+    /** Ligne de bilan propre au boss (piliers cassés...) : +1 pour ce joueur. */
+    public void count(Player player, String label) {
+        stats(player.getUniqueId()).extra.merge(label, 1, Integer::sum);
+    }
+
+    void dealt(Player player, double amount) {
+        long now = System.currentTimeMillis();
+        if (combatStart == 0) {
+            combatStart = now;
+        }
+        lastPlayerDamage = now;
+        stats(player.getUniqueId()).dealt += amount;
+    }
+
+    /** Début du combat (premier coup d'un joueur), ou 0. */
+    public long combatStart() {
+        return combatStart;
+    }
+
+    long lastPlayerDamage() {
+        return lastPlayerDamage;
+    }
+
+    void lastPlayerDamage(long when) {
+        lastPlayerDamage = when;
+    }
+
+    /** Rage de fin (combat trop long) : ses coups font plus mal. */
+    public boolean enraged() {
+        return enraged;
+    }
+
+    void enraged(boolean enraged) {
+        this.enraged = enraged;
+    }
+
+    /** En train de mourir (effondrement) : plus d'attaques, intouchable. */
+    public boolean dying() {
+        return dying;
+    }
+
+    void dying(boolean dying) {
+        this.dying = dying;
+    }
+
+    void resetCombat() {
+        stats.clear();
+        combatStart = 0;
+        lastPlayerDamage = 0;
+        enraged = false;
     }
 
     /** Joueurs dans la zone du combat (BossService.BAR_RANGE). */

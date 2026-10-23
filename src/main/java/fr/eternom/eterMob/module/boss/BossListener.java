@@ -5,7 +5,12 @@ import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityCombustEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityMountEvent;
@@ -46,18 +51,66 @@ public class BossListener implements Listener {
     public void onDamage(EntityDamageEvent event) {
         BossFight fight = bosses.fight(event.getEntity());
         if (fight != null) {
-            if (IMMUNE.contains(event.getCause()) || fight.invulnerable()) {
+            if (IMMUNE.contains(event.getCause()) || fight.invulnerable() || fight.dying()) {
                 event.setCancelled(true);
                 return;
             }
             event.setDamage(event.getDamage() / (fight.toughness() * fight.boss().toughness()));
             fight.boss().onDamaged(fight, event);
+            if (event.isCancelled()) {
+                return;
+            }
+            LivingEntity boss = fight.entity();
+            double dealt = Math.min(event.getFinalDamage(), boss.getHealth());
+            Player attacker = attacker(event);
+            if (attacker != null) {
+                fight.dealt(attacker, dealt);
+            }
+            if (event.getFinalDamage() >= boss.getHealth()) {
+                // Coup fatal : il s'effondre 3 s avant de mourir
+                event.setCancelled(true);
+                bosses.beginDeath(fight);
+            }
+            return;
+        }
+        if (event.getEntity() instanceof Player player && event instanceof EntityDamageByEntityEvent byEntity) {
+            BossFight source = bosses.fightOf(byEntity.getDamager());
+            if (source != null && source.enraged()) {
+                event.setDamage(event.getDamage() * BossService.ENRAGE_DAMAGE);
+            }
             return;
         }
         BossFight owner = bosses.ownerOf(event.getEntity());
         if (owner != null) {
             owner.boss().onOwnedDamaged(owner, event.getEntity(), event);
         }
+    }
+
+    /** Dégâts reçus d'un boss ou de ses entités, pour le bilan (après tous les autres plugins). */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerHurt(EntityDamageByEntityEvent event) {
+        if (event.getEntity() instanceof Player player) {
+            BossFight source = bosses.fightOf(event.getDamager());
+            if (source != null) {
+                source.taken(player, event.getFinalDamage());
+            }
+        }
+    }
+
+    @EventHandler
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        bosses.playerDied(event.getPlayer());
+    }
+
+    /** Le joueur qui a porté ce coup (de près ou avec un projectile), ou null. */
+    private static Player attacker(EntityDamageEvent event) {
+        if (!(event instanceof EntityDamageByEntityEvent byEntity)) {
+            return null;
+        }
+        if (byEntity.getDamager() instanceof Player player) {
+            return player;
+        }
+        return byEntity.getDamager() instanceof Projectile projectile && projectile.getShooter() instanceof Player player ? player : null;
     }
 
     /** Aucun butin pour l'instant. */
