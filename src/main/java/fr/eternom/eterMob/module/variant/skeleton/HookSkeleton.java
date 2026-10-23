@@ -10,6 +10,7 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Enemy;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -22,12 +23,15 @@ import org.bukkit.util.Vector;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Harpon : ses flèches attirent le joueur touché, plus fort selon le ratio (environ 4 blocs au ratio 1, 9 au ratio 5).
  * Si un autre mob hostile est à moins de 8 blocs du joueur, il l'attire vers ce mob : il le jette dans la meute. Sinon
  * il l'attire vers lui, et quand le joueur arrive à moins de 3 blocs (dans les 3 s), il sort une épée et lui donne un
- * coup de crochet qui le renvoie loin en arrière, puis reprend son arc. Forêts, taïgas, jungles, marais, rivières, neige.
+ * coup de crochet qui le renvoie loin en arrière, puis reprend son arc. À partir du ratio 3, le coup de crochet a une
+ * petite chance de faire tomber l'objet en main du joueur (8 %, 12 % au ratio 5) : il tombe devant lui, ramassable
+ * après 1 s. Forêts, taïgas, jungles, marais, rivières, neige.
  */
 public class HookSkeleton extends SkeletonVariant {
 
@@ -46,6 +50,11 @@ public class HookSkeleton extends SkeletonVariant {
     private static final double STRIKE_LIFT = 0.5;
     /** Durée de l'épée en main (ticks), avant de reprendre l'arc. */
     private static final int SWORD_TICKS = 10;
+    /** Désarmement : à partir de ce ratio, chance (ratio 3 et 4, puis Fléau), délai avant de pouvoir ramasser (ticks). */
+    private static final int DISARM_RATIO = 3;
+    private static final double DISARM_CHANCE = 0.08;
+    private static final double DISARM_CHANCE_SCOURGE = 0.12;
+    private static final int DISARM_PICKUP_TICKS = 20;
 
     /** Joueur attiré vers le squelette, et jusqu'à quand le coup de crochet est possible (par squelette). */
     private final Map<Integer, UUID> hooked = new HashMap<>();
@@ -131,7 +140,7 @@ public class HookSkeleton extends SkeletonVariant {
     }
 
     /** Coup de crochet : épée en main un instant, coup fort, et le joueur part loin en arrière. */
-    private static void strike(ActiveMob mob, Player player) {
+    private void strike(ActiveMob mob, Player player) {
         LivingEntity skeleton = mob.entity();
         EntityEquipment equipment = skeleton.getEquipment();
         if (equipment != null) {
@@ -154,6 +163,25 @@ public class HookSkeleton extends SkeletonVariant {
         }
         player.getWorld().spawnParticle(Particle.SWEEP_ATTACK, player.getLocation().add(0, 1, 0), 1);
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_KNOCKBACK, 1f, 0.8f);
+        disarm(mob, player);
+    }
+
+    /** Petite chance de faire tomber l'objet en main du joueur, devant lui. */
+    private void disarm(ActiveMob mob, Player player) {
+        if (mob.ratio() < DISARM_RATIO) {
+            return;
+        }
+        double chance = mob.ratio() >= service().ratios().max() ? DISARM_CHANCE_SCOURGE : DISARM_CHANCE;
+        ItemStack held = player.getInventory().getItemInMainHand();
+        if (held.getType().isAir() || ThreadLocalRandom.current().nextDouble() >= chance) {
+            return;
+        }
+        player.getInventory().setItemInMainHand(null);
+        Item dropped = player.getWorld().dropItem(player.getEyeLocation(), held, item -> {
+            item.setPickupDelay(DISARM_PICKUP_TICKS);
+            item.setVelocity(player.getLocation().getDirection().setY(0.2).multiply(0.3));
+        });
+        dropped.getWorld().playSound(dropped.getLocation(), Sound.ENTITY_ITEM_FRAME_REMOVE_ITEM, 1f, 0.8f);
     }
 
     private void forget(int id) {
