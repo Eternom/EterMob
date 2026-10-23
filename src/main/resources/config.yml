@@ -64,8 +64,8 @@ disabled-variants: []
 # ============================================================
 #  Boss (apparition par /etermob boss ou le menu seulement)
 # ============================================================
-#  Dégâts avant armure et avant la difficulté (Difficile : ×1,5 sur les coups qui passent par l'armure). L'aura et le
-#  drain traversent l'armure. Toute modification nécessite un redémarrage du serveur.
+#  Dégâts avant armure et avant la difficulté (Difficile : ×1,5 sur les coups qui passent par l'armure). L'aura
+#  traverse l'armure. Toute modification nécessite un redémarrage du serveur.
 bosses:
   mortarius:
     # Vie (1 024 au plus) et résistance : les dégâts reçus sont divisés par la résistance, ×1,35 par joueur en plus.
@@ -78,8 +78,7 @@ bosses:
       slam: 16
       charge: 10
       leap: 10
-      wave: 14
-      tombs: 16
-      drain: 5
+      wave: 10
+      tombs: 12
       # Aura de pourriture en phase 1, 2 et 3 (toutes les 2 s, à travers l'armure).
-      aura: [1, 2, 3]
+      aura: [1, 2, 2]

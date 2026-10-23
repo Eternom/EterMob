@@ -60,18 +60,20 @@ import java.util.concurrent.ThreadLocalRandom;
  *   choisit ses attaques selon la situation (joueurs groupés autour de lui, dispersés, au loin). Il bondit sur une cible
  *   inaccessible ou qui le tient à distance (flèche de plus de 10 blocs, ou cible à plus de 14 blocs pendant 3 s) : il
  *   s'accroupit 0,6 s et un cercle rouge marque le point visé ; à l'atterrissage, ceux dans le cercle décollent.</li>
- *   <li>Passifs : pas lourds ; aura de pourriture (sans soin) qui monte avec les phases (1, 2, puis 3 PV toutes les 2 s à travers
- *   l'armure ; Faiblesse en phase 2 ; Wither et 7 blocs en phase 3, 10 au dernier souffle) ; seigneur de la horde.</li>
- *   <li>Phase 1, le Seigneur : coup de masse en arc (bras levé 0,8 s avant) ; levée des morts (4 zombies fragiles et
- *   rapides sortent du sol, sillons 1 s avant).</li>
- *   <li>Phase 2, le Bouclier d'os : intouchable tant que 4 piliers d'os tiennent (relevés 30 s après) ; charge sur un
- *   joueur au loin (il racle le sol 1 s avant).</li>
- *   <li>Phase 3, la Fin : rage (plus rapide, frappe toutes les 0,7 s, coups de masse deux fois plus fréquents) ; triple
- *   onde sismique de plus en plus rapide (sauter à chaque anneau) ; les tombes (un cercle sous chaque joueur, des os en
- *   jaillissent 1,5 s après) ; drain de vie qui attire vers lui ; dernier souffle à 10 % (6 zombies levés, aura à 10
- *   blocs).</li>
+ *   <li>Passifs : pas lourds ; aura de pourriture (sans soin) : 1 PV toutes les 2 s à travers l'armure en phase 1,
+ *   2 PV et Faiblesse ensuite, 7 blocs en phase 3, 8 au dernier souffle ; seigneur de la horde.</li>
+ *   <li>Une seule attaque spéciale à la fois, avec un délai commun (7 s, 6 s puis 5 s selon la phase) ; ses coups
+ *   normaux sont à part. Chaque phase a son propre jeu d'attaques :</li>
+ *   <li>Phase 1, le Seigneur : coup de masse en arc (fissure au sol 0,8 s avant, bloquable au bouclier) ; levée des
+ *   morts autour des joueurs.</li>
+ *   <li>Phase 2, le Bouclier d'os : intouchable tant que 4 piliers à rôle tiennent (relevés 30 s après) ; charge sur un
+ *   joueur au loin (sonné 3 s s'il finit dans un mur) ; coup de masse ; levée des morts plus rare.</li>
+ *   <li>Phase 3, la Fin : rage (un peu plus rapide, coups toutes les 0,85 s) ; triple onde sismique si l'on est groupé
+ *   près de lui ; les tombes si l'on est dispersé ; l'aspiration (attirés sans dégâts, projetés, puis sonnés 3 s : leurs
+ *   coups sont sans effet) ; coup de masse ; dernier souffle à 10 % (4 zombies levés, aura à 8 blocs).</li>
  * </ul>
- * Chaque phase garde les capacités des précédentes. Les zombies levés ne lâchent rien et meurent avec lui.
+ * Le bond (cible au loin, inaccessible, ou tireur à distance) vaut pour toutes les phases. Les zombies levés ne lâchent
+ * rien et meurent avec lui.
  */
 public class Mortarius extends Boss {
 
@@ -79,7 +81,9 @@ public class Mortarius extends Boss {
     /** Allonge de ses coups (blocs) : celle d'un mob de sa taille, et délai entre deux coups. */
     private static final double MELEE_REACH = 4.5;
     private static final long MELEE_COOLDOWN_MILLIS = 1_000;
-    private static final long RAGE_MELEE_COOLDOWN_MILLIS = 700;
+    private static final long RAGE_MELEE_COOLDOWN_MILLIS = 850;
+    /** Une seule attaque spéciale à la fois : délai commun entre deux, par phase (ses coups normaux sont à part). */
+    private static final long[] SPECIAL_GAP_MILLIS = {7_000, 6_000, 5_000};
     /** Garde-fou : une attaque qui le garde occupé plus longtemps est abandonnée. */
     private static final long BUSY_LIMIT_MILLIS = 6_000;
     /** Achever : un joueur à moins de ce nombre de PV attire davantage son attention. */
@@ -101,7 +105,7 @@ public class Mortarius extends Boss {
 
     /** Aura de pourriture par phase (1 à 3) : rayon et dégâts toutes les 2 s (elle ne le soigne pas). */
     private static final double[] AURA_RADIUS = {5, 5, 7};
-    private static final double LAST_STAND_AURA = 10;
+    private static final double LAST_STAND_AURA = 8;
     private static final double HORDE_RADIUS = 16;
     private static final double TARGET_RANGE = 32;
 
@@ -125,8 +129,6 @@ public class Mortarius extends Boss {
     private static final long SHIELD_BACK_MILLIS = 30_000;
     /** Bonus des piliers tant qu'ils tiennent : soin (toutes les 2 s), vitesse, force, aura (dégâts et rayon). */
     private static final double PILLAR_HEAL = 0.5;
-    /** Le drain le soigne de cette part de ce qu'il aspire. */
-    private static final double DRAIN_HEAL = 0.5;
     private static final double PILLAR_SPEED = 0.2;
     private static final double PILLAR_STRENGTH = 0.3;
     private static final double PILLAR_AURA_DAMAGE = 1;
@@ -164,14 +166,17 @@ public class Mortarius extends Boss {
 
     /** Dernier souffle : sous cette part de vie, une fois. */
     private static final double LAST_STAND = 0.1;
-    private static final int LAST_STAND_RAISED = 6;
+    private static final int LAST_STAND_RAISED = 4;
 
     private static final double DRAIN_RANGE = 10;
     /** Le drain attire les joueurs vers lui (blocs par tick). */
-    private static final double DRAIN_PULL = 1.1;
+    private static final double DRAIN_PULL = 1.4;
+    /** Aspiration : projetés après ce délai (ticks), puis incapables de lui faire le moindre dégât pendant ce temps. */
+    private static final int THROW_DELAY = 10;
+    private static final long DAZED_MILLIS = 3_000;
     private static final int DRAIN_WINDUP = 20;
 
-    private static final double RAGE_SPEED = 0.2;
+    private static final double RAGE_SPEED = 0.15;
     private static final Color ROT = Color.fromRGB(0x5E8C31);
     private static final Color BLOOD = Color.fromRGB(0x8A0303);
 
@@ -219,6 +224,8 @@ public class Mortarius extends Boss {
         UUID farShooter;
         long farHitAt;
         final Map<UUID, Double> threat = new HashMap<>();
+        /** Joueurs sonnés par l'aspiration : jusqu'à quand ils ne lui font plus aucun dégât. */
+        final Map<UUID, Long> dazed = new HashMap<>();
         final Map<UUID, Pillar> pillars = new HashMap<>();
         final List<Zombie> raised = new ArrayList<>();
     }
@@ -231,10 +238,9 @@ public class Mortarius extends Boss {
     private double slamDamage = 16;
     private double chargeDamage = 10;
     private double leapDamage = 10;
-    private double waveDamage = 14;
-    private double tombDamage = 16;
-    private double drainDamage = 5;
-    private double[] auraDamage = {1, 2, 3};
+    private double waveDamage = 10;
+    private double tombDamage = 12;
+    private double[] auraDamage = {1, 2, 2};
 
     private final Map<UUID, State> states = new HashMap<>();
     private NamespacedKey rageKey;
@@ -279,8 +285,8 @@ public class Mortarius extends Boss {
     public List<String> lore() {
         return List.of(
                 "Zombie géant, 3 phases : ~10 min seul en diamant.",
-                "Levée des morts, bouclier d'os, charge, bonds,",
-                "triple onde (sauter !), tombes, drain qui attire,",
+                "Levée des morts, piliers à rôle, charge, bonds,",
+                "triple onde (sauter !), tombes, aspiration,",
                 "dernier souffle à 10 %.");
     }
 
@@ -298,7 +304,6 @@ public class Mortarius extends Boss {
         leapDamage = section.getDouble("damage.leap", leapDamage);
         waveDamage = section.getDouble("damage.wave", waveDamage);
         tombDamage = section.getDouble("damage.tombs", tombDamage);
-        drainDamage = section.getDouble("damage.drain", drainDamage);
         List<Double> aura = section.getDoubleList("damage.aura");
         if (aura.size() == 3) {
             auraDamage = new double[]{aura.get(0), aura.get(1), aura.get(2)};
@@ -476,6 +481,7 @@ public class Mortarius extends Boss {
         state.shieldBackAt = 0;
         state.lastStand = false;
         state.threat.clear();
+        state.dazed.clear();
         state.unreachable = 0;
         state.farChecks = 0;
         state.farShooter = null;
@@ -529,68 +535,105 @@ public class Mortarius extends Boss {
             return;
         }
         double distance = target.getLocation().distance(boss.getLocation());
-        Player shooter = farShooter(state, boss);
-        if (shooter != null && fight.ready("leap", LEAP_COOLDOWN_MILLIS)) {
-            boss.setTarget(shooter);
-            leap(fight, state, shooter);
-            return;
-        }
-        if (state.ticks % 20 == 0) {
-            state.farChecks = distance > FAR_TARGET ? state.farChecks + 1 : 0;
-            if (state.farChecks >= UNREACHABLE_CHECKS && fight.ready("leap", LEAP_COOLDOWN_MILLIS)) {
-                state.farChecks = 0;
-                leap(fight, state, target);
-                return;
-            }
-        }
-        if (state.ticks % 20 == 0 && unreachable(state, boss, target)) {
-            if (fight.ready("leap", LEAP_COOLDOWN_MILLIS)) {
-                leap(fight, state, target);
-                return;
-            }
-            // Pas de saut possible : il se rabat sur un autre joueur, s'il y en a un
-            state.threat.computeIfPresent(target.getUniqueId(), (id, value) -> value * 0.5);
-        }
+        Player leapTarget = leapTarget(state, boss, target, distance);
         move(boss, target, distance);
-        int phase = fight.phase();
-        boolean raging = phase >= 3;
+        int phase = Math.min(3, fight.phase());
         if (distance <= MELEE_REACH && boss.hasLineOfSight(target)
-                && fight.ready("melee", raging ? RAGE_MELEE_COOLDOWN_MILLIS : MELEE_COOLDOWN_MILLIS)) {
+                && fight.ready("melee", phase >= 3 ? RAGE_MELEE_COOLDOWN_MILLIS : MELEE_COOLDOWN_MILLIS)) {
             boss.swingMainHand();
             boss.attack(target);
         }
-        if (raging && !state.lastStand && healthPart(boss) <= LAST_STAND) {
+        if (phase >= 3 && !state.lastStand && healthPart(boss) <= LAST_STAND) {
             lastStand(fight, state, target);
-            return;
-        }
-        if (raging && phaseThree(fight, state, boss)) {
+            fight.cooldown("special", SPECIAL_GAP_MILLIS[2]);
             return;
         }
         if (phase == 2 && state.pillars.isEmpty() && System.currentTimeMillis() >= state.shieldBackAt) {
             raiseShield(fight, state);
         }
-        if (phase >= 2) {
-            // La charge sert à rattraper un joueur au loin, pas à frapper celui qui est déjà au contact
-            Player farthest = farthest(boss);
-            if (farthest != null && farthest.getLocation().distance(boss.getLocation()) > 10 && fight.ready("charge", 10_000)) {
-                charge(fight, state, farthest);
-                return;
-            }
-        }
-        if (distance <= SLAM_REACH && fight.ready("slam", raging ? 2_500 : 5_000)) {
-            slam(fight, state, target);
+        // Une seule attaque spéciale à la fois, avec un délai commun : pas d'avalanche
+        if (!fight.available("special")) {
             return;
         }
-        if (state.raised.size() + RAISED <= RAISED_MAX && fight.ready("raise", 20_000)) {
-            raiseDead(fight, state, target);
+        boolean launched;
+        if (leapTarget != null && fight.ready("leap", LEAP_COOLDOWN_MILLIS)) {
+            boss.setTarget(leapTarget);
+            leap(fight, state, leapTarget);
+            launched = true;
+        } else {
+            launched = switch (phase) {
+                case 1 -> phaseOne(fight, state, target, distance);
+                case 2 -> phaseTwo(fight, state, boss, target, distance);
+                default -> phaseThree(fight, state, boss, target, distance);
+            };
+        }
+        if (launched) {
+            fight.cooldown("special", SPECIAL_GAP_MILLIS[phase - 1]);
         }
     }
 
     /**
-     * Phase 3 : l'attaque qui convient à la situation. Joueurs groupés près de lui : onde sismique ; joueurs dispersés ou
-     * au loin : les tombes ; quelqu'un à portée de drain : drain. True si une attaque est lancée.
+     * Qui le tient à distance ou lui échappe : le tireur qui l'a touché de loin, une cible à plus de 14 blocs depuis 3 s,
+     * ou une cible inaccessible depuis 3 s. Les compteurs avancent chaque seconde, même si le bond attend son tour.
      */
-    private boolean phaseThree(BossFight fight, State state, Zombie boss) {
+    private static Player leapTarget(State state, Zombie boss, Player target, double distance) {
+        Player shooter = farShooter(state, boss);
+        if (shooter != null) {
+            return shooter;
+        }
+        if (state.ticks % 20 != 0) {
+            return null;
+        }
+        state.farChecks = distance > FAR_TARGET ? state.farChecks + 1 : 0;
+        if (state.farChecks >= UNREACHABLE_CHECKS) {
+            state.farChecks = 0;
+            return target;
+        }
+        if (unreachable(state, boss, target)) {
+            // Il s'y essaie par un bond ; sinon il se rabat peu à peu sur un autre joueur
+            state.threat.computeIfPresent(target.getUniqueId(), (id, value) -> value * 0.5);
+            return target;
+        }
+        return null;
+    }
+
+    /** Phase 1, le Seigneur : coup de masse, levée des morts. */
+    private boolean phaseOne(BossFight fight, State state, Player target, double distance) {
+        if (distance <= SLAM_REACH && fight.ready("slam", 5_000)) {
+            slam(fight, state, target);
+            return true;
+        }
+        if (state.raised.size() + RAISED <= RAISED_MAX && fight.ready("raise", 20_000)) {
+            raiseDead(fight, state, target);
+            return true;
+        }
+        return false;
+    }
+
+    /** Phase 2, le Bouclier d'os : charge (sur un joueur au loin), coup de masse, levée des morts plus rare. */
+    private boolean phaseTwo(BossFight fight, State state, Zombie boss, Player target, double distance) {
+        Player farthest = farthest(boss);
+        if (farthest != null && farthest.getLocation().distance(boss.getLocation()) > 10 && fight.ready("charge", 10_000)) {
+            charge(fight, state, farthest);
+            return true;
+        }
+        if (distance <= SLAM_REACH && fight.ready("slam", 5_000)) {
+            slam(fight, state, target);
+            return true;
+        }
+        if (state.raised.size() + RAISED <= RAISED_MAX && fight.ready("raise", 25_000)) {
+            raiseDead(fight, state, target);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Phase 3, la Fin : l'attaque qui convient à la situation. Joueurs groupés près de lui : onde sismique ; dispersés :
+     * les tombes ; quelqu'un à moins de 10 blocs : l'aspiration ; au contact : coup de masse. Plus de charge ni de levée
+     * des morts (sauf au dernier souffle).
+     */
+    private boolean phaseThree(BossFight fight, State state, Zombie boss, Player target, double distance) {
         List<Player> close = nearby(boss, 8);
         List<Player> all = nearby(boss, TARGET_RANGE);
         boolean spread = all.stream().anyMatch(player -> player.getLocation().distance(boss.getLocation()) > 8);
@@ -600,10 +643,14 @@ public class Mortarius extends Boss {
         }
         if ((spread || all.size() >= 2) && fight.ready("tombs", 14_000)) {
             tombs(fight, all);
-            return false;
+            return true;
         }
-        if (!nearby(boss, DRAIN_RANGE).isEmpty() && fight.ready("drain", 8_000)) {
-            drain(fight, state);
+        if (!nearby(boss, DRAIN_RANGE).isEmpty() && fight.ready("aspiration", 10_000)) {
+            aspiration(fight, state);
+            return true;
+        }
+        if (distance <= SLAM_REACH && fight.ready("slam", 4_000)) {
+            slam(fight, state, target);
             return true;
         }
         return false;
@@ -859,10 +906,8 @@ public class Mortarius extends Boss {
             for (Player player : nearby(boss, auraRadius(fight, state))) {
                 Hits.trueDamage(player, damage, boss);
                 fight.taken(player, damage);
-                if (phase == 2) {
+                if (phase >= 2) {
                     player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 50, 0));
-                } else if (phase >= 3) {
-                    player.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 50, 0));
                 }
                 player.playSound(player.getLocation(), Sound.ENTITY_WARDEN_HEARTBEAT, 0.8f + 0.2f * phase, 0.7f);
             }
@@ -1233,6 +1278,11 @@ public class Mortarius extends Boss {
     @Override
     public void onDamaged(BossFight fight, EntityDamageEvent event) {
         State current = state(fight);
+        if (dazed(current, event)) {
+            event.setCancelled(true);
+            fight.entity().getWorld().spawnParticle(Particle.SQUID_INK, chest(fight.entity()), 6, 0.4, 0.4, 0.4, 0.01);
+            return;
+        }
         addThreat(current, fight.entity(), event);
         if (System.currentTimeMillis() < current.stunnedUntil) {
             event.setDamage(event.getDamage() * STUN_DAMAGE);
@@ -1255,7 +1305,7 @@ public class Mortarius extends Boss {
             return;
         }
         event.setCancelled(true);
-        if (!byPlayer(event)) {
+        if (!byPlayer(event) || dazed(state, event)) {
             return;
         }
         pillar.health -= event.getDamage() / fight.toughness();
@@ -1514,8 +1564,12 @@ public class Mortarius extends Boss {
         }
     }
 
-    /** Drain de vie : il se fige et brille 1 s, puis aspire la vie des joueurs à moins de 10 blocs et les attire à lui. */
-    private void drain(BossFight fight, State state) {
+    /**
+     * L'aspiration : il se fige et brille 1 s, puis attire à lui les joueurs à moins de 10 blocs (sans dégâts) et, un
+     * instant plus tard, les projette au loin. Ceux qui ont été aspirés sont sonnés 3 s : ils ne lui font plus aucun
+     * dégât, ni à lui ni à ses piliers, même à l'arc. Elle ne le soigne pas.
+     */
+    private void aspiration(BossFight fight, State state) {
         Zombie boss = (Zombie) fight.entity();
         state.busy = true;
         state.busySince = System.currentTimeMillis();
@@ -1528,22 +1582,41 @@ public class Mortarius extends Boss {
             }
             boss.setGlowing(false);
             Location heart = chest(boss);
-            Collection<Player> victims = nearby(boss, DRAIN_RANGE);
-            for (Player player : victims) {
+            List<Player> caught = nearby(boss, DRAIN_RANGE);
+            boss.getWorld().playSound(heart, Sound.ENTITY_EVOKER_CAST_SPELL, 1.5f, 0.5f);
+            for (Player player : caught) {
                 beam(chest(player), heart);
-                Hits.trueDamage(player, drainDamage, boss);
-                fight.taken(player, drainDamage);
-                heal(fight, drainDamage * DRAIN_HEAL);
-                // Il les attire vers lui, dans son aura
                 Vector toward = boss.getLocation().toVector().subtract(player.getLocation().toVector()).setY(0);
                 if (toward.lengthSquared() > 1) {
-                    player.setVelocity(toward.normalize().multiply(DRAIN_PULL).setY(0.3));
+                    player.setVelocity(toward.normalize().multiply(DRAIN_PULL).setY(0.4));
                 }
             }
-            boss.getWorld().playSound(heart, Sound.ENTITY_EVOKER_CAST_SPELL, 1.5f, 0.5f);
-            state.busy = false;
-            boss.setAI(true);
+            Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+                long until = System.currentTimeMillis() + DAZED_MILLIS;
+                for (Player player : caught) {
+                    if (!Hits.fighting(player) || player.getWorld() != boss.getWorld()) {
+                        continue;
+                    }
+                    Hits.knock(player, boss.getLocation(), 1.6, 0.8);
+                    state.dazed.put(player.getUniqueId(), until);
+                    player.getWorld().spawnParticle(Particle.SQUID_INK, player.getLocation().add(0, 1.8, 0), 15, 0.3, 0.2, 0.3, 0.02);
+                    player.sendActionBar(net.kyori.adventure.text.Component.text("Sonné par l'aspiration : tes coups sont sans effet 3 s",
+                            net.kyori.adventure.text.format.NamedTextColor.GRAY));
+                }
+                boss.getWorld().playSound(boss.getLocation(), Sound.ENTITY_PLAYER_ATTACK_KNOCKBACK, 1.5f, 0.6f);
+                state.busy = false;
+                if (boss.isValid()) {
+                    boss.setAI(true);
+                }
+            }, THROW_DELAY);
         }, DRAIN_WINDUP);
+    }
+
+    /** Sonné par l'aspiration : ses coups sont sans effet. */
+    private static boolean dazed(State state, EntityDamageEvent event) {
+        Player attacker = breaker(event);
+        Long until = attacker == null ? null : state.dazed.get(attacker.getUniqueId());
+        return until != null && System.currentTimeMillis() < until;
     }
 
     /** Rayon de sang d'un point à un autre. */

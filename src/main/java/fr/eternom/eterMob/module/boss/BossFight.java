@@ -124,6 +124,16 @@ public class BossFight {
         lastPlayerNear = System.currentTimeMillis();
     }
 
+    /** Capacité prête (key), sans relancer son délai. */
+    public boolean available(String key) {
+        return System.currentTimeMillis() >= cooldowns.getOrDefault(key, 0L);
+    }
+
+    /** Relance le délai de cette capacité. */
+    public void cooldown(String key, long millis) {
+        cooldowns.put(key, System.currentTimeMillis() + millis);
+    }
+
     /** Capacité prête (key) : true et relance le délai de millis ; false si le délai n'est pas écoulé. */
     public boolean ready(String key, long millis) {
         long now = System.currentTimeMillis();
