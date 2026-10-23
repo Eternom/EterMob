@@ -5,6 +5,7 @@ import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -66,6 +67,26 @@ public class MobListener implements Listener {
             ActiveMob attacker = mobs.get(attacker(byEntity.getDamager()));
             if (attacker != null) {
                 attacker.variant().onAttack(attacker, victim, byEntity);
+                if (victim instanceof Player && event.getCause() != EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
+                    pierce(event, mobs.ratios().armorPiercing(attacker.ratio()));
+                }
+            }
+        }
+    }
+
+    /**
+     * Perce-armure : le coup ignore cette part de ce que l'armure et les enchantements de protection du joueur lui
+     * retirent. Pas les explosions de creepers (déjà calées pour que la Protection IV suffise, sauf face au Fléau).
+     */
+    @SuppressWarnings({"deprecation", "removal"})
+    private static void pierce(EntityDamageEvent event, double piercing) {
+        if (piercing <= 0) {
+            return;
+        }
+        for (EntityDamageEvent.DamageModifier modifier : new EntityDamageEvent.DamageModifier[]{
+                EntityDamageEvent.DamageModifier.ARMOR, EntityDamageEvent.DamageModifier.MAGIC}) {
+            if (event.isApplicable(modifier)) {
+                event.setDamage(modifier, event.getDamage(modifier) * (1 - piercing));
             }
         }
     }

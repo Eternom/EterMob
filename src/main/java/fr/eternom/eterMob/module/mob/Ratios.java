@@ -8,18 +8,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
-/** Les ratios de config.yml (multiplicateur, chance, statut) et leur tirage, favorisé par la profondeur. */
+/** Les ratios de config.yml (multiplicateur, chance, statut, perce-armure) et leur tirage, favorisé par la profondeur. */
 public class Ratios {
 
-    public record Level(double multiplier, double weight, String status) {
+    /** armorPiercing : part (0 à 1) de l'armure et des enchantements de protection d'un joueur que ses coups ignorent. */
+    public record Level(double multiplier, double weight, String status, double armorPiercing) {
     }
+
+    /** Perce-armure quand config.yml ne le donne pas (config d'avant EterMob 1.2.3), par rang de ratio. */
+    private static final double[] DEFAULT_PIERCING = {0, 0.1, 0.2, 0.35, 0.5};
 
     private final List<Level> levels;
     private final double depthBonus;
 
     public Ratios(List<Level> levels, double depthBonus) {
         if (levels.isEmpty()) {
-            levels = List.of(new Level(1, 1, "<gray>Ordinaire"));
+            levels = List.of(new Level(1, 1, "<gray>Ordinaire", 0));
         }
         this.levels = List.copyOf(levels);
         this.depthBonus = Math.max(0, depthBonus);
@@ -28,8 +32,10 @@ public class Ratios {
     public static Ratios load(ConfigurationSection config) {
         List<Level> levels = new ArrayList<>();
         for (Map<?, ?> map : config.getMapList("ratios")) {
+            double piercing = DEFAULT_PIERCING[Math.min(levels.size(), DEFAULT_PIERCING.length - 1)];
             levels.add(new Level(number(map.get("multiplier"), 1), Math.max(0, number(map.get("weight"), 1)),
-                    String.valueOf(map.get("status") == null ? "" : map.get("status"))));
+                    String.valueOf(map.get("status") == null ? "" : map.get("status")),
+                    Math.clamp(number(map.get("armor-piercing"), piercing), 0, 1)));
         }
         return new Ratios(levels, config.getDouble("depth-bonus", 0.01));
     }
@@ -50,6 +56,10 @@ public class Ratios {
 
     public double multiplier(int ratio) {
         return levels.get(clamp(ratio) - 1).multiplier();
+    }
+
+    public double armorPiercing(int ratio) {
+        return levels.get(clamp(ratio) - 1).armorPiercing();
     }
 
     public String status(int ratio) {

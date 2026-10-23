@@ -12,22 +12,30 @@
 #  multiplier : multiplie les valeurs de base du variant (vie, dégâts, rayon, durée...).
 #  weight     : chance d'être tiré, relative aux autres ratios (à la surface).
 #  status     : statut affiché au-dessus de la tête (MiniMessage).
+#  armor-piercing : part (0 à 1) de l'armure et des enchantements de protection d'un joueur que ses coups ignorent
+#                   (coups, flèches, capacités ; pas les explosions de creepers). L'armure encaisse très bien les petits
+#                   coups : sans cela, un Fléau ne fait presque rien à un joueur en netherite.
 ratios:
   - multiplier: 1.0
     weight: 40
     status: '<gray>Ordinaire'
+    armor-piercing: 0
   - multiplier: 1.25
     weight: 30
     status: '<green>Robuste'
+    armor-piercing: 0.1
   - multiplier: 1.5
     weight: 18
     status: '<yellow>Dangereux'
+    armor-piercing: 0.2
   - multiplier: 1.8
     weight: 9
     status: '<gold>Élite'
+    armor-piercing: 0.35
   - multiplier: 2.2
     weight: 3
     status: '<red>Fléau'
+    armor-piercing: 0.5
 
 # Plus on est profond, plus les ratios forts sortent : chaque bloc sous le niveau de la mer du monde augmente la
 # chance du ratio n de (n - 1) × depth-bonus. Avec 0.01, à Y = -60 dans le monde normal, le ratio 5 sort environ
