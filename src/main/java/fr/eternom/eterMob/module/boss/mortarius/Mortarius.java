@@ -403,6 +403,7 @@ public class Mortarius extends Boss {
     public void onLoad(BossFight fight) {
         Zombie boss = (Zombie) fight.entity();
         boss.setAI(true);
+        boss.setGravity(true);
         boss.setGlowing(false);
         Bukkit.getMobGoals().removeGoal(boss, VanillaGoal.ZOMBIE_ATTACK);
     }
@@ -482,6 +483,7 @@ public class Mortarius extends Boss {
         rage(boss, false);
         pillarBuffs(boss, state);
         boss.setAI(true);
+        boss.setGravity(true);
         boss.setGlowing(false);
     }
 
