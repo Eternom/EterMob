@@ -15,6 +15,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 
 /** Apparitions naturelles transformées en variants, suivi des variants chargés, et capacités déclenchées par les événements. */
@@ -105,6 +106,15 @@ public class MobListener implements Listener {
         }
         if (!creeperBlockDamage && event.getEntity() instanceof Creeper) {
             event.blockList().clear();
+        }
+    }
+
+    /** Bloc temporaire d'un variant (toile...) cassé par un joueur : il ne lâche rien. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onBlockBreak(BlockBreakEvent event) {
+        if (TempBlocks.is(event.getBlock())) {
+            event.setDropItems(false);
+            TempBlocks.forget(event.getBlock());
         }
     }
 

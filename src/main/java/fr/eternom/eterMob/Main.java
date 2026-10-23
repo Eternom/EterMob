@@ -6,6 +6,7 @@ import fr.eternom.eterMob.module.mob.MobService;
 import fr.eternom.eterMob.module.mob.MobVariant;
 import fr.eternom.eterMob.module.mob.Rarity;
 import fr.eternom.eterMob.module.mob.Ratios;
+import fr.eternom.eterMob.module.mob.TempBlocks;
 import fr.eternom.eterMob.module.mob.Variants;
 import fr.eternom.eterMob.module.variant.creeper.BoomCreeper;
 import fr.eternom.eterMob.module.variant.creeper.ClassicCreeper;
@@ -20,6 +21,12 @@ import fr.eternom.eterMob.module.variant.skeleton.HookSkeleton;
 import fr.eternom.eterMob.module.variant.skeleton.RainSkeleton;
 import fr.eternom.eterMob.module.variant.skeleton.ReviveSkeleton;
 import fr.eternom.eterMob.module.variant.skeleton.SniperSkeleton;
+import fr.eternom.eterMob.module.variant.spider.ClassicSpider;
+import fr.eternom.eterMob.module.variant.spider.DarkSpider;
+import fr.eternom.eterMob.module.variant.spider.HiddenSpider;
+import fr.eternom.eterMob.module.variant.spider.JumpSpider;
+import fr.eternom.eterMob.module.variant.spider.PackSpider;
+import fr.eternom.eterMob.module.variant.spider.WebSpider;
 import fr.eternom.eterMob.module.variant.zombie.BurrowZombie;
 import fr.eternom.eterMob.module.variant.zombie.ClassicZombie;
 import fr.eternom.eterMob.module.variant.zombie.FastZombie;
@@ -60,7 +67,13 @@ public final class Main extends JavaPlugin {
                 new RainSkeleton(),
                 new BlinkSkeleton(),
                 new ReviveSkeleton(),
-                new HookSkeleton());
+                new HookSkeleton(),
+                new ClassicSpider(),
+                new WebSpider(),
+                new JumpSpider(),
+                new HiddenSpider(),
+                new DarkSpider(),
+                new PackSpider());
     }
 
     @Override
@@ -83,5 +96,10 @@ public final class Main extends JavaPlugin {
             command.setTabCompleter(executor);
         }
         mobs.start();
+    }
+
+    @Override
+    public void onDisable() {
+        TempBlocks.clearAll();
     }
 }
