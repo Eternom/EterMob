@@ -50,7 +50,7 @@ public abstract class Boss {
         return service;
     }
 
-    /** Vie (1 024 au plus) ; en groupe, sa résistance augmente (BossFight#toughness), pas sa vie. */
+    /** Vie (1 024 au plus) ; en groupe, sa résistance augmente (BossFight#toughness, recomptée en continu), pas sa vie. */
     public abstract double baseHealth();
 
     /**

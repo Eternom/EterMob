@@ -48,7 +48,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Mortarius, Seigneur des Tombes : un zombie 2,5 fois plus grand, 1 000 PV et une résistance de base de 2,5 (en groupe,
- * +35 % par joueur en plus) : environ 10 minutes seul en diamant Tranchant V, il faut venir préparé. Ses coups sont
+ * +35 % par joueur en plus dans le combat, recompté en continu) : environ 10 minutes seul en diamant Tranchant V, il faut venir préparé. Ses coups sont
  * réglés pour un joueur en diamant. Il ne brûle pas au soleil. Aucun vrai bloc n'est posé ni cassé : piliers, sillons et ondes sont des
  * affichages et des particules.
  * <ul>

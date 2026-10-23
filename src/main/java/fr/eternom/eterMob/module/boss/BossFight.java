@@ -19,7 +19,9 @@ public class BossFight {
     private final Boss boss;
     private final LivingEntity entity;
     private final Location home;
-    private final double toughness;
+    private double toughness = 1;
+    /** Joueurs du combat : dernière fois vus dans la zone. */
+    private final Map<UUID, Long> participants = new HashMap<>();
     private final BossBar bar;
     private final Set<Entity> owned = new HashSet<>();
     private final Set<UUID> viewers = new HashSet<>();
@@ -28,11 +30,10 @@ public class BossFight {
     private long invulnerableUntil;
     private long lastPlayerNear = System.currentTimeMillis();
 
-    BossFight(Boss boss, LivingEntity entity, Location home, double toughness, BossBar bar) {
+    BossFight(Boss boss, LivingEntity entity, Location home, BossBar bar) {
         this.boss = boss;
         this.entity = entity;
         this.home = home;
-        this.toughness = toughness;
         this.bar = bar;
     }
 
@@ -53,9 +54,17 @@ public class BossFight {
         return home.clone();
     }
 
-    /** Résistance selon les joueurs présents à l'apparition : les dégâts reçus (boss et piliers) en sont divisés. */
+    /** Résistance selon les joueurs du combat (recomptés en continu) : les dégâts reçus (boss et piliers) en sont divisés. */
     public double toughness() {
         return toughness;
+    }
+
+    void toughness(double toughness) {
+        this.toughness = toughness;
+    }
+
+    Map<UUID, Long> participants() {
+        return participants;
     }
 
     public int phase() {

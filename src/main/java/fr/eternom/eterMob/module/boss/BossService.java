@@ -46,10 +46,12 @@ public class BossService {
     private static final long RESET_MILLIS = 30_000;
     private static final long TRANSITION_MILLIS = 2_000;
     /**
-     * Par joueur en plus présent à l'apparition : sa résistance augmente d'autant (les dégâts qu'il reçoit sont divisés
-     * par 1 + 0,35 par joueur en plus). Plutôt qu'une vie plus grande : la vie d'un mob est plafonnée à 1 024.
+     * Par joueur en plus dans le combat : sa résistance augmente d'autant (les dégâts qu'il reçoit sont divisés par
+     * 1 + 0,35 par joueur en plus). Plutôt qu'une vie plus grande : la vie d'un mob est plafonnée à 1 024. Recompté en
+     * continu ; un joueur sorti de la zone compte encore 10 s (sortir et revenir ne le fait pas baisser).
      */
     private static final double TOUGHNESS_PER_EXTRA_PLAYER = 0.35;
+    private static final long PARTICIPANT_MEMORY_MILLIS = 10_000;
     /** Position du boss enregistrée dans le registre toutes les 30 s. */
     private static final int SAVE_TICKS = 600;
     /** Chunk chargé pour supprimer un boss lointain : relâché après ce délai (ticks). */
@@ -62,7 +64,6 @@ public class BossService {
     private final Map<UUID, BossFight> owners = new HashMap<>();
     private final NamespacedKey bossKey;
     private final NamespacedKey homeKey;
-    private final NamespacedKey toughnessKey;
     private long ticks;
 
     public BossService(JavaPlugin plugin, BossRegistry registry, List<Boss> bosses) {
@@ -74,7 +75,6 @@ public class BossService {
         });
         this.bossKey = new NamespacedKey(plugin, "boss");
         this.homeKey = new NamespacedKey(plugin, "boss_home");
-        this.toughnessKey = new NamespacedKey(plugin, "boss_toughness");
     }
 
     public Collection<Boss> bosses() {
@@ -119,14 +119,11 @@ public class BossService {
                 return "Pas assez de place : il faut " + (int) Math.ceil(boss.height()) + " blocs libres en hauteur.";
             }
         }
-        long players = at.getNearbyPlayers(BAR_RANGE).stream().filter(Hits::fighting).count();
         double health = boss.baseHealth();
-        double toughness = 1 + TOUGHNESS_PER_EXTRA_PLAYER * Math.max(0, players - 1);
         LivingEntity entity = at.getWorld().spawn(at, boss.type(), CreatureSpawnEvent.SpawnReason.CUSTOM, mob -> {
             PersistentDataContainer data = mob.getPersistentDataContainer();
             data.set(bossKey, PersistentDataType.STRING, boss.id());
             data.set(homeKey, PersistentDataType.STRING, at.getX() + ";" + at.getY() + ";" + at.getZ());
-            data.set(toughnessKey, PersistentDataType.DOUBLE, toughness);
             mob.addScoreboardTag(TAG);
             // Avant son entrée dans le monde : attach le trouve déjà dans le registre
             registry.add(mob.getUniqueId(), boss.id(), at);
@@ -168,8 +165,7 @@ public class BossService {
         if (entry == null) {
             registry.add(living.getUniqueId(), boss.id(), living.getLocation());
         }
-        double toughness = Math.max(1, data.getOrDefault(toughnessKey, PersistentDataType.DOUBLE, 1.0));
-        BossFight fight = new BossFight(boss, living, home(living), toughness, BossBar.bossBar(Component.empty(), 1f, boss.color(1),
+        BossFight fight = new BossFight(boss, living, home(living), BossBar.bossBar(Component.empty(), 1f, boss.color(1),
                 BossBar.Overlay.NOTCHED_10));
         fights.put(living.getUniqueId(), fight);
         int phase = phaseFor(fight);
@@ -257,6 +253,7 @@ public class BossService {
                 return gone;
             });
             boolean near = entity.getLocation().getNearbyPlayers(RESET_RANGE).stream().anyMatch(Hits::fighting);
+            countParticipants(fight);
             if (near) {
                 fight.playerNear();
             } else if (System.currentTimeMillis() - fight.lastPlayerNear() > RESET_MILLIS) {
@@ -275,6 +272,18 @@ public class BossService {
                 registry.update(fight.id(), entity.getLocation());
             }
         }
+    }
+
+    /** Joueurs du combat (zone de la barre, ou sortis depuis moins de 10 s) : la résistance suit leur nombre. */
+    private void countParticipants(BossFight fight) {
+        long now = System.currentTimeMillis();
+        for (Player player : fight.entity().getLocation().getNearbyPlayers(BAR_RANGE)) {
+            if (Hits.fighting(player)) {
+                fight.participants().put(player.getUniqueId(), now);
+            }
+        }
+        fight.participants().values().removeIf(seen -> now - seen > PARTICIPANT_MEMORY_MILLIS);
+        fight.toughness(1 + TOUGHNESS_PER_EXTRA_PLAYER * Math.max(0, fight.participants().size() - 1));
     }
 
     private int phaseFor(BossFight fight) {
