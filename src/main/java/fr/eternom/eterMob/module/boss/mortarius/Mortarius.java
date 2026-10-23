@@ -676,57 +676,65 @@ public class Mortarius extends Boss {
 
     /**
      * Bond : il s'accroupit 0,6 s pendant qu'un cercle rouge marque au sol le point visé (la position de la cible à ce
-     * moment), puis saute sur ce point fixe ; à l'atterrissage, les joueurs dans le cercle prennent des dégâts et décollent.
+     * moment), puis suit un arc calculé jusqu'au centre de ce cercle (point fixe : il ne suit pas en l'air) ; à
+     * l'atterrissage, les joueurs dans le cercle prennent des dégâts et décollent. Arc tracé point par point plutôt
+     * qu'une impulsion : le frottement et son IA le freinaient, il retombait trop court.
      */
     private void leap(BossFight fight, State state, Player target) {
         Zombie boss = (Zombie) fight.entity();
         state.busy = true;
         state.busySince = System.currentTimeMillis();
-        Location landing = target.getLocation();
+        Location aimed = target.getLocation();
+        Location ground = ground(aimed);
+        Location landing = ground != null ? ground : aimed;
         boss.setAI(false);
         boss.getWorld().playSound(boss.getLocation(), Sound.ENTITY_RAVAGER_ROAR, 2f, 0.9f);
+        Location[] from = {null};
         int[] elapsed = {0};
+        int[] flight = {0};
+        double[] peak = {0};
         BukkitTask[] task = new BukkitTask[1];
         task[0] = Bukkit.getScheduler().runTaskTimer(plugin(), () -> {
-            elapsed[0] += 2;
-            if (!boss.isValid() || elapsed[0] > LEAP_WINDUP + 60) {
+            elapsed[0]++;
+            if (!boss.isValid()) {
                 task[0].cancel();
-                release(boss, target, state);
-                return;
-            }
-            if (elapsed[0] < LEAP_WINDUP) {
-                circle(landing, LEAP_RADIUS);
-                dust(boss.getLocation(), 10, 1);
-                return;
-            }
-            if (elapsed[0] == LEAP_WINDUP) {
-                boss.setAI(true);
-                boss.setVelocity(leapVelocity(boss.getLocation(), landing));
-                dust(boss.getLocation(), 40, 1.5);
                 return;
             }
             circle(landing, LEAP_RADIUS);
-            if (elapsed[0] > LEAP_WINDUP + 6 && boss.isOnGround()) {
-                task[0].cancel();
-                Location at = boss.getLocation();
-                boss.getWorld().spawnParticle(Particle.EXPLOSION, at, 3, 1, 0, 1, 0);
-                dust(at, 60, 2);
-                boss.getWorld().playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 1.2f, 0.6f);
-                Hits.shockwave(boss, at, LEAP_RADIUS, leapDamage, 0.5, 0.9);
-                release(boss, target, state);
+            if (elapsed[0] < LEAP_WINDUP) {
+                if (elapsed[0] % 2 == 0) {
+                    dust(boss.getLocation(), 10, 1);
+                }
+                return;
             }
-        }, 2, 2);
-    }
-
-    /** Élan pour atterrir à peu près sur ce point : hauteur selon le dénivelé, vitesse selon la distance. */
-    private static Vector leapVelocity(Location from, Location landing) {
-        Vector to = landing.toVector().subtract(from.toVector());
-        double lift = Math.min(1.6, 0.9 + Math.max(0, to.getY()) * 0.12);
-        double airTicks = 2 * lift / 0.08;
-        Vector flat = to.clone().setY(0);
-        double horizontal = flat.length();
-        Vector push = horizontal < 0.1 ? new Vector() : flat.normalize().multiply(Math.min(1.8, horizontal / (airTicks * 0.8)));
-        return push.setY(lift);
+            if (elapsed[0] == LEAP_WINDUP) {
+                from[0] = boss.getLocation();
+                double distance = Math.hypot(landing.getX() - from[0].getX(), landing.getZ() - from[0].getZ());
+                flight[0] = (int) Math.clamp(10 + distance * 0.8, 14, 30);
+                peak[0] = 3 + distance * 0.15 + Math.max(0, landing.getY() - from[0].getY());
+                boss.setGravity(false);
+                dust(from[0], 40, 1.5);
+            }
+            double progress = Math.min(1, (double) (elapsed[0] - LEAP_WINDUP) / flight[0]);
+            Location point = from[0].clone().add(landing.toVector().subtract(from[0].toVector()).multiply(progress));
+            point.add(0, 4 * peak[0] * progress * (1 - progress), 0);
+            Vector heading = landing.toVector().subtract(from[0].toVector()).setY(0);
+            if (heading.lengthSquared() > 0.01) {
+                point.setDirection(heading);
+            }
+            boss.teleport(point);
+            if (progress < 1) {
+                return;
+            }
+            task[0].cancel();
+            boss.setGravity(true);
+            Location at = boss.getLocation();
+            boss.getWorld().spawnParticle(Particle.EXPLOSION, at, 3, 1, 0, 1, 0);
+            dust(at, 60, 2);
+            boss.getWorld().playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 1.2f, 0.6f);
+            Hits.shockwave(boss, at, LEAP_RADIUS, leapDamage, 0.5, 0.9);
+            release(boss, target, state);
+        }, 1, 1);
     }
 
     /** Cercle rouge au sol : la zone d'atterrissage. */
