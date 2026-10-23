@@ -5,8 +5,6 @@ import fr.eternom.eterMob.module.mob.Rarity;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Particle;
-import org.bukkit.damage.DamageSource;
-import org.bukkit.damage.DamageType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -62,6 +60,6 @@ public class LightningCreeper extends CreeperVariant {
         }
         player.getWorld().strikeLightningEffect(player.getLocation());
         player.setFireTicks(Math.max(player.getFireTicks(), fire));
-        trueDamage(player, damage, DamageSource.builder(DamageType.LIGHTNING_BOLT).build());
+        trueDamage(player, damage, null);
     }
 }

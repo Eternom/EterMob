@@ -5,6 +5,8 @@ import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.entity.EntityType;
 import org.bukkit.damage.DamageSource;
+import org.bukkit.damage.DamageType;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -163,10 +165,11 @@ public abstract class MobVariant {
 
     /**
      * Dégâts qui ignorent l'armure et les enchantements : retirés directement de la vie (cœurs d'absorption d'abord).
-     * Un coup fatal passe par de vrais dégâts (fatal), pour le message de mort et le totem d'immortalité. Rien en créatif
-     * ni en spectateur.
+     * Un coup fatal passe par de vrais dégâts magiques venant de cause (null : sans auteur), pour le message de mort et
+     * le totem d'immortalité. Magiques : ils ignorent l'armure et ne l'usent pas (des dégâts « infinis » qui passent par
+     * l'armure la détruisent entièrement, au lieu qu'elle tombe à la mort). Rien en créatif ni en spectateur.
      */
-    protected static void trueDamage(Player player, double damage, DamageSource fatal) {
+    protected static void trueDamage(Player player, double damage, Entity cause) {
         if (!player.isOnline() || player.isDead() || player.getGameMode() == GameMode.CREATIVE
                 || player.getGameMode() == GameMode.SPECTATOR) {
             return;
@@ -184,7 +187,11 @@ public abstract class MobVariant {
             player.setHealth(player.getHealth() - left);
             player.playHurtAnimation(0);
         } else {
-            player.damage(Float.MAX_VALUE, fatal);
+            DamageSource.Builder fatal = DamageSource.builder(DamageType.MAGIC);
+            if (cause != null) {
+                fatal.withCausingEntity(cause).withDirectEntity(cause);
+            }
+            player.damage(Float.MAX_VALUE, fatal.build());
         }
     }
 

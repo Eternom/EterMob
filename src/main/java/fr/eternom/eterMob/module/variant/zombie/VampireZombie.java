@@ -13,8 +13,6 @@ import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
-import org.bukkit.damage.DamageSource;
-import org.bukkit.damage.DamageType;
 import org.bukkit.entity.Bat;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -104,7 +102,6 @@ public class VampireZombie extends ZombieVariant {
         }
         LivingEntity zombie = mob.entity();
         double damage = mob.scale(BLEED_DAMAGE);
-        DamageSource fatal = DamageSource.builder(DamageType.MOB_ATTACK).withCausingEntity(zombie).withDirectEntity(zombie).build();
         int[] left = {BLEED_SECONDS};
         BukkitTask[] task = new BukkitTask[1];
         task[0] = Bukkit.getScheduler().runTaskTimer(JavaPlugin.getProvidingPlugin(VampireZombie.class), () -> {
@@ -115,7 +112,7 @@ public class VampireZombie extends ZombieVariant {
             }
             player.getWorld().spawnParticle(Particle.DUST, player.getLocation().add(0, 1, 0), 10, 0.3, 0.5, 0.3, 0,
                     new Particle.DustOptions(BLOOD, 1.2f));
-            trueDamage(player, damage, fatal);
+            trueDamage(player, damage, zombie);
             heal(zombie, damage);
         }, 20, 20);
         bleeding.put(player.getUniqueId(), task[0]);
