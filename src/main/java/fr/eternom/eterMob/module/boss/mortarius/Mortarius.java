@@ -50,25 +50,25 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Mortarius, Seigneur des Tombes : un zombie 2,5 fois plus grand, 1 000 PV et une résistance de base de 2,5 (en groupe,
- * +35 % par joueur en plus dans le combat, recompté en continu) : environ 10 minutes seul en diamant Tranchant V, il faut venir préparé. Ses coups sont
- * réglés pour un joueur en diamant. Il ne brûle pas au soleil. Aucun vrai bloc n'est posé ni cassé : piliers, sillons et ondes sont des
- * affichages et des particules.
+ * +35 % par joueur en plus dans le combat, recompté en continu) : environ 10 minutes seul en diamant Tranchant V, il faut
+ * venir préparé. Il ne brûle pas au soleil. Aucun vrai bloc n'est posé ni cassé : piliers, sillons, tombes et ondes
+ * sont des affichages et des particules.
  * <ul>
- *   <li>Combat : il choisit sa cible à la menace (les dégâts reçus, plus pour les tireurs, et la proximité ; il ne change
- *   que pour une menace nettement plus forte), frappe à 4,5 blocs (sa taille), et s'il ne peut pas atteindre sa cible
- *   pendant 3 s (perchée, coincée), il bondit sur elle ou en change. Il bondit aussi sur qui le tient à distance : une
- *   flèche qui le touche de plus de 10 blocs, ou une cible à plus de 14 blocs pendant 3 s. Le bond se voit venir : il
- *   s'accroupit 0,6 s et un cercle rouge marque au sol le point visé (il ne suit pas en l'air) ; à l'atterrissage, les
- *   joueurs dans le cercle prennent des dégâts et décollent.</li>
- *   <li>Passifs : pas lourds (poussière et son sourd) ; aura de pourriture (à moins de 5 blocs, 1 PV toutes les 2 s à
- *   travers l'armure, qui le soigne) ; seigneur de la horde (les zombies à moins de 16 blocs chassent sa cible, plus
- *   vite).</li>
- *   <li>Phase 1, le Seigneur : coup de masse en arc (il lève le bras 0,8 s avant) ; levée des morts toutes les 20 s
- *   (4 zombies sortent du sol, sillons 1 s avant : sans équipement, 8 PV, 25 % plus rapides).</li>
- *   <li>Phase 2, le Bouclier d'os : intouchable tant que 4 piliers d'os tiennent (on les casse en les frappant ; il les
- *   relève 30 s après) ; charge sur le joueur le plus éloigné (il racle le sol 1 s avant).</li>
- *   <li>Phase 3, la Fin : onde sismique (un anneau s'élargit : il faut sauter quand il passe) ; drain de vie à moins de
- *   10 blocs (il brille 1 s avant) ; rage (+20 % de vitesse).</li>
+ *   <li>Combat : il choisit sa cible à la menace (les dégâts reçus, plus pour les tireurs, la proximité, et les joueurs
+ *   presque morts qu'il veut achever ; il ne change que pour une menace nettement plus forte), frappe à 4,5 blocs, et
+ *   choisit ses attaques selon la situation (joueurs groupés autour de lui, dispersés, au loin). Il bondit sur une cible
+ *   inaccessible ou qui le tient à distance (flèche de plus de 10 blocs, ou cible à plus de 14 blocs pendant 3 s) : il
+ *   s'accroupit 0,6 s et un cercle rouge marque le point visé ; à l'atterrissage, ceux dans le cercle décollent.</li>
+ *   <li>Passifs : pas lourds ; aura de pourriture qui monte avec les phases (1, 2, puis 3 PV toutes les 2 s à travers
+ *   l'armure ; Faiblesse en phase 2 ; Wither et 7 blocs en phase 3, 10 au dernier souffle) ; seigneur de la horde.</li>
+ *   <li>Phase 1, le Seigneur : coup de masse en arc (bras levé 0,8 s avant) ; levée des morts (4 zombies fragiles et
+ *   rapides sortent du sol, sillons 1 s avant).</li>
+ *   <li>Phase 2, le Bouclier d'os : intouchable tant que 4 piliers d'os tiennent (relevés 30 s après) ; charge sur un
+ *   joueur au loin (il racle le sol 1 s avant).</li>
+ *   <li>Phase 3, la Fin : rage (plus rapide, frappe toutes les 0,7 s, coups de masse deux fois plus fréquents) ; triple
+ *   onde sismique de plus en plus rapide (sauter à chaque anneau) ; les tombes (un cercle sous chaque joueur, des os en
+ *   jaillissent 1,5 s après) ; drain de vie qui attire vers lui ; dernier souffle à 10 % (6 zombies levés, aura à 10
+ *   blocs).</li>
  * </ul>
  * Chaque phase garde les capacités des précédentes. Les zombies levés ne lâchent rien et meurent avec lui.
  */
@@ -79,6 +79,12 @@ public class Mortarius extends Boss {
     /** Allonge de ses coups (blocs) : celle d'un mob de sa taille, et délai entre deux coups. */
     private static final double MELEE_REACH = 4.5;
     private static final long MELEE_COOLDOWN_MILLIS = 1_000;
+    private static final long RAGE_MELEE_COOLDOWN_MILLIS = 700;
+    /** Garde-fou : une attaque qui le garde occupé plus longtemps est abandonnée. */
+    private static final long BUSY_LIMIT_MILLIS = 6_000;
+    /** Achever : un joueur à moins de ce nombre de PV attire davantage son attention. */
+    private static final double FINISH_HEALTH = 6;
+    private static final double FINISH_THREAT = 8;
     /** Menace : part gardée à chaque tour (5 ticks), bonus des tireurs, marge pour changer de cible. */
     private static final double THREAT_DECAY = 0.98;
     private static final double RANGED_THREAT = 1.5;
@@ -94,8 +100,11 @@ public class Mortarius extends Boss {
     private static final double FAR_TARGET = 14;
     private static final long FAR_HIT_MEMORY_MILLIS = 3_000;
 
-    private static final double AURA_RADIUS = 5;
-    private static final double AURA_DAMAGE = 1;
+    /** Aura de pourriture par phase (1 à 3) : rayon et dégâts toutes les 2 s ; elle le soigne d'AURA_HEAL par joueur. */
+    private static final double[] AURA_RADIUS = {5, 5, 7};
+    private static final double[] AURA_DAMAGE = {1, 2, 3};
+    private static final double AURA_HEAL = 1;
+    private static final double LAST_STAND_AURA = 10;
     private static final double HORDE_RADIUS = 16;
     private static final double TARGET_RANGE = 32;
 
@@ -126,12 +135,27 @@ public class Mortarius extends Boss {
     private static final int CHARGE_TICKS = 16;
     private static final int CHARGE_WINDUP = 20;
 
+    /** Onde sismique : 3 anneaux, de plus en plus rapides (blocs par tick), épais (on ne passe pas entre), espacés. */
     private static final double WAVE_RADIUS = 14;
-    private static final double WAVE_DAMAGE = 8;
+    private static final double WAVE_DAMAGE = 14;
+    private static final double[] WAVE_SPEEDS = {0.8, 1.1, 1.4};
+    private static final int WAVE_GAP = 16;
+    private static final double WAVE_THICKNESS = 1.3;
     private static final int WAVE_WINDUP = 20;
 
+    /** Les tombes : un cercle sous chaque joueur, des os en jaillissent après TOMB_WINDUP ticks. */
+    private static final double TOMB_RADIUS = 1.8;
+    private static final double TOMB_DAMAGE = 16;
+    private static final int TOMB_WINDUP = 30;
+
+    /** Dernier souffle : sous cette part de vie, une fois. */
+    private static final double LAST_STAND = 0.1;
+    private static final int LAST_STAND_RAISED = 6;
+
     private static final double DRAIN_RANGE = 10;
-    private static final double DRAIN_DAMAGE = 3;
+    private static final double DRAIN_DAMAGE = 5;
+    /** Le drain attire les joueurs vers lui (blocs par tick). */
+    private static final double DRAIN_PULL = 1.1;
     private static final int DRAIN_WINDUP = 20;
 
     private static final double RAGE_SPEED = 0.2;
@@ -153,6 +177,8 @@ public class Mortarius extends Boss {
     /** Ce que Mortarius garde pour un combat. */
     private static final class State {
         boolean busy;
+        long busySince;
+        boolean lastStand;
         long ticks;
         long shieldBackAt;
         Location lastStep;
@@ -198,8 +224,9 @@ public class Mortarius extends Boss {
     public List<String> lore() {
         return List.of(
                 "Zombie géant, 3 phases : ~10 min seul en diamant.",
-                "Levée des morts, bouclier d'os, charge,",
-                "onde sismique (sauter !), drain de vie.");
+                "Levée des morts, bouclier d'os, charge, bonds,",
+                "triple onde (sauter !), tombes, drain qui attire,",
+                "dernier souffle à 10 %.");
     }
 
     @Override
@@ -323,6 +350,11 @@ public class Mortarius extends Boss {
         state.raised.clear();
         state.busy = false;
         state.shieldBackAt = 0;
+        state.lastStand = false;
+        state.threat.clear();
+        state.unreachable = 0;
+        state.farChecks = 0;
+        state.farShooter = null;
         LivingEntity boss = fight.entity();
         rage(boss, false);
         boss.setAI(true);
@@ -358,8 +390,13 @@ public class Mortarius extends Boss {
         state.raised.removeIf(zombie -> !zombie.isValid() || zombie.isDead());
         passives(fight, state, boss);
         if (state.busy) {
+            if (System.currentTimeMillis() - state.busySince > BUSY_LIMIT_MILLIS) {
+                // Garde-fou : une attaque interrompue (chunk, téléportation...) ne le bloque jamais
+                release(boss, null, state);
+            }
             return;
         }
+        state.busySince = System.currentTimeMillis();
         Player target = chooseTarget(state, boss);
         if (target == null) {
             return;
@@ -388,38 +425,66 @@ public class Mortarius extends Boss {
             state.threat.computeIfPresent(target.getUniqueId(), (id, value) -> value * 0.5);
         }
         move(boss, target, distance);
-        if (distance <= MELEE_REACH && boss.hasLineOfSight(target) && fight.ready("melee", MELEE_COOLDOWN_MILLIS)) {
+        int phase = fight.phase();
+        boolean raging = phase >= 3;
+        if (distance <= MELEE_REACH && boss.hasLineOfSight(target)
+                && fight.ready("melee", raging ? RAGE_MELEE_COOLDOWN_MILLIS : MELEE_COOLDOWN_MILLIS)) {
             boss.swingMainHand();
             boss.attack(target);
         }
-        int phase = fight.phase();
-        if (phase >= 3) {
-            if (!nearby(boss, DRAIN_RANGE).isEmpty() && fight.ready("drain", 8_000)) {
-                drain(fight, state);
-                return;
-            }
-            if (fight.ready("wave", 12_000)) {
-                wave(fight, state);
-                return;
-            }
+        if (raging && !state.lastStand && healthPart(boss) <= LAST_STAND) {
+            lastStand(fight, state, target);
+            return;
+        }
+        if (raging && phaseThree(fight, state, boss)) {
+            return;
         }
         if (phase == 2 && state.pillars.isEmpty() && System.currentTimeMillis() >= state.shieldBackAt) {
             raiseShield(fight, state);
         }
         if (phase >= 2) {
+            // La charge sert à rattraper un joueur au loin, pas à frapper celui qui est déjà au contact
             Player farthest = farthest(boss);
-            if (farthest != null && fight.ready("charge", 10_000)) {
+            if (farthest != null && farthest.getLocation().distance(boss.getLocation()) > 10 && fight.ready("charge", 10_000)) {
                 charge(fight, state, farthest);
                 return;
             }
         }
-        if (distance <= SLAM_REACH && fight.ready("slam", 5_000)) {
+        if (distance <= SLAM_REACH && fight.ready("slam", raging ? 2_500 : 5_000)) {
             slam(fight, state, target);
             return;
         }
         if (state.raised.size() + RAISED <= RAISED_MAX && fight.ready("raise", 20_000)) {
             raiseDead(fight, state, target);
         }
+    }
+
+    /**
+     * Phase 3 : l'attaque qui convient à la situation. Joueurs groupés près de lui : onde sismique ; joueurs dispersés ou
+     * au loin : les tombes ; quelqu'un à portée de drain : drain. True si une attaque est lancée.
+     */
+    private boolean phaseThree(BossFight fight, State state, Zombie boss) {
+        List<Player> close = nearby(boss, 8);
+        List<Player> all = nearby(boss, TARGET_RANGE);
+        boolean spread = all.stream().anyMatch(player -> player.getLocation().distance(boss.getLocation()) > 8);
+        if ((close.size() >= 2 || !close.isEmpty() && all.size() == 1) && fight.ready("wave", 12_000)) {
+            wave(fight, state);
+            return true;
+        }
+        if ((spread || all.size() >= 2) && fight.ready("tombs", 14_000)) {
+            tombs(fight, all);
+            return false;
+        }
+        if (!nearby(boss, DRAIN_RANGE).isEmpty() && fight.ready("drain", 8_000)) {
+            drain(fight, state);
+            return true;
+        }
+        return false;
+    }
+
+    private static double healthPart(LivingEntity boss) {
+        AttributeInstance max = boss.getAttribute(Attribute.MAX_HEALTH);
+        return max == null ? 1 : boss.getHealth() / max.getValue();
     }
 
     /**
@@ -454,7 +519,8 @@ public class Mortarius extends Boss {
 
     private static double score(State state, LivingEntity boss, Player player) {
         double distance = player.getLocation().distance(boss.getLocation());
-        return state.threat.getOrDefault(player.getUniqueId(), 0.0) + 6 / (1 + distance);
+        double finish = player.getHealth() <= FINISH_HEALTH ? FINISH_THREAT : 0;
+        return state.threat.getOrDefault(player.getUniqueId(), 0.0) + 6 / (1 + distance) + finish;
     }
 
     /** Il va vers sa cible et s'arrête à portée de coup, face à elle. */
@@ -491,6 +557,7 @@ public class Mortarius extends Boss {
     private void leap(BossFight fight, State state, Player target) {
         Zombie boss = (Zombie) fight.entity();
         state.busy = true;
+        state.busySince = System.currentTimeMillis();
         Location landing = target.getLocation();
         boss.setAI(false);
         boss.getWorld().playSound(boss.getLocation(), Sound.ENTITY_RAVAGER_ROAR, 2f, 0.9f);
@@ -623,10 +690,12 @@ public class Mortarius extends Boss {
             }
             state.lastStep = at;
             // Aura de pourriture : brume verte au sol
-            for (int i = 0; i < 16; i++) {
-                double angle = i * Math.PI / 8;
-                at.getWorld().spawnParticle(Particle.DUST, at.clone().add(Math.cos(angle) * AURA_RADIUS, 0.2,
-                        Math.sin(angle) * AURA_RADIUS), 1, 0.1, 0.05, 0.1, 0, new Particle.DustOptions(ROT, 1.5f));
+            double aura = auraRadius(fight, state);
+            int points = (int) (aura * 3.2);
+            for (int i = 0; i < points; i++) {
+                double angle = i * Math.PI * 2 / points;
+                at.getWorld().spawnParticle(Particle.DUST, at.clone().add(Math.cos(angle) * aura, 0.2,
+                        Math.sin(angle) * aura), 1, 0.1, 0.05, 0.1, 0, new Particle.DustOptions(ROT, 1.5f));
             }
             if (fight.phase() == 2 && !state.pillars.isEmpty()) {
                 // Bouclier : anneau d'os autour de lui
@@ -641,10 +710,16 @@ public class Mortarius extends Boss {
             }
         }
         if (state.ticks % 40 == 0) {
-            for (Player player : nearby(boss, AURA_RADIUS)) {
-                Hits.trueDamage(player, AURA_DAMAGE, boss);
-                heal(boss, AURA_DAMAGE);
-                player.playSound(player.getLocation(), Sound.ENTITY_WARDEN_HEARTBEAT, 0.8f, 0.7f);
+            int phase = Math.min(3, fight.phase());
+            for (Player player : nearby(boss, auraRadius(fight, state))) {
+                Hits.trueDamage(player, AURA_DAMAGE[phase - 1], boss);
+                heal(boss, AURA_HEAL);
+                if (phase == 2) {
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 50, 0));
+                } else if (phase >= 3) {
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 50, 0));
+                }
+                player.playSound(player.getLocation(), Sound.ENTITY_WARDEN_HEARTBEAT, 0.8f + 0.2f * phase, 0.7f);
             }
         }
         if (state.ticks % 20 == 0) {
@@ -653,6 +728,10 @@ public class Mortarius extends Boss {
         if (state.ticks % 200 == 0) {
             at.getWorld().playSound(at, Sound.ENTITY_ZOMBIE_AMBIENT, 2f, 0.4f);
         }
+    }
+
+    private static double auraRadius(BossFight fight, State state) {
+        return state.lastStand ? LAST_STAND_AURA : AURA_RADIUS[Math.min(3, fight.phase()) - 1];
     }
 
     /** Seigneur de la horde : les zombies proches chassent sa cible, plus vite, avec une lueur rouge. */
@@ -716,6 +795,7 @@ public class Mortarius extends Boss {
     private void slam(BossFight fight, State state, Player target) {
         Zombie boss = (Zombie) fight.entity();
         state.busy = true;
+        state.busySince = System.currentTimeMillis();
         freeze(boss, target.getLocation());
         boss.getWorld().playSound(boss.getLocation(), Sound.ENTITY_RAVAGER_ATTACK, 1.5f, 0.5f);
         int[] elapsed = {0};
@@ -973,6 +1053,7 @@ public class Mortarius extends Boss {
     private void charge(BossFight fight, State state, Player target) {
         Zombie boss = (Zombie) fight.entity();
         state.busy = true;
+        state.busySince = System.currentTimeMillis();
         freeze(boss, target.getLocation());
         boss.getWorld().playSound(boss.getLocation(), Sound.ENTITY_RAVAGER_STEP, 1.5f, 0.4f);
         int[] elapsed = {0};
@@ -1018,14 +1099,23 @@ public class Mortarius extends Boss {
 
     // ---- Phase 3 ----
 
-    /** Onde sismique : il lève les bras 1 s, frappe le sol, et un anneau s'élargit ; il faut sauter quand il passe. */
+    /**
+     * Onde sismique : il lève les bras 1 s, frappe le sol, et trois anneaux épais s'élargissent l'un après l'autre, de plus
+     * en plus vite ; il faut sauter quand chacun passe (au sol : dégâts, décollage, Lenteur).
+     */
     private void wave(BossFight fight, State state) {
         Zombie boss = (Zombie) fight.entity();
         state.busy = true;
+        state.busySince = System.currentTimeMillis();
         boss.setAI(false);
         boss.getWorld().playSound(boss.getLocation(), Sound.ENTITY_RAVAGER_ROAR, 2f, 0.4f);
+        Location center = boss.getLocation();
+        int rings = WAVE_SPEEDS.length;
+        List<Set<UUID>> hit = new ArrayList<>();
+        for (int i = 0; i < rings; i++) {
+            hit.add(new HashSet<>());
+        }
         int[] elapsed = {0};
-        Set<UUID> hit = new HashSet<>();
         BukkitTask[] task = new BukkitTask[1];
         task[0] = Bukkit.getScheduler().runTaskTimer(plugin(), () -> {
             elapsed[0]++;
@@ -1033,48 +1123,115 @@ public class Mortarius extends Boss {
                 task[0].cancel();
                 return;
             }
-            Location center = boss.getLocation();
             if (elapsed[0] < WAVE_WINDUP) {
                 if (elapsed[0] % 4 == 0) {
-                    boss.getWorld().spawnParticle(Particle.ASH, center.clone().add(0, boss.getHeight() + 0.5, 0), 20, 0.8, 0.3, 0.8, 0);
+                    boss.getWorld().spawnParticle(Particle.ASH, boss.getLocation().add(0, boss.getHeight() + 0.5, 0), 20, 0.8, 0.3, 0.8, 0);
                 }
                 return;
             }
-            if (elapsed[0] == WAVE_WINDUP) {
-                boss.getWorld().spawnParticle(Particle.EXPLOSION, center, 3, 0.5, 0, 0.5, 0);
-                boss.getWorld().playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 1.5f, 0.5f);
-                boss.setAI(true);
-            }
-            double radius = elapsed[0] - WAVE_WINDUP + 1;
             Block ground = center.getBlock().getRelative(0, -1, 0);
             BlockData data = ground.getType().isAir() ? Material.DIRT.createBlockData() : ground.getBlockData();
-            int points = (int) (8 + radius * 6);
-            for (int i = 0; i < points; i++) {
-                double angle = i * Math.PI * 2 / points;
-                center.getWorld().spawnParticle(Particle.BLOCK, center.clone().add(Math.cos(angle) * radius, 0.2,
-                        Math.sin(angle) * radius), 2, 0.1, 0.1, 0.1, 0, data);
-            }
-            for (Player player : nearby(boss, radius + 1)) {
-                Location feet = player.getLocation();
-                double distance = Math.hypot(feet.getX() - center.getX(), feet.getZ() - center.getZ());
-                if (Math.abs(distance - radius) <= 0.8 && Math.abs(feet.getY() - center.getY()) < 2
-                        && ((org.bukkit.entity.Entity) player).isOnGround() && hit.add(player.getUniqueId())) {
-                    player.damage(WAVE_DAMAGE, boss);
-                    player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 1));
-                    Hits.knock(player, center, 0.4, 0.4);
+            boolean running = false;
+            for (int ring = 0; ring < rings; ring++) {
+                int started = elapsed[0] - WAVE_WINDUP - ring * WAVE_GAP;
+                if (started < 0) {
+                    running = true;
+                    continue;
+                }
+                if (started == 0) {
+                    boss.getWorld().spawnParticle(Particle.EXPLOSION, center, 3, 0.5, 0, 0.5, 0);
+                    boss.getWorld().playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 1.5f, 0.5f + ring * 0.15f);
+                }
+                double radius = 1 + started * WAVE_SPEEDS[ring];
+                if (radius > WAVE_RADIUS) {
+                    continue;
+                }
+                running = true;
+                int points = (int) (8 + radius * 6);
+                for (int i = 0; i < points; i++) {
+                    double angle = i * Math.PI * 2 / points;
+                    center.getWorld().spawnParticle(Particle.BLOCK, center.clone().add(Math.cos(angle) * radius, 0.2,
+                            Math.sin(angle) * radius), 3, 0.15, 0.15, 0.15, 0, data);
+                }
+                for (Player player : center.getNearbyPlayers(radius + WAVE_THICKNESS)) {
+                    Location feet = player.getLocation();
+                    double distance = Math.hypot(feet.getX() - center.getX(), feet.getZ() - center.getZ());
+                    if (Hits.fighting(player) && Math.abs(distance - radius) <= WAVE_THICKNESS
+                            && Math.abs(feet.getY() - center.getY()) < 2.5 && ((Entity) player).isOnGround()
+                            && hit.get(ring).add(player.getUniqueId())) {
+                        player.damage(WAVE_DAMAGE, boss);
+                        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 1));
+                        Hits.knock(player, center, 0.5, 0.7);
+                    }
                 }
             }
-            if (radius >= WAVE_RADIUS) {
+            if (elapsed[0] == WAVE_WINDUP) {
+                boss.setAI(true);
+            }
+            if (!running) {
                 task[0].cancel();
                 state.busy = false;
             }
         }, 1, 1);
     }
 
-    /** Drain de vie : il se fige et brille 1 s, puis aspire la vie des joueurs à moins de 10 blocs. */
+    /** Les tombes : un cercle rouge sous chaque joueur ; 1,5 s plus tard, des os en jaillissent (dégâts, éjection). */
+    private void tombs(BossFight fight, List<Player> players) {
+        LivingEntity boss = fight.entity();
+        boss.getWorld().playSound(boss.getLocation(), Sound.ENTITY_WITHER_AMBIENT, 1.5f, 0.6f);
+        List<Location> graves = new ArrayList<>();
+        players.forEach(player -> graves.add(player.getLocation()));
+        int[] elapsed = {0};
+        BukkitTask[] task = new BukkitTask[1];
+        task[0] = Bukkit.getScheduler().runTaskTimer(plugin(), () -> {
+            elapsed[0] += 2;
+            if (!boss.isValid()) {
+                task[0].cancel();
+                return;
+            }
+            if (elapsed[0] < TOMB_WINDUP) {
+                for (Location grave : graves) {
+                    circle(grave, TOMB_RADIUS);
+                    dust(grave, 4, 0.6);
+                }
+                return;
+            }
+            task[0].cancel();
+            BlockData bone = Material.BONE_BLOCK.createBlockData();
+            for (Location grave : graves) {
+                grave.getWorld().spawnParticle(Particle.BLOCK, grave.clone().add(0, 1, 0), 60, 0.4, 1.2, 0.4, 0.2, bone);
+                grave.getWorld().playSound(grave, Sound.ENTITY_EVOKER_FANGS_ATTACK, 1.5f, 0.6f);
+                grave.getWorld().playSound(grave, Sound.BLOCK_BONE_BLOCK_BREAK, 1.5f, 0.5f);
+                for (Player player : grave.getNearbyPlayers(TOMB_RADIUS)) {
+                    if (Hits.fighting(player) && Math.abs(player.getLocation().getY() - grave.getY()) < 2.5) {
+                        player.damage(TOMB_DAMAGE, boss);
+                        Hits.knock(player, grave, 0.3, 1.0);
+                    }
+                }
+            }
+        }, 0, 2);
+    }
+
+    /** Dernier souffle (10 % de vie, une fois) : cri, 6 zombies levés d'un coup, aura à 10 blocs jusqu'à la fin. */
+    private void lastStand(BossFight fight, State state, Player target) {
+        state.lastStand = true;
+        LivingEntity boss = fight.entity();
+        boss.getWorld().playSound(boss.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 0.6f);
+        boss.getWorld().spawnParticle(Particle.LARGE_SMOKE, chest(boss), 100, 2, 2, 2, 0.05);
+        service().say(fight, "Levez-vous, tous !");
+        for (int i = 0; i < LAST_STAND_RAISED; i++) {
+            Location spot = groundNear(boss.getLocation(), 3, 8);
+            if (spot != null) {
+                rise(fight, state, spot, target);
+            }
+        }
+    }
+
+    /** Drain de vie : il se fige et brille 1 s, puis aspire la vie des joueurs à moins de 10 blocs et les attire à lui. */
     private void drain(BossFight fight, State state) {
         Zombie boss = (Zombie) fight.entity();
         state.busy = true;
+        state.busySince = System.currentTimeMillis();
         boss.setAI(false);
         boss.setGlowing(true);
         boss.getWorld().playSound(boss.getLocation(), Sound.ENTITY_WARDEN_SONIC_CHARGE, 1.5f, 0.8f);
@@ -1089,6 +1246,11 @@ public class Mortarius extends Boss {
                 beam(chest(player), heart);
                 Hits.trueDamage(player, DRAIN_DAMAGE, boss);
                 heal(boss, DRAIN_DAMAGE);
+                // Il les attire vers lui, dans son aura
+                Vector toward = boss.getLocation().toVector().subtract(player.getLocation().toVector()).setY(0);
+                if (toward.lengthSquared() > 1) {
+                    player.setVelocity(toward.normalize().multiply(DRAIN_PULL).setY(0.3));
+                }
             }
             boss.getWorld().playSound(heart, Sound.ENTITY_EVOKER_CAST_SPELL, 1.5f, 0.5f);
             state.busy = false;
