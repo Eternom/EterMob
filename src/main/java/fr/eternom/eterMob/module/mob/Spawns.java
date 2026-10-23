@@ -53,11 +53,11 @@ public final class Spawns {
 
     public static final Group PLAINS = new Group(Set.of(Biome.PLAINS, Biome.SUNFLOWER_PLAINS, Biome.MEADOW, Biome.SAVANNA,
             Biome.SAVANNA_PLATEAU, Biome.WINDSWEPT_SAVANNA, Biome.BEACH),
-            "plain", "meadow", "steppe", "prairie", "savanna", "shrub", "field");
+            "plain", "meadow", "steppe", "prairie", "savanna", "shrub", "field", "valley", "clearing", "plateau", "brush", "lowland");
     public static final Group FORESTS = new Group(Set.of(Biome.FOREST, Biome.FLOWER_FOREST, Biome.BIRCH_FOREST,
             Biome.OLD_GROWTH_BIRCH_FOREST, Biome.TAIGA, Biome.OLD_GROWTH_PINE_TAIGA, Biome.OLD_GROWTH_SPRUCE_TAIGA,
             Biome.WINDSWEPT_FOREST, Biome.CHERRY_GROVE),
-            "forest", "grove", "woods", "taiga", "orchard");
+            "forest", "grove", "woods", "taiga", "orchard", "shield", "skylands");
     public static final Group DARK = new Group(Set.of(Biome.DARK_FOREST, Biome.PALE_GARDEN, Biome.DEEP_DARK),
             "dark", "shadow", "pale", "moonlight", "haunted");
     public static final Group SWAMPS = new Group(Set.of(Biome.SWAMP, Biome.MANGROVE_SWAMP),
@@ -66,15 +66,15 @@ public final class Spawns {
             "jungle", "tropical", "rainforest", "bamboo");
     public static final Group MOUNTAINS = new Group(Set.of(Biome.WINDSWEPT_HILLS, Biome.WINDSWEPT_GRAVELLY_HILLS,
             Biome.STONY_PEAKS, Biome.JAGGED_PEAKS, Biome.FROZEN_PEAKS, Biome.SNOWY_SLOPES, Biome.GROVE, Biome.STONY_SHORE),
-            "mountain", "peak", "alpine", "highland", "cliff", "crag", "summit", "rocky");
+            "mountain", "peak", "alpine", "highland", "cliff", "crag", "summit", "rocky", "spire", "crater", "caldera", "chasm");
     public static final Group DRY = new Group(Set.of(Biome.DESERT, Biome.BADLANDS, Biome.ERODED_BADLANDS, Biome.WOODED_BADLANDS),
-            "desert", "badlands", "canyon", "mesa", "dune", "arid");
+            "desert", "badlands", "canyon", "mesa", "dune", "arid", "sand", "oasis", "yellowstone");
     public static final Group COLD = new Group(Set.of(Biome.SNOWY_PLAINS, Biome.ICE_SPIKES, Biome.SNOWY_TAIGA,
             Biome.SNOWY_BEACH, Biome.FROZEN_RIVER, Biome.GROVE, Biome.SNOWY_SLOPES, Biome.FROZEN_PEAKS),
-            "snow", "frozen", "ice", "glacier", "wintry", "tundra");
+            "snow", "frozen", "ice", "glaci", "wintry", "tundra");
     public static final Group RIVERS = new Group(Set.of(Biome.RIVER, Biome.FROZEN_RIVER, Biome.BEACH, Biome.SNOWY_BEACH,
             Biome.STONY_SHORE),
-            "river", "beach", "shore", "coast");
+            "river", "beach", "shore", "coast", "isle", "island");
 
     private Spawns() {
     }
