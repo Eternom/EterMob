@@ -62,21 +62,6 @@ public class LightningCreeper extends CreeperVariant {
         }
         player.getWorld().strikeLightningEffect(player.getLocation());
         player.setFireTicks(Math.max(player.getFireTicks(), fire));
-        double left = damage;
-        double absorption = player.getAbsorptionAmount();
-        if (absorption > 0) {
-            double taken = Math.min(absorption, left);
-            player.setAbsorptionAmount(absorption - taken);
-            left -= taken;
-        }
-        if (left <= 0) {
-            player.playHurtAnimation(0);
-        } else if (left < player.getHealth()) {
-            player.setHealth(player.getHealth() - left);
-            player.playHurtAnimation(0);
-        } else {
-            // Coup fatal : vrais dégâts de foudre, pour le message de mort et le totem d'immortalité
-            player.damage(Float.MAX_VALUE, DamageSource.builder(DamageType.LIGHTNING_BOLT).build());
-        }
+        trueDamage(player, damage, DamageSource.builder(DamageType.LIGHTNING_BOLT).build());
     }
 }

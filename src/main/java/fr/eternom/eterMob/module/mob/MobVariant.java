@@ -4,6 +4,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.entity.EntityType;
+import org.bukkit.damage.DamageSource;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -152,6 +153,33 @@ public abstract class MobVariant {
             Vector away = player.getLocation().toVector().subtract(center.toVector()).setY(0);
             away = away.lengthSquared() < 0.01 ? new Vector() : away.normalize().multiply(push);
             player.setVelocity(away.setY(lift));
+        }
+    }
+
+    /**
+     * Dégâts qui ignorent l'armure et les enchantements : retirés directement de la vie (cœurs d'absorption d'abord).
+     * Un coup fatal passe par de vrais dégâts (fatal), pour le message de mort et le totem d'immortalité. Rien en créatif
+     * ni en spectateur.
+     */
+    protected static void trueDamage(Player player, double damage, DamageSource fatal) {
+        if (!player.isOnline() || player.isDead() || player.getGameMode() == GameMode.CREATIVE
+                || player.getGameMode() == GameMode.SPECTATOR) {
+            return;
+        }
+        double left = damage;
+        double absorption = player.getAbsorptionAmount();
+        if (absorption > 0) {
+            double taken = Math.min(absorption, left);
+            player.setAbsorptionAmount(absorption - taken);
+            left -= taken;
+        }
+        if (left <= 0) {
+            player.playHurtAnimation(0);
+        } else if (left < player.getHealth()) {
+            player.setHealth(player.getHealth() - left);
+            player.playHurtAnimation(0);
+        } else {
+            player.damage(Float.MAX_VALUE, fatal);
         }
     }
 
