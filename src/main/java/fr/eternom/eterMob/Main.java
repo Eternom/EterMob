@@ -1,5 +1,10 @@
 package fr.eternom.eterMob;
 
+import fr.eternom.eterMob.module.boss.BossCommand;
+import fr.eternom.eterMob.module.boss.BossListener;
+import fr.eternom.eterMob.module.boss.BossRegistry;
+import fr.eternom.eterMob.module.boss.BossService;
+import fr.eternom.eterMob.module.boss.mortarius.Mortarius;
 import fr.eternom.eterMob.module.mob.MobCommand;
 import fr.eternom.eterMob.module.mob.MobListener;
 import fr.eternom.eterMob.module.mob.MobService;
@@ -45,6 +50,8 @@ import java.util.Map;
 /** Variants de mobs : chaque apparition naturelle devient un variant de son mob, avec un ratio de puissance. */
 public final class Main extends JavaPlugin {
 
+    private BossService bosses;
+
     /** Tous les variants : en ajouter un = l'écrire dans module/variant puis l'ajouter ici. */
     private static List<MobVariant> variants() {
         return List.of(
@@ -89,17 +96,24 @@ public final class Main extends JavaPlugin {
                 getConfig().getString("tag.format", "<white><name> <dark_gray>·</dark_gray> <status>"));
 
         getServer().getPluginManager().registerEvents(new MobListener(mobs, getConfig().getBoolean("creeper-block-damage", false)), this);
+        // Boss : seulement par commande pour l'instant (pas d'apparition naturelle)
+        bosses = new BossService(this, new BossRegistry(this), List.of(new Mortarius()));
+        getServer().getPluginManager().registerEvents(new BossListener(bosses), this);
         PluginCommand command = getCommand("etermob");
         if (command != null) {
-            MobCommand executor = new MobCommand(mobs);
+            MobCommand executor = new MobCommand(mobs, new BossCommand(bosses));
             command.setExecutor(executor);
             command.setTabCompleter(executor);
         }
         mobs.start();
+        bosses.start();
     }
 
     @Override
     public void onDisable() {
+        if (bosses != null) {
+            bosses.stop();
+        }
         TempBlocks.clearAll();
     }
 }

@@ -1,11 +1,8 @@
 package fr.eternom.eterMob.module.mob;
 
-import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.entity.EntityType;
-import org.bukkit.damage.DamageSource;
-import org.bukkit.damage.DamageType;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -15,7 +12,6 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
-import org.bukkit.util.Vector;
 import org.bukkit.event.entity.EntityExplodeEvent;
 
 /**
@@ -152,15 +148,7 @@ public abstract class MobVariant {
      * source) et sont poussés vers l'extérieur (push) et vers le haut (lift), en blocs par tick.
      */
     protected static void shockwave(LivingEntity source, Location center, double radius, double damage, double push, double lift) {
-        for (Player player : center.getNearbyPlayers(radius)) {
-            if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
-                continue;
-            }
-            player.damage(damage, source);
-            Vector away = player.getLocation().toVector().subtract(center.toVector()).setY(0);
-            away = away.lengthSquared() < 0.01 ? new Vector() : away.normalize().multiply(push);
-            player.setVelocity(away.setY(lift));
-        }
+        Hits.shockwave(source, center, radius, damage, push, lift);
     }
 
     /**
@@ -170,29 +158,7 @@ public abstract class MobVariant {
      * l'armure la détruisent entièrement, au lieu qu'elle tombe à la mort). Rien en créatif ni en spectateur.
      */
     protected static void trueDamage(Player player, double damage, Entity cause) {
-        if (!player.isOnline() || player.isDead() || player.getGameMode() == GameMode.CREATIVE
-                || player.getGameMode() == GameMode.SPECTATOR) {
-            return;
-        }
-        double left = damage;
-        double absorption = player.getAbsorptionAmount();
-        if (absorption > 0) {
-            double taken = Math.min(absorption, left);
-            player.setAbsorptionAmount(absorption - taken);
-            left -= taken;
-        }
-        if (left <= 0) {
-            player.playHurtAnimation(0);
-        } else if (left < player.getHealth()) {
-            player.setHealth(player.getHealth() - left);
-            player.playHurtAnimation(0);
-        } else {
-            DamageSource.Builder fatal = DamageSource.builder(DamageType.MAGIC);
-            if (cause != null) {
-                fatal.withCausingEntity(cause).withDirectEntity(cause);
-            }
-            player.damage(Float.MAX_VALUE, fatal.build());
-        }
+        Hits.trueDamage(player, damage, cause);
     }
 
     /** Toutes les combien de ticks appeler tick (multiple de MobService.TICK_PERIOD) ; 0 = jamais. */

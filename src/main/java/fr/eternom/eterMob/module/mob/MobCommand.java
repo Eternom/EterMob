@@ -1,5 +1,6 @@
 package fr.eternom.eterMob.module.mob;
 
+import fr.eternom.eterMob.module.boss.BossCommand;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
@@ -13,17 +14,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
-/** /etermob list | spawn <variant> [ratio] : pour tester les variants un par un (etermob.admin). */
+/** /etermob list | spawn <variant> [ratio] | boss ... : tester les variants un par un, et les boss (etermob.admin). */
 public class MobCommand implements TabExecutor {
 
     private final MobService mobs;
+    private final BossCommand bosses;
 
-    public MobCommand(MobService mobs) {
+    public MobCommand(MobService mobs, BossCommand bosses) {
         this.mobs = mobs;
+        this.bosses = bosses;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("boss")) {
+            bosses.handle(sender, args);
+            return true;
+        }
         if (args.length >= 1 && args[0].equalsIgnoreCase("list")) {
             sender.sendMessage(Component.text("Variants (" + mobs.variants().all().size() + ") :", NamedTextColor.GOLD));
             for (MobVariant variant : mobs.variants().all()) {
@@ -60,7 +67,7 @@ public class MobCommand implements TabExecutor {
             sender.sendMessage(Component.text(variant.name() + " apparu, ratio " + finalRatio + ".", NamedTextColor.GREEN));
             return true;
         }
-        sender.sendMessage(Component.text("/etermob list | /etermob spawn <variant> [ratio]", NamedTextColor.RED));
+        sender.sendMessage(Component.text("/etermob list | /etermob spawn <variant> [ratio] | /etermob boss ...", NamedTextColor.RED));
         return true;
     }
 
@@ -68,7 +75,9 @@ public class MobCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         List<String> options = new ArrayList<>();
         if (args.length == 1) {
-            options.addAll(List.of("list", "spawn"));
+            options.addAll(List.of("list", "spawn", "boss"));
+        } else if (args[0].equalsIgnoreCase("boss")) {
+            options.addAll(bosses.complete(args));
         } else if (args.length == 2 && args[0].equalsIgnoreCase("spawn")) {
             mobs.variants().all().forEach(variant -> options.add(variant.id()));
         } else if (args.length == 3 && args[0].equalsIgnoreCase("spawn")) {
