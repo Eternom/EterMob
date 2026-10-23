@@ -47,6 +47,8 @@ public final class Minions {
         AttributeInstance reinforcements = mob.getAttribute(Attribute.SPAWN_REINFORCEMENTS);
         if (reinforcements != null) {
             reinforcements.setBaseValue(0);
+            // Bonus de Minecraft (zombie « chef » en Difficile) : posés à l'apparition, en plus de la base
+            reinforcements.getModifiers().forEach(reinforcements::removeModifier);
         }
     }
 
