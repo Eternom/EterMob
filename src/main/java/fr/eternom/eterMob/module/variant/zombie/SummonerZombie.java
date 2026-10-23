@@ -18,17 +18,18 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Invocateur : quand il chasse un joueur proche, il appelle des zombies autour de lui toutes les 8 s (2 à la fois, 3 à
- * partir du ratio 4), jusqu'à 3 en vie (7 au ratio 5). Ses sbires ne lâchent rien et meurent avec lui : il faut viser
- * l'invocateur. Il est un peu plus fragile qu'un zombie normal.
+ * Invocateur : quand il chasse un joueur proche, il appelle des zombies autour de lui toutes les 12 s (1 à la fois, 2 à
+ * partir du ratio 3), jusqu'à 2 en vie (4 au ratio 4 et 5). Ses sbires ne lâchent rien, n'appellent pas de renforts et
+ * meurent avec lui : il faut viser l'invocateur. Lui non plus n'appelle pas de renforts. Un peu plus fragile qu'un
+ * zombie normal.
  */
 public class SummonerZombie extends ZombieVariant {
 
     private static final int CHECK_TICKS = 20;
-    private static final long COOLDOWN_MILLIS = 8_000;
+    private static final long COOLDOWN_MILLIS = 12_000;
     private static final double RANGE = 16;
-    private static final double PER_WAVE = 1.5;
-    private static final double MAX_ALIVE = 3;
+    private static final double PER_WAVE = 1;
+    private static final double MAX_ALIVE = 2;
 
     /** Sbires en vie de chaque invocateur chargé, et prochaine invocation possible (par identifiant d'entité). */
     private final Map<Integer, List<LivingEntity>> minions = new HashMap<>();
@@ -41,6 +42,11 @@ public class SummonerZombie extends ZombieVariant {
     @Override
     public double health() {
         return 0.9;
+    }
+
+    @Override
+    public void onSpawn(ActiveMob mob) {
+        Minions.noReinforcements(mob.entity());
     }
 
     @Override
