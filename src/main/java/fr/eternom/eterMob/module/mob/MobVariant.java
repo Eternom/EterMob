@@ -1,6 +1,7 @@
 package fr.eternom.eterMob.module.mob;
 
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -49,8 +50,8 @@ public abstract class MobVariant {
         return name;
     }
 
-    /** Conditions d'apparition (biome, hauteur, lumière, heure...). Par défaut : partout. */
-    public boolean canSpawn(Location location) {
+    /** Conditions d'apparition (biome, hauteur, lumière, heure, mob bébé...), au point d'apparition. Par défaut : partout. */
+    public boolean canSpawn(LivingEntity entity) {
         return true;
     }
 
@@ -77,6 +78,10 @@ public abstract class MobVariant {
     public void onLoad(ActiveMob mob) {
     }
 
+    /** Chaque fois que le mob sort du monde (mort ou déchargé) : oublier ce que le variant garde en mémoire pour lui. */
+    public void onRemove(ActiveMob mob) {
+    }
+
     /** Le mob frappe (de près, ou avec un projectile qu'il a tiré). */
     public void onAttack(ActiveMob mob, LivingEntity victim, EntityDamageByEntityEvent event) {
     }
@@ -97,6 +102,17 @@ public abstract class MobVariant {
      * toutes les MobService.AMBIENT_PERIOD ticks, si un joueur est à moins de MobService.AMBIENT_RANGE blocs.
      */
     public void ambient(ActiveMob mob) {
+    }
+
+    /** Particules autour du mob, à height blocs de ses pieds, dispersées sur spread blocs (pour ambient). */
+    protected static void puff(ActiveMob mob, Particle particle, int count, double height, double spread) {
+        puff(mob, particle, count, height, spread, null);
+    }
+
+    /** Pareil, avec les données de la particule (couleur de Particle.DUST...). */
+    protected static <T> void puff(ActiveMob mob, Particle particle, int count, double height, double spread, T data) {
+        Location location = mob.entity().getLocation().add(0, height, 0);
+        location.getWorld().spawnParticle(particle, location, count, spread, spread, spread, 0.01, data);
     }
 
     /** Toutes les combien de ticks appeler tick (multiple de MobService.TICK_PERIOD) ; 0 = jamais. */

@@ -148,7 +148,10 @@ public class MobService {
 
     /** Mob sorti du monde (mort, déchargé) : plus suivi. */
     public void untrack(Entity entity) {
-        active.remove(entity.getEntityId());
+        ActiveMob mob = active.remove(entity.getEntityId());
+        if (mob != null) {
+            mob.variant().onRemove(mob);
+        }
         ticking.remove(entity.getEntityId());
         ambient.remove(entity.getEntityId());
     }

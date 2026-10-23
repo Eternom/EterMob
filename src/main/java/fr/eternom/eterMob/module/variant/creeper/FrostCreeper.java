@@ -2,7 +2,6 @@ package fr.eternom.eterMob.module.variant.creeper;
 
 import fr.eternom.eterMob.module.mob.ActiveMob;
 import fr.eternom.eterMob.module.mob.Rarity;
-import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityExplodeEvent;
@@ -43,8 +42,8 @@ public class FrostCreeper extends CreeperVariant {
     }
 
     @Override
-    public boolean canSpawn(Location location) {
-        return location.getBlock().getTemperature() < SNOW_TEMPERATURE;
+    public boolean canSpawn(LivingEntity entity) {
+        return entity.getLocation().getBlock().getTemperature() < SNOW_TEMPERATURE;
     }
 
     @Override

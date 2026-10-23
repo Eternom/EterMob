@@ -1,7 +1,7 @@
 package fr.eternom.eterMob.module.mob;
 
-import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,9 +48,9 @@ public class Variants {
         return natural.containsKey(type);
     }
 
-    /** Variant tiré pour ce mob à cet endroit, selon la rareté ; null si aucun ne peut apparaître là. */
-    public MobVariant pick(EntityType type, Location location) {
-        List<MobVariant> candidates = natural.get(type);
+    /** Variant tiré pour ce mob qui apparaît, selon la rareté ; null si aucun ne peut apparaître là. */
+    public MobVariant pick(LivingEntity entity) {
+        List<MobVariant> candidates = natural.get(entity.getType());
         if (candidates == null) {
             return null;
         }
@@ -60,7 +60,7 @@ public class Variants {
         double total = 0;
         for (MobVariant variant : candidates) {
             double weight = rarityWeights.getOrDefault(variant.rarity(), 0.0);
-            if (weight > 0 && variant.canSpawn(location)) {
+            if (weight > 0 && variant.canSpawn(entity)) {
                 allowed[count] = variant;
                 weights[count++] = weight;
                 total += weight;

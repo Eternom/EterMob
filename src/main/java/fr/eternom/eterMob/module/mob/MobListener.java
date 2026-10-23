@@ -38,7 +38,7 @@ public class MobListener implements Listener {
         if (!mobs.variants().has(entity.getType())) {
             return;
         }
-        MobVariant variant = mobs.variants().pick(entity.getType(), event.getLocation());
+        MobVariant variant = mobs.variants().pick(entity);
         if (variant != null) {
             mobs.apply(entity, variant, mobs.ratios().roll(event.getLocation()));
         }
@@ -78,6 +78,10 @@ public class MobListener implements Listener {
 
     @EventHandler
     public void onDeath(EntityDeathEvent event) {
+        if (Minions.is(event.getEntity())) {
+            event.getDrops().clear();
+            event.setDroppedExp(0);
+        }
         ActiveMob mob = mobs.get(event.getEntity());
         if (mob != null) {
             mob.variant().onDeath(mob, event);

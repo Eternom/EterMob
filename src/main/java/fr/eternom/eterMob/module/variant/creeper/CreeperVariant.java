@@ -5,8 +5,6 @@ import fr.eternom.eterMob.module.mob.ActiveMob;
 import fr.eternom.eterMob.module.mob.MobVariant;
 import fr.eternom.eterMob.module.mob.Rarity;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -70,12 +68,6 @@ public abstract class CreeperVariant extends MobVariant {
     /** Mèche allumée (il gonfle) : l'animation se renforce. */
     protected static boolean fusing(ActiveMob mob) {
         return ((Creeper) mob.entity()).getFuseTicks() > 0;
-    }
-
-    /** Particules autour du creeper, à height blocs de ses pieds, dispersées sur spread blocs. */
-    protected static void puff(ActiveMob mob, Particle particle, int count, double height, double spread) {
-        Location location = mob.entity().getLocation().add(0, height, 0);
-        location.getWorld().spawnParticle(particle, location, count, spread, spread, spread, 0.01);
     }
 
     @Override
