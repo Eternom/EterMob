@@ -2,10 +2,12 @@ package fr.eternom.eterMob.module.variant.zombie;
 
 import fr.eternom.eterMob.module.mob.ActiveMob;
 import fr.eternom.eterMob.module.mob.Rarity;
+import fr.eternom.eterMob.module.mob.Spawns;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -23,6 +25,12 @@ public class IronZombie extends ZombieVariant {
 
     public IronZombie() {
         super("zombie_iron", Rarity.PEU_COMMUN, "Ferreus");
+    }
+
+    /** Montagnes, ou en profondeur (sous Y = 0). */
+    @Override
+    protected boolean spawnsHere(LivingEntity entity) {
+        return Spawns.biome(entity, Spawns.MOUNTAINS) || Spawns.below(entity, 0);
     }
 
     @Override

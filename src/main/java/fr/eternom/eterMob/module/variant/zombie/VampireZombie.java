@@ -2,6 +2,7 @@ package fr.eternom.eterMob.module.variant.zombie;
 
 import fr.eternom.eterMob.module.mob.ActiveMob;
 import fr.eternom.eterMob.module.mob.Rarity;
+import fr.eternom.eterMob.module.mob.Spawns;
 import org.bukkit.Color;
 import org.bukkit.Particle;
 import org.bukkit.attribute.Attribute;
@@ -21,6 +22,12 @@ public class VampireZombie extends ZombieVariant {
 
     public VampireZombie() {
         super("zombie_vampire", Rarity.RARE, "Sanguis");
+    }
+
+    /** Forêts sombres, jardin pâle, marais. */
+    @Override
+    protected boolean spawnsHere(LivingEntity entity) {
+        return Spawns.biome(entity, Spawns.DARK, Spawns.SWAMPS);
     }
 
     @Override

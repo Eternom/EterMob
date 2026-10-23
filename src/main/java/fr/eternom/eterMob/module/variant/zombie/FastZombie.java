@@ -2,13 +2,21 @@ package fr.eternom.eterMob.module.variant.zombie;
 
 import fr.eternom.eterMob.module.mob.ActiveMob;
 import fr.eternom.eterMob.module.mob.Rarity;
+import fr.eternom.eterMob.module.mob.Spawns;
 import org.bukkit.Particle;
+import org.bukkit.entity.LivingEntity;
 
 /** Harceleur : beaucoup plus rapide, mais fragile et frappe moins fort. */
 public class FastZombie extends ZombieVariant {
 
     public FastZombie() {
         super("zombie_fast", Rarity.PEU_COMMUN, "Celer");
+    }
+
+    /** Plaines, savanes, prairies, plages. */
+    @Override
+    protected boolean spawnsHere(LivingEntity entity) {
+        return Spawns.biome(entity, Spawns.PLAINS);
     }
 
     @Override

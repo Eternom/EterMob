@@ -57,6 +57,7 @@ public class MobService {
         this.variantKey = new NamespacedKey(plugin, "variant");
         this.ratioKey = new NamespacedKey(plugin, "ratio");
         this.modifierKey = new NamespacedKey(plugin, "ratio");
+        variants.all().forEach(variant -> variant.bind(this));
     }
 
     public Variants variants() {

@@ -14,6 +14,12 @@ import fr.eternom.eterMob.module.variant.creeper.FrostCreeper;
 import fr.eternom.eterMob.module.variant.creeper.LaunchCreeper;
 import fr.eternom.eterMob.module.variant.creeper.LightningCreeper;
 import fr.eternom.eterMob.module.variant.creeper.PoisonCreeper;
+import fr.eternom.eterMob.module.variant.skeleton.BlinkSkeleton;
+import fr.eternom.eterMob.module.variant.skeleton.ClassicSkeleton;
+import fr.eternom.eterMob.module.variant.skeleton.HookSkeleton;
+import fr.eternom.eterMob.module.variant.skeleton.RainSkeleton;
+import fr.eternom.eterMob.module.variant.skeleton.ReviveSkeleton;
+import fr.eternom.eterMob.module.variant.skeleton.SniperSkeleton;
 import fr.eternom.eterMob.module.variant.zombie.BurrowZombie;
 import fr.eternom.eterMob.module.variant.zombie.ClassicZombie;
 import fr.eternom.eterMob.module.variant.zombie.FastZombie;
@@ -48,7 +54,13 @@ public final class Main extends JavaPlugin {
                 new VampireZombie(),
                 new SummonerZombie(),
                 new SplitZombie(),
-                new BurrowZombie());
+                new BurrowZombie(),
+                new ClassicSkeleton(),
+                new SniperSkeleton(),
+                new RainSkeleton(),
+                new BlinkSkeleton(),
+                new ReviveSkeleton(),
+                new HookSkeleton());
     }
 
     @Override

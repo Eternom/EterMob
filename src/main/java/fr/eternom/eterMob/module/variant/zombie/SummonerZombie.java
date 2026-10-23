@@ -3,6 +3,7 @@ package fr.eternom.eterMob.module.variant.zombie;
 import fr.eternom.eterMob.module.mob.ActiveMob;
 import fr.eternom.eterMob.module.mob.Minions;
 import fr.eternom.eterMob.module.mob.Rarity;
+import fr.eternom.eterMob.module.mob.Spawns;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
@@ -37,6 +38,12 @@ public class SummonerZombie extends ZombieVariant {
 
     public SummonerZombie() {
         super("zombie_summoner", Rarity.RARE, "Vocator");
+    }
+
+    /** Forêts et taïgas. */
+    @Override
+    protected boolean spawnsHere(LivingEntity entity) {
+        return Spawns.biome(entity, Spawns.FORESTS);
     }
 
     @Override

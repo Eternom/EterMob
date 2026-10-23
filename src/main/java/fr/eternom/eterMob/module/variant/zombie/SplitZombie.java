@@ -3,8 +3,10 @@ package fr.eternom.eterMob.module.variant.zombie;
 import fr.eternom.eterMob.module.mob.ActiveMob;
 import fr.eternom.eterMob.module.mob.Minions;
 import fr.eternom.eterMob.module.mob.Rarity;
+import fr.eternom.eterMob.module.mob.Spawns;
 import org.bukkit.Location;
 import org.bukkit.Particle;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
 import org.bukkit.event.entity.EntityDeathEvent;
@@ -19,6 +21,12 @@ public class SplitZombie extends ZombieVariant {
 
     public SplitZombie() {
         super("zombie_split", Rarity.PEU_COMMUN, "Divisus");
+    }
+
+    /** Marais et jungles (grottes luxuriantes comprises). */
+    @Override
+    protected boolean spawnsHere(LivingEntity entity) {
+        return Spawns.biome(entity, Spawns.SWAMPS, Spawns.JUNGLES);
     }
 
     @Override

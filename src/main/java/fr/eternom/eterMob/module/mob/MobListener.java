@@ -14,6 +14,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 
 /** Apparitions naturelles transformées en variants, suivi des variants chargés, et capacités déclenchées par les événements. */
@@ -85,6 +86,14 @@ public class MobListener implements Listener {
         ActiveMob mob = mobs.get(event.getEntity());
         if (mob != null) {
             mob.variant().onDeath(mob, event);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onShoot(EntityShootBowEvent event) {
+        ActiveMob mob = mobs.get(event.getEntity());
+        if (mob != null) {
+            mob.variant().onShoot(mob, event);
         }
     }
 

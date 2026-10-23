@@ -2,6 +2,7 @@ package fr.eternom.eterMob.module.variant.zombie;
 
 import fr.eternom.eterMob.module.mob.ActiveMob;
 import fr.eternom.eterMob.module.mob.Rarity;
+import fr.eternom.eterMob.module.mob.Spawns;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -36,6 +37,12 @@ public class BurrowZombie extends ZombieVariant {
 
     public BurrowZombie() {
         super("zombie_burrow", Rarity.RARE, "Fossor");
+    }
+
+    /** Grottes (sans lumière du ciel), déserts et badlands. */
+    @Override
+    protected boolean spawnsHere(LivingEntity entity) {
+        return Spawns.cave(entity) || Spawns.biome(entity, Spawns.DRY);
     }
 
     @Override

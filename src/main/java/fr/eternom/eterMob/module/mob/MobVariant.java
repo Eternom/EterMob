@@ -7,6 +7,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 
 /**
@@ -20,6 +21,7 @@ public abstract class MobVariant {
     private final EntityType type;
     private final Rarity rarity;
     private final String name;
+    private MobService service;
 
     /**
      * @param id     identifiant stocké sur le mob : ne jamais le changer une fois en production
@@ -48,6 +50,16 @@ public abstract class MobVariant {
 
     public String name() {
         return name;
+    }
+
+    /** Appelé par MobService à sa création. */
+    void bind(MobService service) {
+        this.service = service;
+    }
+
+    /** Pour les variants qui font apparaître un variant (résurrection...). */
+    protected MobService service() {
+        return service;
     }
 
     /** Conditions d'apparition (biome, hauteur, lumière, heure, mob bébé...), au point d'apparition. Par défaut : partout. */
@@ -91,6 +103,10 @@ public abstract class MobVariant {
     }
 
     public void onDeath(ActiveMob mob, EntityDeathEvent event) {
+    }
+
+    /** Le mob tire à l'arc (squelette) : la flèche est event.getProjectile(). */
+    public void onShoot(ActiveMob mob, EntityShootBowEvent event) {
     }
 
     /** Le mob explose (creeper). */
