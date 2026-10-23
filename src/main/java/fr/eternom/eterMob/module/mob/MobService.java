@@ -29,6 +29,9 @@ public class MobService {
     public static final int TICK_PERIOD = 5;
     /** Une capacité périodique ne tourne que si un joueur est à moins de cette distance (blocs). */
     public static final double TICK_RANGE = 32;
+    /** Animation des Fléaux : période (ticks, multiple de TICK_PERIOD) et distance d'un joueur (blocs). */
+    public static final int AMBIENT_PERIOD = 10;
+    public static final double AMBIENT_RANGE = 24;
 
     private final JavaPlugin plugin;
     private final Variants variants;
@@ -42,6 +45,8 @@ public class MobService {
     private final Map<Integer, ActiveMob> active = new HashMap<>();
     /** Sous-ensemble de active : les variants qui ont une capacité périodique. */
     private final Map<Integer, ActiveMob> ticking = new HashMap<>();
+    /** Sous-ensemble de active : les Fléaux (ratio le plus fort), animés. */
+    private final Map<Integer, ActiveMob> ambient = new HashMap<>();
     private long ticks;
 
     public MobService(JavaPlugin plugin, Variants variants, Ratios ratios, String tagFormat) {
@@ -135,6 +140,9 @@ public class MobService {
         if (variant.tickInterval() > 0) {
             ticking.put(living.getEntityId(), mob);
         }
+        if (ratio == ratios.max()) {
+            ambient.put(living.getEntityId(), mob);
+        }
         variant.onLoad(mob);
     }
 
@@ -142,6 +150,7 @@ public class MobService {
     public void untrack(Entity entity) {
         active.remove(entity.getEntityId());
         ticking.remove(entity.getEntityId());
+        ambient.remove(entity.getEntityId());
     }
 
     /** Variant chargé de cette entité, ou null. */
@@ -151,17 +160,23 @@ public class MobService {
 
     private void tick() {
         ticks += TICK_PERIOD;
-        if (ticking.isEmpty()) {
-            return;
-        }
         // Copie : une capacité peut faire apparaître ou tuer des mobs pendant le tour
-        for (ActiveMob mob : new ArrayList<>(ticking.values())) {
-            int interval = mob.variant().tickInterval();
-            if (ticks % interval != 0 || !mob.entity().isValid()) {
-                continue;
+        if (!ticking.isEmpty()) {
+            for (ActiveMob mob : new ArrayList<>(ticking.values())) {
+                int interval = mob.variant().tickInterval();
+                if (ticks % interval != 0 || !mob.entity().isValid()) {
+                    continue;
+                }
+                if (!mob.entity().getLocation().getNearbyPlayers(TICK_RANGE).isEmpty()) {
+                    mob.variant().tick(mob);
+                }
             }
-            if (!mob.entity().getLocation().getNearbyPlayers(TICK_RANGE).isEmpty()) {
-                mob.variant().tick(mob);
+        }
+        if (!ambient.isEmpty() && ticks % AMBIENT_PERIOD == 0) {
+            for (ActiveMob mob : new ArrayList<>(ambient.values())) {
+                if (mob.entity().isValid() && !mob.entity().getLocation().getNearbyPlayers(AMBIENT_RANGE).isEmpty()) {
+                    mob.variant().ambient(mob);
+                }
             }
         }
     }

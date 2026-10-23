@@ -38,6 +38,12 @@ public class FragmentCreeper extends CreeperVariant {
         return 0.9;
     }
 
+    /** Fléau : éclats qui crépitent sur lui, plus nombreux pendant la mèche. */
+    @Override
+    public void ambient(ActiveMob mob) {
+        puff(mob, Particle.CRIT, fusing(mob) ? 15 : 4, 1, 0.4);
+    }
+
     @Override
     public void onExplode(ActiveMob mob, EntityExplodeEvent event) {
         Location center = event.getLocation();

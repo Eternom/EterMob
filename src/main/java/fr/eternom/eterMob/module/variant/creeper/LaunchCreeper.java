@@ -3,6 +3,7 @@ package fr.eternom.eterMob.module.variant.creeper;
 import fr.eternom.eterMob.module.mob.ActiveMob;
 import fr.eternom.eterMob.module.mob.Rarity;
 import org.bukkit.Bukkit;
+import org.bukkit.Particle;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -31,6 +32,12 @@ public class LaunchCreeper extends CreeperVariant {
     @Override
     public double speed() {
         return 1.2;
+    }
+
+    /** Fléau : petites bourrasques à ses pieds, une rafale pendant la mèche. */
+    @Override
+    public void ambient(ActiveMob mob) {
+        puff(mob, fusing(mob) ? Particle.GUST : Particle.SMALL_GUST, 1, 0.2, 0.3);
     }
 
     @Override

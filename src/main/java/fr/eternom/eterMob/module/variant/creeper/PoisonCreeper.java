@@ -3,6 +3,8 @@ package fr.eternom.eterMob.module.variant.creeper;
 import fr.eternom.eterMob.module.mob.ActiveMob;
 import fr.eternom.eterMob.module.mob.Rarity;
 import org.bukkit.Color;
+import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.entity.AreaEffectCloud;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.potion.PotionEffect;
@@ -38,6 +40,16 @@ public class PoisonCreeper extends CreeperVariant {
     @Override
     public double speed() {
         return 0.95;
+    }
+
+    /** Fléau : gouttes vertes qui tombent de lui, une brume verte pendant la mèche. */
+    @Override
+    public void ambient(ActiveMob mob) {
+        puff(mob, Particle.ITEM_SLIME, 2, 1.2, 0.3);
+        if (fusing(mob)) {
+            Location location = mob.entity().getLocation().add(0, 0.8, 0);
+            location.getWorld().spawnParticle(Particle.DUST, location, 15, 0.6, 0.4, 0.6, new Particle.DustOptions(GREEN, 1.3f));
+        }
     }
 
     @Override

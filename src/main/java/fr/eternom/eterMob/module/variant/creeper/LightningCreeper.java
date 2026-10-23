@@ -4,6 +4,7 @@ import fr.eternom.eterMob.module.mob.ActiveMob;
 import fr.eternom.eterMob.module.mob.Rarity;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.Particle;
 import org.bukkit.damage.DamageSource;
 import org.bukkit.damage.DamageType;
 import org.bukkit.entity.LivingEntity;
@@ -31,6 +32,12 @@ public class LightningCreeper extends CreeperVariant {
 
     public LightningCreeper() {
         super("creeper_lightning", Rarity.RARE, "Fulmen", 3, 15);
+    }
+
+    /** Fléau : étincelles électriques sur lui, plus fortes pendant la mèche. */
+    @Override
+    public void ambient(ActiveMob mob) {
+        puff(mob, Particle.ELECTRIC_SPARK, fusing(mob) ? 15 : 4, 1, 0.4);
     }
 
     @Override

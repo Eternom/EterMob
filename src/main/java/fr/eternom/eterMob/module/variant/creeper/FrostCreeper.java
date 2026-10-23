@@ -3,6 +3,7 @@ package fr.eternom.eterMob.module.variant.creeper;
 import fr.eternom.eterMob.module.mob.ActiveMob;
 import fr.eternom.eterMob.module.mob.Rarity;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.potion.PotionEffect;
@@ -33,6 +34,12 @@ public class FrostCreeper extends CreeperVariant {
     @Override
     public double speed() {
         return 0.9;
+    }
+
+    /** Fléau : flocons autour de lui, une bourrasque de neige pendant la mèche. */
+    @Override
+    public void ambient(ActiveMob mob) {
+        puff(mob, Particle.SNOWFLAKE, fusing(mob) ? 20 : 4, 1, fusing(mob) ? 1 : 0.4);
     }
 
     @Override

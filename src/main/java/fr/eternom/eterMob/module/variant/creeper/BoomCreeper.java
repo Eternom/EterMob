@@ -2,6 +2,7 @@ package fr.eternom.eterMob.module.variant.creeper;
 
 import fr.eternom.eterMob.module.mob.ActiveMob;
 import fr.eternom.eterMob.module.mob.Rarity;
+import org.bukkit.Particle;
 import org.bukkit.entity.Creeper;
 
 /**
@@ -23,6 +24,17 @@ public class BoomCreeper extends CreeperVariant {
     public void onSpawn(ActiveMob mob) {
         super.onSpawn(mob);
         ((Creeper) mob.entity()).setMaxFuseTicks(FUSE);
+    }
+
+    /** Fléau : fumée sur sa tête, flammes et fumée épaisse pendant la mèche. */
+    @Override
+    public void ambient(ActiveMob mob) {
+        if (fusing(mob)) {
+            puff(mob, Particle.LARGE_SMOKE, 6, 1.5, 0.3);
+            puff(mob, Particle.FLAME, 4, 1, 0.4);
+        } else {
+            puff(mob, Particle.SMOKE, 3, 1.7, 0.15);
+        }
     }
 
     @Override

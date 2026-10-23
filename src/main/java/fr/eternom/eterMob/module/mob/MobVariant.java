@@ -92,6 +92,13 @@ public abstract class MobVariant {
     public void onExplode(ActiveMob mob, EntityExplodeEvent event) {
     }
 
+    /**
+     * Animation des Fléaux (ratio le plus fort) seulement, pour qu'ils se repèrent sans couvrir le monde de particules :
+     * toutes les MobService.AMBIENT_PERIOD ticks, si un joueur est à moins de MobService.AMBIENT_RANGE blocs.
+     */
+    public void ambient(ActiveMob mob) {
+    }
+
     /** Toutes les combien de ticks appeler tick (multiple de MobService.TICK_PERIOD) ; 0 = jamais. */
     public int tickInterval() {
         return 0;
