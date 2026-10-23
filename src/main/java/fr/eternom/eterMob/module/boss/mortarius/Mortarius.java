@@ -60,7 +60,7 @@ import java.util.concurrent.ThreadLocalRandom;
  *   choisit ses attaques selon la situation (joueurs groupés autour de lui, dispersés, au loin). Il bondit sur une cible
  *   inaccessible ou qui le tient à distance (flèche de plus de 10 blocs, ou cible à plus de 14 blocs pendant 3 s) : il
  *   s'accroupit 0,6 s et un cercle rouge marque le point visé ; à l'atterrissage, ceux dans le cercle décollent.</li>
- *   <li>Passifs : pas lourds ; aura de pourriture qui monte avec les phases (1, 2, puis 3 PV toutes les 2 s à travers
+ *   <li>Passifs : pas lourds ; aura de pourriture (sans soin) qui monte avec les phases (1, 2, puis 3 PV toutes les 2 s à travers
  *   l'armure ; Faiblesse en phase 2 ; Wither et 7 blocs en phase 3, 10 au dernier souffle) ; seigneur de la horde.</li>
  *   <li>Phase 1, le Seigneur : coup de masse en arc (bras levé 0,8 s avant) ; levée des morts (4 zombies fragiles et
  *   rapides sortent du sol, sillons 1 s avant).</li>
@@ -99,9 +99,8 @@ public class Mortarius extends Boss {
     private static final double FAR_TARGET = 14;
     private static final long FAR_HIT_MEMORY_MILLIS = 3_000;
 
-    /** Aura de pourriture par phase (1 à 3) : rayon et dégâts toutes les 2 s ; elle le soigne d'AURA_HEAL par joueur. */
+    /** Aura de pourriture par phase (1 à 3) : rayon et dégâts toutes les 2 s (elle ne le soigne pas). */
     private static final double[] AURA_RADIUS = {5, 5, 7};
-    private static final double AURA_HEAL = 1;
     private static final double LAST_STAND_AURA = 10;
     private static final double HORDE_RADIUS = 16;
     private static final double TARGET_RANGE = 32;
@@ -125,7 +124,9 @@ public class Mortarius extends Boss {
     private static final float PILLAR_HEIGHT = 3.4f;
     private static final long SHIELD_BACK_MILLIS = 30_000;
     /** Bonus des piliers tant qu'ils tiennent : soin (toutes les 2 s), vitesse, force, aura (dégâts et rayon). */
-    private static final double PILLAR_HEAL = 1.5;
+    private static final double PILLAR_HEAL = 0.5;
+    /** Le drain le soigne de cette part de ce qu'il aspire. */
+    private static final double DRAIN_HEAL = 0.5;
     private static final double PILLAR_SPEED = 0.2;
     private static final double PILLAR_STRENGTH = 0.3;
     private static final double PILLAR_AURA_DAMAGE = 1;
@@ -858,7 +859,6 @@ public class Mortarius extends Boss {
             for (Player player : nearby(boss, auraRadius(fight, state))) {
                 Hits.trueDamage(player, damage, boss);
                 fight.taken(player, damage);
-                heal(fight, AURA_HEAL);
                 if (phase == 2) {
                     player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 50, 0));
                 } else if (phase >= 3) {
@@ -1533,7 +1533,7 @@ public class Mortarius extends Boss {
                 beam(chest(player), heart);
                 Hits.trueDamage(player, drainDamage, boss);
                 fight.taken(player, drainDamage);
-                heal(fight, drainDamage);
+                heal(fight, drainDamage * DRAIN_HEAL);
                 // Il les attire vers lui, dans son aura
                 Vector toward = boss.getLocation().toVector().subtract(player.getLocation().toVector()).setY(0);
                 if (toward.lengthSquared() > 1) {

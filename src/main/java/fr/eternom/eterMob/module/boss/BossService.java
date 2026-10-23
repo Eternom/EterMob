@@ -66,8 +66,8 @@ public class BossService {
     /** Effondrement avant la mort (ticks), et profondeur dont il s'enfonce. */
     private static final int DEATH_TICKS = 60;
     private static final double DEATH_SINK = 2.5;
-    /** Dans une phase, il ne remonte jamais à plus de cette part de sa vie max au-dessus de son point le plus bas. */
-    private static final double REGEN_MARGIN = 0.05;
+    /** Dans une phase, il ne remonte jamais à plus de cette part de sa vie max au-dessus de son point le plus bas (2 %). */
+    private static final double REGEN_MARGIN = 0.02;
 
     private final JavaPlugin plugin;
     private final BossRegistry registry;
@@ -305,7 +305,7 @@ public class BossService {
     }
 
     /**
-     * Vie maximale autorisée : jamais au-dessus du seuil de sa phase, et jamais plus de 5 % de sa vie max au-dessus du
+     * Vie maximale autorisée : jamais au-dessus du seuil de sa phase, et jamais plus de 2 % de sa vie max au-dessus du
      * point le plus bas atteint dans cette phase (les dégâts faits restent acquis, ses soins ne font que grignoter).
      */
     public double healthCap(BossFight fight) {
