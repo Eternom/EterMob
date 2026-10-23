@@ -24,10 +24,10 @@ public class VampireZombie extends ZombieVariant {
         super("zombie_vampire", Rarity.RARE, "Sanguis");
     }
 
-    /** Forêts sombres, jardin pâle, marais. */
+    /** Forêts sombres, jardin pâle, marais, jungles. */
     @Override
     protected boolean spawnsHere(LivingEntity entity) {
-        return Spawns.biome(entity, Spawns.DARK, Spawns.SWAMPS);
+        return Spawns.biome(entity, Spawns.DARK, Spawns.SWAMPS, Spawns.JUNGLES);
     }
 
     @Override

@@ -14,7 +14,8 @@ import org.bukkit.util.Vector;
 
 /**
  * Harpon : ses flèches attirent le joueur touché vers lui, plus fort selon le ratio (environ 4 blocs au ratio 1, 9 au
- * ratio 5). Il tire au milieu des arbres et des autres mobs. Forêts, taïgas, jungles, marais.
+ * ratio 5). Il tire au milieu des arbres et des autres mobs. Forêts, taïgas, jungles, marais,
+ * rivières, neige.
  */
 public class HookSkeleton extends SkeletonVariant {
 
@@ -28,7 +29,7 @@ public class HookSkeleton extends SkeletonVariant {
 
     @Override
     protected boolean spawnsHere(LivingEntity entity) {
-        return Spawns.biome(entity, Spawns.FORESTS, Spawns.JUNGLES, Spawns.SWAMPS);
+        return Spawns.biome(entity, Spawns.FORESTS, Spawns.JUNGLES, Spawns.SWAMPS, Spawns.RIVERS, Spawns.COLD);
     }
 
     @Override

@@ -23,10 +23,10 @@ public class SplitZombie extends ZombieVariant {
         super("zombie_split", Rarity.PEU_COMMUN, "Divisus");
     }
 
-    /** Marais et jungles (grottes luxuriantes comprises). */
+    /** Marais, jungles (grottes luxuriantes comprises), rivières et plages. */
     @Override
     protected boolean spawnsHere(LivingEntity entity) {
-        return Spawns.biome(entity, Spawns.SWAMPS, Spawns.JUNGLES);
+        return Spawns.biome(entity, Spawns.SWAMPS, Spawns.JUNGLES, Spawns.RIVERS);
     }
 
     @Override

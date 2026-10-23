@@ -12,7 +12,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
 /**
  * Tisserand : à chaque coup, une toile apparaît aux pieds du joueur touché (seulement dans l'air) et disparaît après
- * 2 s, 3 s au ratio 5. La toile ne lâche rien si on la casse. Forêts, jungles, grottes.
+ * 2 s, 3 s au ratio 5. La toile ne lâche rien si on la casse. Forêts, jungles, forêts sombres, marais, grottes.
  */
 public class WebSpider extends SpiderVariant {
 
@@ -26,7 +26,7 @@ public class WebSpider extends SpiderVariant {
 
     @Override
     protected boolean spawnsHere(LivingEntity entity) {
-        return Spawns.cave(entity) || Spawns.biome(entity, Spawns.FORESTS, Spawns.JUNGLES);
+        return Spawns.cave(entity) || Spawns.biome(entity, Spawns.FORESTS, Spawns.JUNGLES, Spawns.DARK, Spawns.SWAMPS);
     }
 
     @Override

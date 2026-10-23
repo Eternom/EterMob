@@ -1,13 +1,16 @@
 package fr.eternom.eterMob.module.mob;
 
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
+import org.bukkit.util.Vector;
 import org.bukkit.event.entity.EntityExplodeEvent;
 
 /**
@@ -129,6 +132,22 @@ public abstract class MobVariant {
     protected static <T> void puff(ActiveMob mob, Particle particle, int count, double height, double spread, T data) {
         Location location = mob.entity().getLocation().add(0, height, 0);
         location.getWorld().spawnParticle(particle, location, count, spread, spread, spread, 0.01, data);
+    }
+
+    /**
+     * Onde de choc : les joueurs à moins de radius blocs du centre (sauf créatif et spectateur) prennent damage (venant de
+     * source) et sont poussés vers l'extérieur (push) et vers le haut (lift), en blocs par tick.
+     */
+    protected static void shockwave(LivingEntity source, Location center, double radius, double damage, double push, double lift) {
+        for (Player player : center.getNearbyPlayers(radius)) {
+            if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
+                continue;
+            }
+            player.damage(damage, source);
+            Vector away = player.getLocation().toVector().subtract(center.toVector()).setY(0);
+            away = away.lengthSquared() < 0.01 ? new Vector() : away.normalize().multiply(push);
+            player.setVelocity(away.setY(lift));
+        }
     }
 
     /** Toutes les combien de ticks appeler tick (multiple de MobService.TICK_PERIOD) ; 0 = jamais. */

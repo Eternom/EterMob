@@ -22,7 +22,9 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * Embuscade : quand le joueur qu'il chasse est entre 6 et 20 blocs, il s'enfonce dans le sol (invisible, immobile,
  * intouchable pendant 1,5 s) puis ressort juste à côté de lui. Il recommence toutes les 12 s, moins souvent aux petits
- * ratios : 12 s au ratio 1, environ 5,5 s au ratio 5. Si son chunk se décharge sous terre, il ressort à son retour.
+ * ratios : 12 s au ratio 1, environ 5,5 s au ratio 5. En ressortant, il projette la terre autour de lui : petits dégâts
+ * et les joueurs proches décollent (rayon 2,5 blocs, environ 5,5 au ratio 5). Si son chunk se décharge sous terre, il
+ * ressort à son retour. Grottes, déserts, badlands, montagnes.
  */
 public class BurrowZombie extends ZombieVariant {
 
@@ -31,6 +33,9 @@ public class BurrowZombie extends ZombieVariant {
     private static final double MAX_DISTANCE = 20;
     private static final int UNDERGROUND_TICKS = 30;
     private static final double COOLDOWN_MILLIS = 12_000;
+    /** Terre projetée en ressortant : rayon (blocs) et dégâts de base, multipliés par le ratio. */
+    private static final double ERUPTION_RADIUS = 2.5;
+    private static final double ERUPTION_DAMAGE = 3;
 
     private final Map<Integer, Long> nextBurrow = new HashMap<>();
     private final Set<Integer> underground = new HashSet<>();
@@ -39,10 +44,10 @@ public class BurrowZombie extends ZombieVariant {
         super("zombie_burrow", Rarity.RARE, "Fossor");
     }
 
-    /** Grottes (sans lumière du ciel), déserts et badlands. */
+    /** Grottes (sans lumière du ciel), déserts, badlands, montagnes. */
     @Override
     protected boolean spawnsHere(LivingEntity entity) {
-        return Spawns.cave(entity) || Spawns.biome(entity, Spawns.DRY);
+        return Spawns.cave(entity) || Spawns.biome(entity, Spawns.DRY, Spawns.MOUNTAINS);
     }
 
     @Override
@@ -89,6 +94,8 @@ public class BurrowZombie extends ZombieVariant {
             emerge(zombie);
             zombie.setTarget(target);
             dust(zombie.getLocation());
+            dust(zombie.getLocation().add(0, 0.5, 0));
+            shockwave(zombie, zombie.getLocation(), mob.scale(ERUPTION_RADIUS), mob.scale(ERUPTION_DAMAGE), 0.3, 0.6);
         }, UNDERGROUND_TICKS);
     }
 

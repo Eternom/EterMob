@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * Revenant : à sa première mort il ne lâche rien et ses os restent au sol ; 3 s plus tard il se relève avec la moitié de
  * sa vie. Pour l'en empêcher, il faut rester sur ses os (à 1,5 bloc) : ils se brisent et lâchent son butin. Il ne se
- * relève qu'une fois. Déserts, badlands et profondeurs (sous Y = 0).
+ * relève qu'une fois. Déserts, badlands, montagnes et profondeurs (sous Y = 0).
  */
 public class ReviveSkeleton extends SkeletonVariant {
 
@@ -41,7 +41,7 @@ public class ReviveSkeleton extends SkeletonVariant {
 
     @Override
     protected boolean spawnsHere(LivingEntity entity) {
-        return Spawns.biome(entity, Spawns.DRY) || Spawns.below(entity, 0);
+        return Spawns.biome(entity, Spawns.DRY, Spawns.MOUNTAINS) || Spawns.below(entity, 0);
     }
 
     private NamespacedKey revivedKey() {

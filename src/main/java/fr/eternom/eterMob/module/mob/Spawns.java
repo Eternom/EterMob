@@ -23,6 +23,10 @@ public final class Spawns {
     public static final Set<Biome> MOUNTAINS = Set.of(Biome.WINDSWEPT_HILLS, Biome.WINDSWEPT_GRAVELLY_HILLS,
             Biome.STONY_PEAKS, Biome.JAGGED_PEAKS, Biome.FROZEN_PEAKS, Biome.SNOWY_SLOPES, Biome.GROVE, Biome.STONY_SHORE);
     public static final Set<Biome> DRY = Set.of(Biome.DESERT, Biome.BADLANDS, Biome.ERODED_BADLANDS, Biome.WOODED_BADLANDS);
+    public static final Set<Biome> COLD = Set.of(Biome.SNOWY_PLAINS, Biome.ICE_SPIKES, Biome.SNOWY_TAIGA, Biome.SNOWY_BEACH,
+            Biome.FROZEN_RIVER, Biome.GROVE, Biome.SNOWY_SLOPES, Biome.FROZEN_PEAKS);
+    public static final Set<Biome> RIVERS = Set.of(Biome.RIVER, Biome.FROZEN_RIVER, Biome.BEACH, Biome.SNOWY_BEACH,
+            Biome.STONY_SHORE);
 
     private Spawns() {
     }

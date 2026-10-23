@@ -20,7 +20,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Meute : apparaît entourée d'araignées venimeuses (2 au ratio 1, 4 au ratio 5) qui ne lâchent rien, ne sont jamais
- * sauvegardées et meurent avec elle. Jungles et marais.
+ * sauvegardées et meurent avec elle. Jungles, marais, forêts.
  */
 public class PackSpider extends SpiderVariant {
 
@@ -34,7 +34,7 @@ public class PackSpider extends SpiderVariant {
 
     @Override
     protected boolean spawnsHere(LivingEntity entity) {
-        return Spawns.biome(entity, Spawns.JUNGLES, Spawns.SWAMPS);
+        return Spawns.biome(entity, Spawns.JUNGLES, Spawns.SWAMPS, Spawns.FORESTS);
     }
 
     @Override

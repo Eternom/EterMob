@@ -22,7 +22,7 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * Pluie de flèches : toutes les 7 s, quand il tire sur un joueur, des flèches tombent du ciel autour de lui une seconde
  * plus tard, une à une (3 au ratio 1, 7 au ratio 5) : il faut bouger. Ces flèches ne se ramassent pas. Biomes à ciel
- * ouvert : plaines, savanes, déserts, badlands.
+ * ouvert : plaines, savanes, déserts, badlands, rivières, neige.
  */
 public class RainSkeleton extends SkeletonVariant {
 
@@ -43,7 +43,7 @@ public class RainSkeleton extends SkeletonVariant {
 
     @Override
     protected boolean spawnsHere(LivingEntity entity) {
-        return Spawns.biome(entity, Spawns.PLAINS, Spawns.DRY);
+        return Spawns.biome(entity, Spawns.PLAINS, Spawns.DRY, Spawns.RIVERS, Spawns.COLD);
     }
 
     @Override

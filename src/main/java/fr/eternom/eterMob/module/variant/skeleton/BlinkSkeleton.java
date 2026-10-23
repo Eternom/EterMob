@@ -17,7 +17,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Ombre : quand un joueur s'approche à moins de 4 blocs, il se téléporte à 8-12 blocs de lui et recommence à tirer.
- * Toutes les 8 s au ratio 1, environ 3,5 s au ratio 5. Il faut le coincer ou le tuer de loin. Grottes et forêts sombres.
+ * Toutes les 8 s au ratio 1, environ 3,5 s au ratio 5. Il faut le coincer ou le tuer de loin. Grottes, forêts sombres, jungles.
  */
 public class BlinkSkeleton extends SkeletonVariant {
 
@@ -35,7 +35,7 @@ public class BlinkSkeleton extends SkeletonVariant {
 
     @Override
     protected boolean spawnsHere(LivingEntity entity) {
-        return Spawns.cave(entity) || Spawns.biome(entity, Spawns.DARK);
+        return Spawns.cave(entity) || Spawns.biome(entity, Spawns.DARK, Spawns.JUNGLES);
     }
 
     @Override

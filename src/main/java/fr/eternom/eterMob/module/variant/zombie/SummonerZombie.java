@@ -40,10 +40,10 @@ public class SummonerZombie extends ZombieVariant {
         super("zombie_summoner", Rarity.RARE, "Vocator");
     }
 
-    /** Forêts et taïgas. */
+    /** Forêts, taïgas, neige. */
     @Override
     protected boolean spawnsHere(LivingEntity entity) {
-        return Spawns.biome(entity, Spawns.FORESTS);
+        return Spawns.biome(entity, Spawns.FORESTS, Spawns.COLD);
     }
 
     @Override

@@ -13,7 +13,7 @@ import java.util.Set;
 /**
  * Cachée : invisible (on ne voit que ses yeux) tant qu'aucun joueur n'est à moins de 6 blocs, puis elle se révèle, et
  * son premier coup fait double dégâts. Elle se cache de nouveau quand plus personne n'est à moins de 16 blocs.
- * Forêts sombres, jardin pâle, grottes.
+ * Forêts sombres, jardin pâle, forêts, neige, grottes.
  */
 public class HiddenSpider extends SpiderVariant {
 
@@ -32,7 +32,7 @@ public class HiddenSpider extends SpiderVariant {
 
     @Override
     protected boolean spawnsHere(LivingEntity entity) {
-        return Spawns.cave(entity) || Spawns.biome(entity, Spawns.DARK);
+        return Spawns.cave(entity) || Spawns.biome(entity, Spawns.DARK, Spawns.FORESTS, Spawns.COLD);
     }
 
     @Override
