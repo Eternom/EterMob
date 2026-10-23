@@ -22,10 +22,15 @@ public class LaunchCreeper extends CreeperVariant {
         super("creeper_launch", Rarity.PEU_COMMUN, "Volatus", 2, 10, 2);
     }
 
-    /** Résistant : il doit venir au contact, il doit tenir le coup. */
+    /** Contact : il doit coller sa cible, donc il est résistant et plus rapide. */
     @Override
     public double health() {
         return 1.3;
+    }
+
+    @Override
+    public double speed() {
+        return 1.2;
     }
 
     @Override

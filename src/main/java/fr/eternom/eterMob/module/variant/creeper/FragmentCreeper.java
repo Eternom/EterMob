@@ -32,6 +32,12 @@ public class FragmentCreeper extends CreeperVariant {
         super("creeper_fragment", Rarity.RARE, "Fractus", 2, 12);
     }
 
+    /** Zone : ses éclats font le travail, lui est un peu plus fragile. */
+    @Override
+    public double health() {
+        return 0.9;
+    }
+
     @Override
     public void onExplode(ActiveMob mob, EntityExplodeEvent event) {
         Location center = event.getLocation();

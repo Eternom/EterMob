@@ -64,6 +64,11 @@ public abstract class MobVariant {
         return 1;
     }
 
+    /** Vitesse, en fois celle du mob : PAS multipliée par le ratio (un Fléau deux fois plus rapide serait injouable). */
+    public double speed() {
+        return 1;
+    }
+
     /** Une seule fois, à la création du mob (rayon d'explosion, équipement...) : ce qui est posé ici est gardé par Minecraft. */
     public void onSpawn(ActiveMob mob) {
     }

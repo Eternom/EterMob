@@ -73,7 +73,7 @@ public class MobService {
     }
 
     /**
-     * Fait de ce mob un variant de ce ratio : données, vie et dégâts, tag, puis MobVariant#onSpawn. Appelé avant que le
+     * Fait de ce mob un variant de ce ratio : données, vie, dégâts, vitesse, tag, puis MobVariant#onSpawn. Appelé avant que le
      * mob entre dans le monde : il sera suivi par track (EntityAddToWorldEvent).
      */
     public void apply(LivingEntity entity, MobVariant variant, int ratio) {
@@ -85,6 +85,7 @@ public class MobService {
 
         scale(entity, Attribute.MAX_HEALTH, variant.health() * power);
         scale(entity, Attribute.ATTACK_DAMAGE, variant.damage() * power);
+        scale(entity, Attribute.MOVEMENT_SPEED, variant.speed());
         AttributeInstance health = entity.getAttribute(Attribute.MAX_HEALTH);
         if (health != null) {
             entity.setHealth(health.getValue());

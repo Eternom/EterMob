@@ -3,6 +3,7 @@ package fr.eternom.eterMob.module.variant.creeper;
 import fr.eternom.eterMob.module.mob.ActiveMob;
 import fr.eternom.eterMob.module.mob.Rarity;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.damage.DamageSource;
 import org.bukkit.damage.DamageType;
 import org.bukkit.entity.LivingEntity;
@@ -12,18 +13,19 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
- * Chaque joueur touché par son explosion se prend la foudre sur la tête : dégâts de foudre et feu, plusieurs éclairs
- * aux ratios forts (1 au ratio 1, 2 à partir du ratio 3). L'éclair est seulement visuel : pas de feu sur les blocs,
- * pas de creeper chargé ni de cochon transformé autour ; les dégâts et le feu sont donnés au joueur directement.
+ * Chaque joueur touché par son explosion se prend la foudre sur la tête, une fois au ratio 1 et 2, deux fois à partir du
+ * ratio 3. La foudre ignore l'armure et les enchantements (l'armure réduirait un petit coup à presque rien) : elle
+ * retire directement 2 à 4,4 points de vie selon le ratio (cœurs d'absorption d'abord), et met le joueur en feu.
+ * L'éclair est seulement visuel : pas de feu sur les blocs, pas de creeper chargé ni de cochon transformé autour.
  */
 public class LightningCreeper extends CreeperVariant {
 
     private static final double STRIKES = 1;
-    /** Dégâts d'un éclair (5 = foudre de Minecraft), avant armure. */
-    private static final double STRIKE_DAMAGE = 5;
+    /** Points de vie retirés par un éclair, sans armure ni enchantement. */
+    private static final double STRIKE_DAMAGE = 2;
     /** Joueur en feu après un éclair (ticks). */
     private static final double FIRE_TICKS = 60;
-    /** Premier éclair après l'explosion, puis un toutes les STRIKE_GAP (ticks) : plus que l'invulnérabilité après un coup. */
+    /** Premier éclair après l'explosion, puis un toutes les STRIKE_GAP (ticks). */
     private static final int FIRST_DELAY = 10;
     private static final int STRIKE_GAP = 15;
 
@@ -34,7 +36,7 @@ public class LightningCreeper extends CreeperVariant {
     @Override
     public void onAttack(ActiveMob mob, LivingEntity victim, EntityDamageByEntityEvent event) {
         super.onAttack(mob, victim, event);
-        if (event.getCause() != EntityDamageEvent.DamageCause.ENTITY_EXPLOSION || !(victim instanceof Player)) {
+        if (event.getCause() != EntityDamageEvent.DamageCause.ENTITY_EXPLOSION || !(victim instanceof Player player)) {
             return;
         }
         JavaPlugin plugin = JavaPlugin.getProvidingPlugin(LightningCreeper.class);
@@ -42,14 +44,32 @@ public class LightningCreeper extends CreeperVariant {
         double damage = mob.scale(STRIKE_DAMAGE);
         int fire = mob.scaleInt(FIRE_TICKS);
         for (int i = 0; i < strikes; i++) {
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                if (!victim.isValid() || victim.isDead()) {
-                    return;
-                }
-                victim.getWorld().strikeLightningEffect(victim.getLocation());
-                victim.damage(damage, DamageSource.builder(DamageType.LIGHTNING_BOLT).build());
-                victim.setFireTicks(Math.max(victim.getFireTicks(), fire));
-            }, FIRST_DELAY + (long) i * STRIKE_GAP);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> strike(player, damage, fire), FIRST_DELAY + (long) i * STRIKE_GAP);
+        }
+    }
+
+    private static void strike(Player player, double damage, int fire) {
+        if (!player.isOnline() || player.isDead() || player.getGameMode() == GameMode.CREATIVE
+                || player.getGameMode() == GameMode.SPECTATOR) {
+            return;
+        }
+        player.getWorld().strikeLightningEffect(player.getLocation());
+        player.setFireTicks(Math.max(player.getFireTicks(), fire));
+        double left = damage;
+        double absorption = player.getAbsorptionAmount();
+        if (absorption > 0) {
+            double taken = Math.min(absorption, left);
+            player.setAbsorptionAmount(absorption - taken);
+            left -= taken;
+        }
+        if (left <= 0) {
+            player.playHurtAnimation(0);
+        } else if (left < player.getHealth()) {
+            player.setHealth(player.getHealth() - left);
+            player.playHurtAnimation(0);
+        } else {
+            // Coup fatal : vrais dégâts de foudre, pour le message de mort et le totem d'immortalité
+            player.damage(Float.MAX_VALUE, DamageSource.builder(DamageType.LIGHTNING_BOLT).build());
         }
     }
 }

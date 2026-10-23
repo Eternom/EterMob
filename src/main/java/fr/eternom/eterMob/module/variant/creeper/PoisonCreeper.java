@@ -29,6 +29,17 @@ public class PoisonCreeper extends CreeperVariant {
         super("creeper_poison", Rarity.PEU_COMMUN, "Venenum", 2, 10);
     }
 
+    /** Usure : son nuage agit dans la durée, lui est solide et un peu lent. */
+    @Override
+    public double health() {
+        return 1.2;
+    }
+
+    @Override
+    public double speed() {
+        return 0.95;
+    }
+
     @Override
     public void onExplode(ActiveMob mob, EntityExplodeEvent event) {
         float radius = (float) mob.scale(CLOUD_RADIUS);

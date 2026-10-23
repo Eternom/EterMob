@@ -24,6 +24,17 @@ public class FrostCreeper extends CreeperVariant {
         super("creeper_frost", Rarity.PEU_COMMUN, "Gelidus", 2, 13);
     }
 
+    /** Contrôle : un peu plus solide et plus lent, il compte sur le gel pour que sa cible ne s'échappe pas. */
+    @Override
+    public double health() {
+        return 1.15;
+    }
+
+    @Override
+    public double speed() {
+        return 0.9;
+    }
+
     @Override
     public boolean canSpawn(Location location) {
         return location.getBlock().getTemperature() < SNOW_TEMPERATURE;
