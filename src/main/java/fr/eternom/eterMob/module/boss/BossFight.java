@@ -46,6 +46,8 @@ public class BossFight {
     private long lastPlayerDamage;
     private boolean enraged;
     private boolean dying;
+    /** Vie la plus basse atteinte dans la phase en cours (limite de regain). */
+    private double lowest = Double.MAX_VALUE;
 
     BossFight(Boss boss, LivingEntity entity, Location home, BossBar bar) {
         this.boss = boss;
@@ -196,7 +198,16 @@ public class BossFight {
         this.dying = dying;
     }
 
+    double lowest() {
+        return lowest;
+    }
+
+    void lowest(double lowest) {
+        this.lowest = lowest;
+    }
+
     void resetCombat() {
+        lowest = Double.MAX_VALUE;
         stats.clear();
         combatStart = 0;
         lastPlayerDamage = 0;

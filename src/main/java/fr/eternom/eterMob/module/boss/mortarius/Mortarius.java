@@ -125,7 +125,7 @@ public class Mortarius extends Boss {
     private static final float PILLAR_HEIGHT = 3.4f;
     private static final long SHIELD_BACK_MILLIS = 30_000;
     /** Bonus des piliers tant qu'ils tiennent : soin (toutes les 2 s), vitesse, force, aura (dégâts et rayon). */
-    private static final double PILLAR_HEAL = 3;
+    private static final double PILLAR_HEAL = 1.5;
     private static final double PILLAR_SPEED = 0.2;
     private static final double PILLAR_STRENGTH = 0.3;
     private static final double PILLAR_AURA_DAMAGE = 1;

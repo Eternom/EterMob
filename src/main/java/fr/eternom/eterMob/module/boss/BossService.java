@@ -66,6 +66,8 @@ public class BossService {
     /** Effondrement avant la mort (ticks), et profondeur dont il s'enfonce. */
     private static final int DEATH_TICKS = 60;
     private static final double DEATH_SINK = 2.5;
+    /** Dans une phase, il ne remonte jamais à plus de cette part de sa vie max au-dessus de son point le plus bas. */
+    private static final double REGEN_MARGIN = 0.05;
 
     private final JavaPlugin plugin;
     private final BossRegistry registry;
@@ -302,18 +304,22 @@ public class BossService {
         fight.toughness(1 + TOUGHNESS_PER_EXTRA_PLAYER * Math.max(0, fight.participants().size() - 1));
     }
 
-    /** Vie maximale autorisée dans la phase en cours : il ne remonte jamais au-dessus du seuil de sa phase. */
+    /**
+     * Vie maximale autorisée : jamais au-dessus du seuil de sa phase, et jamais plus de 5 % de sa vie max au-dessus du
+     * point le plus bas atteint dans cette phase (les dégâts faits restent acquis, ses soins ne font que grignoter).
+     */
     public double healthCap(BossFight fight) {
         AttributeInstance max = fight.entity().getAttribute(Attribute.MAX_HEALTH);
         double full = max == null ? fight.entity().getHealth() : max.getValue();
         double[] thresholds = fight.boss().phaseThresholds();
         int phase = fight.phase();
-        return phase <= 1 || phase - 2 >= thresholds.length ? (phase <= 1 ? full : full * thresholds[thresholds.length - 1])
-                : full * thresholds[phase - 2];
+        double phaseCap = phase <= 1 ? full : full * thresholds[Math.min(phase - 2, thresholds.length - 1)];
+        return Math.min(phaseCap, fight.lowest() + full * REGEN_MARGIN);
     }
 
     /** Soins (aura, drain...) plafonnés au seuil de la phase : sinon le combat pourrait durer à l'infini. */
     private void capHealth(BossFight fight) {
+        fight.lowest(Math.min(fight.lowest(), fight.entity().getHealth()));
         double cap = healthCap(fight);
         if (fight.entity().getHealth() > cap) {
             fight.entity().setHealth(cap);
@@ -335,6 +341,7 @@ public class BossService {
     /** Transition : intouchable 2 s, cri, réplique, puis la phase prend ses capacités. */
     private void transition(BossFight fight, int phase) {
         fight.phase(phase);
+        fight.lowest(fight.entity().getHealth());
         fight.invulnerableFor(TRANSITION_MILLIS);
         LivingEntity entity = fight.entity();
         Location at = entity.getLocation().add(0, entity.getHeight() / 2, 0);
