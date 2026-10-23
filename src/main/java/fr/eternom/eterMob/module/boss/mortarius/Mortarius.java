@@ -1,5 +1,7 @@
 package fr.eternom.eterMob.module.boss.mortarius;
 
+import com.destroystokyo.paper.entity.Pathfinder;
+import com.destroystokyo.paper.entity.ai.VanillaGoal;
 import fr.eternom.eterMob.module.boss.Boss;
 import fr.eternom.eterMob.module.boss.BossFight;
 import fr.eternom.eterMob.module.mob.Hits;
@@ -17,11 +19,11 @@ import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Skeleton;
 import org.bukkit.entity.Zombie;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.EntityEquipment;
@@ -52,11 +54,14 @@ import java.util.concurrent.ThreadLocalRandom;
  * réglés pour un joueur en diamant. Il ne brûle pas au soleil. Aucun vrai bloc n'est posé ni cassé : piliers, sillons et ondes sont des
  * affichages et des particules.
  * <ul>
+ *   <li>Combat : il choisit sa cible à la menace (les dégâts reçus, plus pour les tireurs, et la proximité ; il ne change
+ *   que pour une menace nettement plus forte), frappe à 4,5 blocs (sa taille), et s'il ne peut pas atteindre sa cible
+ *   pendant 3 s (perchée, coincée), il bondit sur elle (onde de choc à l'atterrissage) ou en change.</li>
  *   <li>Passifs : pas lourds (poussière et son sourd) ; aura de pourriture (à moins de 5 blocs, 1 PV toutes les 2 s à
  *   travers l'armure, qui le soigne) ; seigneur de la horde (les zombies à moins de 16 blocs chassent sa cible, plus
  *   vite).</li>
  *   <li>Phase 1, le Seigneur : coup de masse en arc (il lève le bras 0,8 s avant) ; levée des morts toutes les 20 s
- *   (4 zombies sortent du sol, sillons 1 s avant).</li>
+ *   (4 zombies sortent du sol, sillons 1 s avant : sans équipement, 8 PV, 25 % plus rapides).</li>
  *   <li>Phase 2, le Bouclier d'os : intouchable tant que 4 piliers d'os tiennent (on les casse en les frappant ; il les
  *   relève 30 s après) ; charge sur le joueur le plus éloigné (il racle le sol 1 s avant).</li>
  *   <li>Phase 3, la Fin : onde sismique (un anneau s'élargit : il faut sauter quand il passe) ; drain de vie à moins de
@@ -67,7 +72,18 @@ import java.util.concurrent.ThreadLocalRandom;
 public class Mortarius extends Boss {
 
     private static final double SCALE = 2.5;
-    private static final double ATTACK_DAMAGE = 8;
+    private static final double ATTACK_DAMAGE = 12;
+    /** Allonge de ses coups (blocs) : celle d'un mob de sa taille, et délai entre deux coups. */
+    private static final double MELEE_REACH = 4.5;
+    private static final long MELEE_COOLDOWN_MILLIS = 1_000;
+    /** Menace : part gardée à chaque tour (5 ticks), bonus des tireurs, marge pour changer de cible. */
+    private static final double THREAT_DECAY = 0.98;
+    private static final double RANGED_THREAT = 1.5;
+    private static final double THREAT_SWITCH = 1.3;
+    /** Inaccessible depuis ce nombre de vérifications (une par seconde) : il bondit ou change de cible. */
+    private static final int UNREACHABLE_CHECKS = 3;
+    private static final double LEAP_DAMAGE = 10;
+    private static final double LEAP_RADIUS = 3.5;
 
     private static final double AURA_RADIUS = 5;
     private static final double AURA_DAMAGE = 1;
@@ -75,17 +91,23 @@ public class Mortarius extends Boss {
     private static final double TARGET_RANGE = 32;
 
     private static final double SLAM_REACH = 4.5;
-    private static final double SLAM_DAMAGE = 12;
+    private static final double SLAM_DAMAGE = 16;
     private static final double SLAM_ANGLE = Math.toRadians(60);
     private static final int SLAM_WINDUP = 16;
 
     private static final int RAISED = 4;
     private static final int RAISED_MAX = 8;
     private static final int FURROW_TICKS = 20;
+    /** Zombies levés : fragiles et rapides, sans équipement (ils encombrent, ils ne tankent pas). */
+    private static final double RAISED_HEALTH = 8;
+    private static final double RAISED_SPEED = 1.25;
 
     private static final int PILLARS = 4;
     private static final double PILLAR_HEALTH = 60;
     private static final double PILLAR_RADIUS = 5;
+    /** Corps invisible du pilier (squelette agrandi, 1 × 3,4 blocs) : la taille du pilier affiché, pour prendre les coups. */
+    private static final double PILLAR_SCALE = 1.7;
+    private static final float PILLAR_HEIGHT = 3.4f;
     private static final long SHIELD_BACK_MILLIS = 30_000;
 
     private static final double CHARGE_MIN = 6;
@@ -107,15 +129,15 @@ public class Mortarius extends Boss {
     private static final Color ROT = Color.fromRGB(0x5E8C31);
     private static final Color BLOOD = Color.fromRGB(0x8A0303);
 
-    /** Un pilier d'os : le bloc affiché, son support invisible (qui reçoit les coups) et ses PV. */
+    /** Un pilier d'os : le bloc affiché, son corps invisible (qui reçoit les coups) et ses PV. */
     private static final class Pillar {
         final BlockDisplay display;
-        final ArmorStand stand;
+        final LivingEntity body;
         double health = PILLAR_HEALTH;
 
-        Pillar(BlockDisplay display, ArmorStand stand) {
+        Pillar(BlockDisplay display, LivingEntity body) {
             this.display = display;
-            this.stand = stand;
+            this.body = body;
         }
     }
 
@@ -125,6 +147,8 @@ public class Mortarius extends Boss {
         long ticks;
         long shieldBackAt;
         Location lastStep;
+        int unreachable;
+        final Map<UUID, Double> threat = new HashMap<>();
         final Map<UUID, Pillar> pillars = new HashMap<>();
         final List<Zombie> raised = new ArrayList<>();
     }
@@ -252,12 +276,16 @@ public class Mortarius extends Boss {
 
     // ---- Cycle du combat ----
 
-    /** Rechargé en plein coup (IA coupée, lueur) : il reprend normalement. */
+    /**
+     * Rechargé en plein coup (IA coupée, lueur) : il reprend normalement. L'attaque de Minecraft lui est retirée : il se
+     * déplace et frappe lui-même (cible à la menace, allonge à sa taille).
+     */
     @Override
     public void onLoad(BossFight fight) {
-        LivingEntity boss = fight.entity();
+        Zombie boss = (Zombie) fight.entity();
         boss.setAI(true);
         boss.setGlowing(false);
+        Bukkit.getMobGoals().removeGoal(boss, VanillaGoal.ZOMBIE_ATTACK);
     }
 
     @Override
@@ -320,11 +348,24 @@ public class Mortarius extends Boss {
         if (state.busy) {
             return;
         }
-        Player target = target(boss);
+        Player target = chooseTarget(state, boss);
         if (target == null) {
             return;
         }
         double distance = target.getLocation().distance(boss.getLocation());
+        if (state.ticks % 20 == 0 && unreachable(state, boss, target)) {
+            if (fight.ready("leap", 8_000)) {
+                leap(fight, state, target);
+                return;
+            }
+            // Pas de saut possible : il se rabat sur un autre joueur, s'il y en a un
+            state.threat.computeIfPresent(target.getUniqueId(), (id, value) -> value * 0.5);
+        }
+        move(boss, target, distance);
+        if (distance <= MELEE_REACH && boss.hasLineOfSight(target) && fight.ready("melee", MELEE_COOLDOWN_MILLIS)) {
+            boss.swingMainHand();
+            boss.attack(target);
+        }
         int phase = fight.phase();
         if (phase >= 3) {
             if (!nearby(boss, DRAIN_RANGE).isEmpty() && fight.ready("drain", 8_000)) {
@@ -355,24 +396,115 @@ public class Mortarius extends Boss {
         }
     }
 
-    /** Sa cible : le joueur qu'il chasse, sinon le plus proche à moins de 32 blocs. */
-    private static Player target(Zombie boss) {
-        if (boss.getTarget() instanceof Player player && Hits.fighting(player) && player.getWorld() == boss.getWorld()) {
-            return player;
+    /**
+     * Sa cible à la menace : dégâts qu'on lui a faits (×1,5 pour les tireurs), qui s'estompent, et proximité. Il ne change
+     * de cible que pour une menace nettement plus forte (pas de va-et-vient).
+     */
+    private static Player chooseTarget(State state, Zombie boss) {
+        List<Player> candidates = nearby(boss, TARGET_RANGE);
+        state.threat.keySet().removeIf(id -> candidates.stream().noneMatch(player -> player.getUniqueId().equals(id)));
+        state.threat.replaceAll((id, value) -> value * THREAT_DECAY);
+        if (candidates.isEmpty()) {
+            return null;
         }
-        Player nearest = null;
-        double best = TARGET_RANGE * TARGET_RANGE;
-        for (Player player : nearby(boss, TARGET_RANGE)) {
-            double distance = player.getLocation().distanceSquared(boss.getLocation());
-            if (distance < best) {
-                best = distance;
-                nearest = player;
+        Player best = null;
+        double bestScore = -1;
+        for (Player player : candidates) {
+            double score = score(state, boss, player);
+            if (score > bestScore) {
+                bestScore = score;
+                best = player;
             }
         }
-        if (nearest != null) {
-            boss.setTarget(nearest);
+        Player current = boss.getTarget() instanceof Player player && candidates.contains(player) ? player : null;
+        if (current != null && current != best && bestScore <= score(state, boss, current) * THREAT_SWITCH + 2) {
+            return current;
         }
-        return nearest;
+        if (best != current) {
+            boss.setTarget(best);
+        }
+        return best;
+    }
+
+    private static double score(State state, LivingEntity boss, Player player) {
+        double distance = player.getLocation().distance(boss.getLocation());
+        return state.threat.getOrDefault(player.getUniqueId(), 0.0) + 6 / (1 + distance);
+    }
+
+    /** Il va vers sa cible et s'arrête à portée de coup, face à elle. */
+    private static void move(Zombie boss, Player target, double distance) {
+        if (distance > MELEE_REACH - 1) {
+            boss.getPathfinder().moveTo(target, 1.0);
+        } else {
+            boss.getPathfinder().stopPathfinding();
+            boss.lookAt(target);
+        }
+    }
+
+    /** Une vérification par seconde : aucun chemin jusqu'à la cible (perchée, coincée) ; true après 3 de suite. */
+    private static boolean unreachable(State state, Zombie boss, Player target) {
+        if (target.getLocation().distance(boss.getLocation()) <= MELEE_REACH) {
+            state.unreachable = 0;
+            return false;
+        }
+        Pathfinder.PathResult path = boss.getPathfinder().findPath(target);
+        boolean blocked = path == null || path.getFinalPoint() == null
+                || path.getFinalPoint().distanceSquared(target.getLocation()) > 2.5 * 2.5;
+        state.unreachable = blocked ? state.unreachable + 1 : 0;
+        if (state.unreachable >= UNREACHABLE_CHECKS) {
+            state.unreachable = 0;
+            return true;
+        }
+        return false;
+    }
+
+    /** Bond sur une cible inaccessible : élan selon la distance et la hauteur, onde de choc à l'atterrissage. */
+    private void leap(BossFight fight, State state, Player target) {
+        Zombie boss = (Zombie) fight.entity();
+        state.busy = true;
+        Location from = boss.getLocation();
+        Vector to = target.getLocation().toVector().subtract(from.toVector());
+        double height = Math.max(0, to.getY());
+        double horizontal = Math.hypot(to.getX(), to.getZ());
+        double lift = Math.min(1.6, 0.9 + height * 0.12);
+        double airTicks = 2 * lift / 0.08;
+        Vector flat = to.clone().setY(0);
+        Vector push = flat.lengthSquared() < 0.01 ? new Vector() : flat.normalize().multiply(Math.min(1.8, horizontal / (airTicks * 0.8)));
+        boss.getWorld().playSound(from, Sound.ENTITY_RAVAGER_ROAR, 2f, 0.9f);
+        dust(from, 40, 1.5);
+        boss.setVelocity(push.setY(lift));
+        int[] elapsed = {0};
+        BukkitTask[] task = new BukkitTask[1];
+        task[0] = Bukkit.getScheduler().runTaskTimer(plugin(), () -> {
+            elapsed[0] += 2;
+            if (!boss.isValid() || elapsed[0] > 60) {
+                task[0].cancel();
+                state.busy = false;
+                return;
+            }
+            if (elapsed[0] > 6 && boss.isOnGround()) {
+                task[0].cancel();
+                Location at = boss.getLocation();
+                boss.getWorld().spawnParticle(Particle.EXPLOSION, at, 3, 1, 0, 1, 0);
+                dust(at, 60, 2);
+                boss.getWorld().playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 1.2f, 0.6f);
+                Hits.shockwave(boss, at, LEAP_RADIUS, LEAP_DAMAGE, 0.8, 0.5);
+                state.busy = false;
+            }
+        }, 2, 2);
+    }
+
+    /** Menace : qui le frappe attire son attention (les tireurs un peu plus). */
+    private static void addThreat(State state, EntityDamageEvent event) {
+        if (!(event instanceof org.bukkit.event.entity.EntityDamageByEntityEvent byEntity)) {
+            return;
+        }
+        if (byEntity.getDamager() instanceof Player player) {
+            state.threat.merge(player.getUniqueId(), event.getDamage(), Double::sum);
+        } else if (byEntity.getDamager() instanceof org.bukkit.entity.Projectile projectile
+                && projectile.getShooter() instanceof Player player) {
+            state.threat.merge(player.getUniqueId(), event.getDamage() * RANGED_THREAT, Double::sum);
+        }
     }
 
     private static List<Player> nearby(LivingEntity boss, double range) {
@@ -598,6 +730,15 @@ public class Mortarius extends Boss {
             minion.setInvulnerable(true);
             minion.setGravity(false);
             minion.setShouldBurnInDay(false);
+            if (minion.getEquipment() != null) {
+                minion.getEquipment().clear();
+            }
+            base(minion, Attribute.MAX_HEALTH, RAISED_HEALTH);
+            minion.setHealth(RAISED_HEALTH);
+            AttributeInstance speed = minion.getAttribute(Attribute.MOVEMENT_SPEED);
+            if (speed != null) {
+                speed.setBaseValue(speed.getBaseValue() * RAISED_SPEED);
+            }
         });
         service().own(fight, zombie);
         state.raised.add(zombie);
@@ -670,18 +811,24 @@ public class Mortarius extends Boss {
                 block.setBlock(bone);
                 block.setPersistent(false);
                 block.setTransformation(new Transformation(new Vector3f(-0.5f, 0, -0.5f), new AxisAngle4f(),
-                        new Vector3f(1, 2.5f, 1), new AxisAngle4f()));
+                        new Vector3f(1, PILLAR_HEIGHT, 1), new AxisAngle4f()));
             });
-            ArmorStand stand = spot.getWorld().spawn(spot, ArmorStand.class, support -> {
+            Skeleton body = spot.getWorld().spawn(spot, Skeleton.class, support -> {
                 support.setInvisible(true);
-                support.setGravity(false);
-                support.setBasePlate(false);
-                support.setPersistent(false);
                 support.setSilent(true);
+                support.setAI(false);
+                support.setGravity(false);
+                support.setCollidable(false);
+                support.setPersistent(false);
+                support.setShouldBurnInDay(false);
+                if (support.getEquipment() != null) {
+                    support.getEquipment().clear();
+                }
+                base(support, Attribute.SCALE, PILLAR_SCALE);
             });
             service().own(fight, display);
-            service().own(fight, stand);
-            state.pillars.put(stand.getUniqueId(), new Pillar(display, stand));
+            service().own(fight, body);
+            state.pillars.put(body.getUniqueId(), new Pillar(display, body));
             spot.getWorld().spawnParticle(Particle.BLOCK, spot.clone().add(0, 1, 0), 40, 0.4, 1, 0.4, 0.1, bone);
             spot.getWorld().playSound(spot, Sound.BLOCK_BONE_BLOCK_PLACE, 1.5f, 0.6f);
         }
@@ -701,16 +848,17 @@ public class Mortarius extends Boss {
     }
 
     private static void destroy(Pillar pillar) {
-        Location at = pillar.stand.getLocation().add(0, 1, 0);
+        Location at = pillar.body.getLocation().add(0, 1.5, 0);
         at.getWorld().spawnParticle(Particle.BLOCK, at, 50, 0.4, 1, 0.4, 0.1, Material.BONE_BLOCK.createBlockData());
         at.getWorld().playSound(at, Sound.BLOCK_BONE_BLOCK_BREAK, 1.5f, 0.6f);
         pillar.display.remove();
-        pillar.stand.remove();
+        pillar.body.remove();
     }
 
     /** Bouclier levé : le boss ne prend aucun dégât. */
     @Override
     public void onDamaged(BossFight fight, EntityDamageEvent event) {
+        addThreat(state(fight), event);
         if (fight.phase() == 2 && !state(fight).pillars.isEmpty()) {
             event.setCancelled(true);
             LivingEntity boss = fight.entity();
@@ -728,6 +876,9 @@ public class Mortarius extends Boss {
             return;
         }
         event.setCancelled(true);
+        if (!byPlayer(event)) {
+            return;
+        }
         pillar.health -= event.getDamage() / fight.toughness();
         Location at = owned.getLocation().add(0, 1.2, 0);
         at.getWorld().spawnParticle(Particle.BLOCK, at, 12, 0.3, 0.5, 0.3, 0.05, Material.BONE_BLOCK.createBlockData());
@@ -740,6 +891,13 @@ public class Mortarius extends Boss {
         if (state.pillars.isEmpty()) {
             breakShield(fight, state, true);
         }
+    }
+
+    /** Coup d'un joueur (de près ou avec un projectile) : seuls ceux-là abîment les piliers (pas le soleil ni les mobs). */
+    private static boolean byPlayer(EntityDamageEvent event) {
+        return event instanceof org.bukkit.event.entity.EntityDamageByEntityEvent byEntity
+                && (byEntity.getDamager() instanceof Player
+                || byEntity.getDamager() instanceof org.bukkit.entity.Projectile projectile && projectile.getShooter() instanceof Player);
     }
 
     /** Charge : il racle le sol 1 s, puis fonce en ligne droite sur le joueur le plus éloigné. */
