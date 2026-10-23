@@ -25,8 +25,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Tank : beaucoup de vie, lent, presque insensible au recul, en casque et plastron de fer (qui ne tombent jamais ; pas
- * d'armure complète : avec sa vie, il deviendrait un sac à PV). Les flèches et autres projectiles ne lui font que la moitié des dégâts.
+ * Tank : beaucoup de vie, lent, presque insensible au recul, en armure de fer (casque et plastron, armure complète à
+ * partir du ratio 3, qui ne tombe jamais). Les flèches et autres projectiles ne lui font que la moitié des dégâts.
  * Toutes les 8 s, il charge en ligne droite sur le joueur qu'il chasse (entre 4 et 12 blocs) : s'il le touche pendant
  * la charge, coup plus fort et gros recul. Son casque le protège du soleil. Montagnes, neige, profondeurs.
  */
@@ -34,6 +34,8 @@ public class IronZombie extends ZombieVariant {
 
     /** Résistance au recul (0 à 1), pas multipliée par le ratio. */
     private static final double KNOCKBACK_RESISTANCE = 0.6;
+    /** Armure complète à partir de ce ratio. */
+    private static final int FULL_ARMOR_RATIO = 3;
     private static final double PROJECTILE_DAMAGE = 0.5;
 
     private static final int CHECK_TICKS = 10;
@@ -85,6 +87,10 @@ public class IronZombie extends ZombieVariant {
         }
         wear(equipment, EquipmentSlot.HEAD, Material.IRON_HELMET);
         wear(equipment, EquipmentSlot.CHEST, Material.IRON_CHESTPLATE);
+        if (mob.ratio() >= FULL_ARMOR_RATIO) {
+            wear(equipment, EquipmentSlot.LEGS, Material.IRON_LEGGINGS);
+            wear(equipment, EquipmentSlot.FEET, Material.IRON_BOOTS);
+        }
     }
 
     private static void wear(EntityEquipment equipment, EquipmentSlot slot, Material material) {
