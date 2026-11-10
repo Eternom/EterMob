@@ -180,6 +180,11 @@ public class MobListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onExplode(EntityExplodeEvent event) {
+        // Un creeper qui explose disparaît sans mourir : ses capacités « à la mort » partent quand même
+        ActiveMob exploding = mobs.get(event.getEntity());
+        if (exploding != null) {
+            exploding.brain().onDeath(null);
+        }
         if (!creeperBlockDamage && event.getEntity() instanceof Creeper) {
             event.blockList().clear();
         }

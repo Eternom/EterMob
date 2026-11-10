@@ -205,6 +205,53 @@ spawns:
     biomes: [dark, swamps]
     time: night
     group: { size: [3, 4] }
+  # La famille d'Orveth (mine, mousse, cristaux) : elle remplace une partie des mobs courants de la survie
+  tireurs-de-cristal:
+    mode: replace
+    chance: 0.3
+    variants: { tireur-de-cristal: 1 }
+    cave: true
+    y: [-64, 40]
+  creepers-moussus:
+    mode: replace
+    chance: 0.3
+    variants: { creeper-moussu: 1 }
+    environments: [NORMAL]
+  araignees:
+    mode: replace
+    chance: 0.3
+    variants: { araignee-galeries: 1 }
+    environments: [NORMAL]
+  terrassiers:
+    mode: replace
+    chance: 0.2
+    variants: { terrassier: 1 }
+    environments: [NORMAL]
+    cave: false
+  pilleurs:
+    mode: replace
+    chance: 0.3
+    variants: { pilleur-des-sables: 1 }
+  noyes:
+    mode: replace
+    chance: 0.3
+    variants: { noye-des-galeries: 1 }
+  limons:
+    mode: replace
+    chance: 0.4
+    variants: { limon-moussu: 1 }
+  herboristes:
+    mode: replace
+    chance: 0.4
+    variants: { herboriste: 1 }
+  rodeuses:
+    mode: director
+    weight: 2
+    variants: { rodeuse-cristalline: 1 }
+    environments: [NORMAL]
+    cave: true
+    y: [-64, 40]
+    group: { size: [2, 3] }
 
 # ============================================================
 #  Boss

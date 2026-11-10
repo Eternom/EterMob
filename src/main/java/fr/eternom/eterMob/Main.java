@@ -64,6 +64,7 @@ public final class Main extends JavaPlugin {
         SpawnGuard guard = new SpawnGuard(getConfig().getConfigurationSection("guard"));
         Services.init(this, mobs, guard);
         fr.eternom.eterMob.module.variant.book.BookFamily.variants().forEach(variants::register);
+        fr.eternom.eterMob.module.variant.hollow.HollowFamily.variants().forEach(variants::register);
         getLogger().info(variants.all().size() + " variant(s) codé(s)");
         TempBlocks.start(this);
 

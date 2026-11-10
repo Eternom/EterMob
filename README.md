@@ -199,3 +199,22 @@ Chiffres : `config.yml > bosses.orveth`.
   Ombre (invisible tant qu'il ne frappe pas), Coup dans le dos (+50 %) ; phase 1 : Pas de l'ombre, Larcin, Bombe
   fumigène ; phase 2 : Éclats d'améthyste, Pièges (cristaux qui enracinent), Résonance (les cristaux explosent),
   Frénésie sous 25 %.
+
+## La famille d'Orveth (`module/variant/hollow`)
+
+La mine, la mousse, les cristaux ; elle remplace une partie des mobs courants de la survie (règles `spawns` par défaut).
+Kit par ratio : Ordinaire / Robuste / Dangereux / Élite / Fléau.
+
+| Variant | Mob | Kit |
+|---|---|---|
+| `creeper-moussu` | Creeper | Nuage de spores (à sa mort ou en explosant) / armure / Racines / esquive / Liane (attire avant d'exploser) |
+| `araignee-galeries` | Araignée | Morsure (saignement) / Bond / Toile (cage cassable) / Venin / Couvée (à sa mort) |
+| `rodeuse-cristalline` | Araignée des cavernes (grottes, en groupes) | Éclat / esquive / Pas de l'ombre / Paralysie / Éclatement (à sa mort, brut) |
+| `tireur-de-cristal` | Squelette des grottes | Éclats / critique / Recul / Pique de cristal / Pluie de cristaux |
+| `limon-moussu` | Slime | Colle / armure / Racines / Spores / Liane |
+| `noye-des-galeries` | Noyé | Noyade / armure / Harpon / Courant / Tourbillon |
+| `terrassier` | Zombie de surface | Pelletée (cécité) / armure / Jet de terre / Galerie (sous terre) / Éboulement |
+| `pilleur-des-sables` | Husk | Coup lourd / armure / Tempête de sable / Enfouissement / Sables mouvants |
+| `herboriste` | Sorcière | Maléfice / Fuite / Fiole de spores / Limons / Pluie de fioles |
+
+Un creeper qui explose déclenche ses capacités « à la mort ».
