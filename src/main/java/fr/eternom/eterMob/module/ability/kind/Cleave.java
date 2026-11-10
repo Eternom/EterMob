@@ -14,15 +14,17 @@ import org.bukkit.util.Vector;
 /**
  * cleave : un coup en arc devant lui (cône de angle degrés, 120, sur radius blocs, 4,5), après une fissure au sol qui
  * montre la zone (télégraphe). La direction est fixée au début : on l'esquive en passant derrière ou sur le côté. Un
- * bouclier levé face à lui bloque le coup (dégâts et états). Ne s'interrompt pas par défaut (un coup de masse lancé part).
+ * bouclier levé face à lui bloque le coup (dégâts et états). blind : secondes de Cécité (pelletée de terre). Ne s'interrompt pas par défaut (un coup de masse lancé part).
  */
 public final class Cleave extends Ability {
 
     private final double angle;
+    private final double blind;
 
     public Cleave(ConfigurationSection config) {
         super("cleave", config, new Defaults(Trigger.ACTIVE, 7, 0.8, 0, 4.5, 1, 14, 4.5, 0.9, 0.3));
         this.angle = Math.toRadians(Math.clamp(config.getDouble("angle", 120), 20, 360) / 2);
+        this.blind = Math.max(0, config.getDouble("blind", 0));
     }
 
     @Override
@@ -77,6 +79,10 @@ public final class Cleave extends Ability {
                 continue;
             }
             hit(context, player, damage, origin);
+            if (blind > 0) {
+                player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.BLINDNESS,
+                        (int) Math.round(blind * 20), 0, true, false, true));
+            }
         }
     }
 

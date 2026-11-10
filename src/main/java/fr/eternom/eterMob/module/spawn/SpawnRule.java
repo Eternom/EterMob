@@ -124,6 +124,11 @@ public final class SpawnRule {
         this.ratioBonus = Math.max(0, section.getDouble("ratio-bonus", 0));
     }
 
+    /** Seulement des conditions de lieu et de moment (apparition d'un sous-boss : bosses.<id>.spawn). */
+    public static SpawnRule conditions(String id, ConfigurationSection section, Logger logger) {
+        return new SpawnRule(id, section, logger);
+    }
+
     public static List<SpawnRule> load(ConfigurationSection section, Logger logger) {
         List<SpawnRule> rules = new ArrayList<>();
         if (section == null) {

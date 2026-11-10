@@ -68,7 +68,9 @@ public final class Main extends JavaPlugin {
         TempBlocks.start(this);
 
         BossService.configure(getConfig().getConfigurationSection("boss"));
-        bosses = new BossService(this, new BossRegistry(this), List.of(new Mortarius()));
+        bosses = new BossService(this, new BossRegistry(this), List.of(new Mortarius(),
+                new fr.eternom.eterMob.module.boss.disciple.Scribe(), new fr.eternom.eterMob.module.boss.disciple.Gravedigger(),
+                new fr.eternom.eterMob.module.boss.disciple.SoulWarden()));
         mobs.setBossCasters(this::bossCaster);
         getServer().getPluginManager().registerEvents(new BossListener(bosses), this);
 
@@ -88,12 +90,17 @@ public final class Main extends JavaPlugin {
         lib.getCombatSystem().addProvider((entity, sheet) -> {
             BossFight fight = bosses.fight(entity);
             if (fight != null && fight.boss() instanceof BrainBoss boss) {
-                sheet.add(Stat.ARMOR, boss.armor(), "boss");
-                sheet.add(Stat.MAGIC_RESIST, boss.magicResist(), "boss");
+                boss.contribute(fight, sheet);
             }
         });
         lib.getStates().register(StateType.builder("rot", StateType.Category.DEBUFF)
                 .weight(2).icon("<dark_green>☣").particle(org.bukkit.Particle.SPORE_BLOSSOM_AIR).build());
+        // Lien d'âmes (la Gardienne) et pacte : l'icône ; le partage des dégâts est un crochet du combat
+        lib.getStates().register(StateType.builder("soullink", StateType.Category.DEBUFF)
+                .weight(3).icon("<aqua>∞").particle(org.bukkit.Particle.SOUL).build());
+        lib.getStates().register(StateType.builder("pact", StateType.Category.DEBUFF)
+                .weight(1).icon("<aqua>✍").build());
+        lib.getCombatSystem().addHook((attacker, victim, kind, damage) -> fr.eternom.eterMob.module.boss.SoulLinks.share(victim, damage));
         getServer().getPluginManager().registerEvents(new org.bukkit.event.Listener() {
             // Pourriture : aucun soin tant qu'elle dure
             @org.bukkit.event.EventHandler(ignoreCancelled = true)
@@ -150,6 +157,18 @@ public final class Main extends JavaPlugin {
             command.setExecutor(executor);
             command.setTabCompleter(executor);
         }
+        // Sous-boss : en survie, dans leurs biomes (bosses.<id>.spawn)
+        List<SpawnDirector.SubBoss> subBosses = new java.util.ArrayList<>();
+        for (Boss boss : bosses.bosses()) {
+            if (boss.subBoss() && boss instanceof BrainBoss brain && brain.naturalSpawn() != null) {
+                BrainBoss.NaturalSpawn spawn = brain.naturalSpawn();
+                subBosses.add(new SpawnDirector.SubBoss(boss.id(), boss.name(), spawn.where(), spawn.chance(), spawn.cooldownMinutes()));
+            }
+        }
+        director.setSubBosses(subBosses, (id, location) -> {
+            Boss boss = bosses.boss(id);
+            return boss == null ? "inconnu" : bosses.spawn(boss, location);
+        }, bosses::subBossesIn);
         mobs.start();
         bosses.start();
         director.start();

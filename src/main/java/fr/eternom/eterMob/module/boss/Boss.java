@@ -160,6 +160,24 @@ public abstract class Boss {
     public void onDamaged(BossFight fight, EntityDamageEvent event) {
     }
 
+    /** Une entité du boss (sbire, âme enchaînée...) meurt. */
+    public void onOwnedDeath(BossFight fight, Entity owned) {
+    }
+
+    /** Le boss vient de toucher victim pour damage (après le combat d'EterLib) : vol de vie... */
+    public void onDealt(BossFight fight, LivingEntity victim, double damage) {
+    }
+
+    /** Sous-boss : apparaît en survie dans ses biomes, disparaît s'il reste seul trop longtemps. */
+    public boolean subBoss() {
+        return false;
+    }
+
+    /** Minutes sans joueur proche avant qu'il disparaisse (0 : jamais). */
+    public double despawnMinutes() {
+        return 0;
+    }
+
     /** Une entité du boss (pilier, sbire...) reçoit des dégâts. */
     public void onOwnedDamaged(BossFight fight, Entity owned, EntityDamageEvent event) {
     }

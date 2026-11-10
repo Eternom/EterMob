@@ -92,6 +92,18 @@ public class MobListener implements Listener {
         if (!(event instanceof EntityDamageByEntityEvent byEntity) || !(event.getEntity() instanceof LivingEntity victim)) {
             return;
         }
+        // Sbire à états (Page qui marque, goule qui saigne)
+        if (source instanceof LivingEntity minion && victim instanceof Player && !stateDamage && Minions.is(minion)) {
+            String hitStates = Minions.hitStates(minion);
+            if (hitStates != null && states != null) {
+                for (String spec : hitStates.split(";")) {
+                    String[] parts = spec.trim().split("\\s+");
+                    if (parts.length == 3) {
+                        states.apply(victim, parts[0], Double.parseDouble(parts[1]), Double.parseDouble(parts[2]), minion);
+                    }
+                }
+            }
+        }
         Caster caster = mobs.caster(source);
         if (caster == null || caster.entity() == victim) {
             return;

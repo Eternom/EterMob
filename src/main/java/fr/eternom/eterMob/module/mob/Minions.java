@@ -52,6 +52,17 @@ public final class Minions {
         }
     }
 
+    /** États posés par les coups de ce sbire (« mark 0.15 4;slow 0.2 2 ») : une Page qui marque, une goule qui saigne. */
+    public static void hitStates(LivingEntity minion, String states) {
+        minion.getPersistentDataContainer().set(new NamespacedKey(JavaPlugin.getProvidingPlugin(Minions.class), "hit_states"),
+                PersistentDataType.STRING, states);
+    }
+
+    public static String hitStates(Entity entity) {
+        return entity.getPersistentDataContainer().get(new NamespacedKey(JavaPlugin.getProvidingPlugin(Minions.class), "hit_states"),
+                PersistentDataType.STRING);
+    }
+
     public static boolean is(Entity entity) {
         return entity.getPersistentDataContainer().has(key(), PersistentDataType.BYTE);
     }

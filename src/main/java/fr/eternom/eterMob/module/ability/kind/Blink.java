@@ -16,22 +16,24 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * blink : se téléporte. mode behind (défaut) : dans le dos de la cible (rejoindre un tireur, contourner) ; mode escape :
- * loin des joueurs quand sa vie est basse et qu'on l'entoure. Jamais dans un bloc, ni sur un terrain de clan.
+ * loin des joueurs quand on l'entoure et que sa vie est sous escape-health (0,35 ; 1 : toujours). Jamais dans un bloc, ni sur un terrain de clan.
  */
 public final class Blink extends Ability {
 
     private final boolean escape;
+    private final double escapeHealth;
 
     public Blink(ConfigurationSection config) {
         super("blink", config, new Defaults(Trigger.ACTIVE, 14, 0.5, 0, 24, 1, 0, 0, 0, 0));
         this.escape = config.getString("mode", "behind").toLowerCase(Locale.ROOT).equals("escape");
+        this.escapeHealth = Math.clamp(config.getDouble("escape-health", 0.35), 0, 1);
     }
 
     @Override
     public double score(AbilityContext context) {
         var situation = context.situation();
         if (escape) {
-            return situation.selfHealth() < 0.35 && situation.playersNearSelf() > 0 ? 0.8 : 0;
+            return situation.selfHealth() <= escapeHealth && situation.playersNearSelf() > 0 ? 0.8 : 0;
         }
         if (situation.distance() < 4) {
             return 0;
@@ -90,6 +92,11 @@ public final class Blink extends Ability {
             }
         }
         return null;
+    }
+
+    /** Pour les boss : un endroit sûr où poser une entité près de at (null s'il n'y en a pas). */
+    public static Location safeSpot(Location at) {
+        return safe(at);
     }
 
     /** Un endroit où tenir debout près de at (3 blocs plus haut ou plus bas au plus), hors terrain protégé. */

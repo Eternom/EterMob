@@ -3,3 +3,5 @@ blood-night:
   end: "<gray>The Blood Night is over."
 boss:
   appeared: "<dark_red><b>A boss</b> <red>appeared near <accent><x> <z></accent>."
+sub-boss:
+  appeared: "<dark_red><b><name></b> <red>prowls near <accent><x> <z></accent>."

@@ -132,6 +132,29 @@ public class BossListener implements Listener {
         }
     }
 
+    /** Les coups du boss (après le combat d'EterLib) : vol de vie... */
+    @EventHandler
+    public void onHit(fr.eternom.eterLib.module.combat.CombatHitEvent event) {
+        if (event.isDodged() || event.getAttacker() == null) {
+            return;
+        }
+        BossFight fight = bosses.fight(event.getAttacker());
+        if (fight != null) {
+            fight.boss().onDealt(fight, event.getVictim(), event.getDamage());
+        }
+    }
+
+    /** Une entité du boss meurt (sbire, âme enchaînée...). */
+    @EventHandler
+    public void onOwnedDeath(EntityDeathEvent event) {
+        BossFight owner = bosses.ownerOf(event.getEntity());
+        if (owner != null) {
+            event.getDrops().clear();
+            event.setDroppedExp(0);
+            owner.boss().onOwnedDeath(owner, event.getEntity());
+        }
+    }
+
     @EventHandler(ignoreCancelled = true)
     public void onCombust(EntityCombustEvent event) {
         if (bosses.fight(event.getEntity()) != null) {

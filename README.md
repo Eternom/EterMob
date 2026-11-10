@@ -20,6 +20,7 @@ donjons seront des maps à part, gérées par leur propre plugin (qui pourra s'a
 | Rang | Où | Rôle |
 |---|---|---|
 | `variant` | `variants/` | Le commun, avec ses capacités |
+| `sous-boss` | codé (`SubBoss`) | Au-dessus d'un Fléau, tout son kit, 2 phases avec barre ; apparaît en survie dans ses biomes (`bosses.<id>.spawn`, un par monde, délai), sans rayon de déplacement, disparaît après `despawn-minutes` sans joueur |
 | `meneur` | `variants/` (`tier: meneur`) | Sous-boss à la tête d'un groupe (`followers`) ; ses suiveurs le rejoignent quand ils n'ont pas de cible |
 | `boss` | codé (`BrainBoss`) | Combat à phases, rayon de déplacement maximal (`leash-radius`, ou la salle du donjon : `BossService#spawn(boss, lieu, rayon)`, `/etermob boss <id> [rayon]`), jamais d'apparition naturelle (`BossService` : barre, phases, résistance de groupe plafonnée, laisse, remise à zéro, rage, bilan) |
 
@@ -62,6 +63,9 @@ Une capacité est une **brique** (`Ability`) réglée dans le YAML d'un monstre 
 | `wave` | Anneaux qui s'élargissent, à sauter |
 | `tombs` | Une tombe sous chaque joueur (affichage), à fuir |
 | `vortex` | Aspiration : attirés, puis frappés et étourdis ; interruptible |
+| `beam` | Trait en ligne droite (direction fixée au début) |
+| `burrow` | Plonge sous terre, ressort sous sa cible (cercle qui se fige) |
+| `zone` | Flaques qui restent au sol (linger) ou impacts (impact) |
 
 Un autre plugin peut ajouter une sorte (`Abilities.register`). Les blocs temporaires (`TempBlocks`) sont notés dans
 `temp-blocks.yml` : un arrêt brutal ne les laisse jamais pour toujours.
@@ -136,3 +140,19 @@ intouchable ; Vie : soin ; Tourment : aura élargie ; Appel : morts plus fréque
 charge (sonné 3 s dans un mur), Chaînes d'âmes. Phase 3 : plus rapide, onde sismique, tombes, aspiration (étourdi
 1,5 s), dernier souffle à 10 %. Butin personnel, dont une Page du Livre des morts (`etermob:item` = `page-livre-des-morts`).
 Chiffres : `config.yml > bosses.mortarius`.
+
+## Les disciples (`module/boss/disciple`, sous-boss)
+
+- **Le Scribe** (`scribe`, forêts sombres la nuit) : mage d'arrière-ligne, résistance magique haute. Chapitres (+10 %
+  magique par pile, une Page volante tuée en retire une) ; phase 1 : Trait d'encre, Lecture interdite, Page envolée,
+  Pages volantes ; phase 2 : Copie conforme (seul le vrai a la plume qui brille), Flaques d'encre, Rature, Dernière page
+  (canalisée 4 s, à interrompre).
+- **Le Fossoyeur** (`fossoyeur`, marais et plaines la nuit) : brute à grosse armure. Phase 1 : Coup de pelle (saignement),
+  Pic et Cage d'os, Enterrement ; phase 2 : Tombes ouvertes (une goule toutes les 15 s, rester 2 s dessus pour la
+  refermer), Pelletée, Fosse commune ; rage à 25 %.
+- **La Gardienne des âmes** (`gardienne`, neiges, montagnes, vallée des âmes) : duelliste vampirique (vol de vie 20 %),
+  3 âmes enchaînées (−15 % de dégâts chacune) ; phase 1 : Faux, Lien d'âmes (`SoulLinks` : dégâts partagés, casse à
+  8 blocs), Moisson, Pas de l'ombre ; phase 2 : Pacte, Pluie d'âmes, Lien ×3, Récolte (dégâts bruts).
+
+États ajoutés par EterMob : `rot` (aucun soin), `soullink`, `pact`. Sbires à états (`Minions.hitStates`) : Pages qui
+marquent, goules qui saignent.

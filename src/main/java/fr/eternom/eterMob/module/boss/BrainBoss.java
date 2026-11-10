@@ -116,6 +116,34 @@ public abstract class BrainBoss extends Boss {
         return 0.05;
     }
 
+    /** Apparition naturelle d'un sous-boss (bosses.<id>.spawn) : où et quand, chance par tour du directeur, délai par monde. */
+    public record NaturalSpawn(fr.eternom.eterMob.module.spawn.SpawnRule where, double chance, double cooldownMinutes) {
+    }
+
+    private NaturalSpawn natural;
+
+    /** Lit bosses.<id>.spawn (sous-boss) : conditions comme une règle d'apparition, chance, cooldown-minutes, enabled. */
+    protected void readSpawn(org.bukkit.configuration.ConfigurationSection section) {
+        if (section == null || !section.getBoolean("enabled", true)) {
+            natural = null;
+            return;
+        }
+        natural = new NaturalSpawn(fr.eternom.eterMob.module.spawn.SpawnRule.conditions(id(), section,
+                java.util.logging.Logger.getLogger("EterMob")), Math.clamp(section.getDouble("chance", 0.01), 0, 1),
+                Math.max(1, section.getDouble("cooldown-minutes", 45)));
+    }
+
+    /** null : il n'apparaît jamais de lui-même. */
+    public NaturalSpawn naturalSpawn() {
+        return natural;
+    }
+
+    /** Ses statistiques de combat (EterLib) : armure, résistance magique, et ce que le boss ajoute (bonus magiques...). */
+    public void contribute(BossFight fight, fr.eternom.eterLib.module.combat.StatSheet sheet) {
+        sheet.add(fr.eternom.eterLib.module.combat.Stat.ARMOR, armor(), "boss");
+        sheet.add(fr.eternom.eterLib.module.combat.Stat.MAGIC_RESIST, magicResist(), "boss");
+    }
+
     // ---------- Commun ----------
 
     public BossCaster caster(BossFight fight) {

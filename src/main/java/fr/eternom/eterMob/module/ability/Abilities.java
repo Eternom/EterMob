@@ -1,7 +1,9 @@
 package fr.eternom.eterMob.module.ability;
 
 import fr.eternom.eterMob.module.ability.kind.Aura;
+import fr.eternom.eterMob.module.ability.kind.Beam;
 import fr.eternom.eterMob.module.ability.kind.Blink;
+import fr.eternom.eterMob.module.ability.kind.Burrow;
 import fr.eternom.eterMob.module.ability.kind.Burst;
 import fr.eternom.eterMob.module.ability.kind.Call;
 import fr.eternom.eterMob.module.ability.kind.Charge;
@@ -19,6 +21,7 @@ import fr.eternom.eterMob.module.ability.kind.Tombs;
 import fr.eternom.eterMob.module.ability.kind.Volley;
 import fr.eternom.eterMob.module.ability.kind.Vortex;
 import fr.eternom.eterMob.module.ability.kind.Wave;
+import fr.eternom.eterMob.module.ability.kind.Zone;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemoryConfiguration;
 
@@ -60,6 +63,9 @@ public final class Abilities {
         register("wave", Wave::new);
         register("tombs", Tombs::new);
         register("vortex", Vortex::new);
+        register("beam", Beam::new);
+        register("burrow", Burrow::new);
+        register("zone", Zone::new);
     }
 
     private Abilities() {

@@ -63,6 +63,15 @@ public final class SpawnDirector {
     private final double endBonus;
     private final BloodNight bloodNight;
     private List<SpawnRule> rules;
+    /** Sous-boss qui apparaissent d'eux-mêmes en survie (posés par Main), leur apparition et leur nombre par monde. */
+    public record SubBoss(String id, String name, SpawnRule where, double chance, double cooldownMinutes) {
+    }
+
+    private List<SubBoss> subBosses = List.of();
+    private java.util.function.BiFunction<String, Location, String> subBossSpawner;
+    private java.util.function.ToIntFunction<World> subBossesAlive;
+    private final Map<UUID, Long> subBossCooldown = new HashMap<>();
+    private final int subBossesPerWorld;
     private final Map<String, Integer> counters = new HashMap<>();
 
     public SpawnDirector(JavaPlugin plugin, MobService mobs, SpawnGuard guard, Messages messages, ConfigurationSection config,
@@ -102,7 +111,16 @@ public final class SpawnDirector {
         this.netherBonus = bonus == null ? 0.5 : bonus.getDouble("nether", 0.5);
         this.endBonus = bonus == null ? 0.8 : bonus.getDouble("end", 0.8);
         this.bloodNight = new BloodNight(plugin, messages, config.getConfigurationSection("blood-night"));
+        this.subBossesPerWorld = spawning == null ? 1 : Math.max(0, spawning.getInt("sub-bosses-per-world", 1));
         this.rules = SpawnRule.load(config.getConfigurationSection("spawns"), plugin.getLogger());
+    }
+
+    /** Les sous-boss à faire apparaître en survie ; spawner : BossService#spawn (null si c'est fait) ; alive : en vie par monde. */
+    public void setSubBosses(List<SubBoss> list, java.util.function.BiFunction<String, Location, String> spawner,
+                             java.util.function.ToIntFunction<World> alive) {
+        this.subBosses = List.copyOf(list);
+        this.subBossSpawner = spawner;
+        this.subBossesAlive = alive;
     }
 
     /** Réglages propres à ce serveur : servers.<début du nom> (ex. ressource, lobby). */
@@ -242,6 +260,7 @@ public final class SpawnDirector {
             if (players.isEmpty()) {
                 continue;
             }
+            subBossAttempt(world, players);
             if (!director.isEmpty() && cap > 0) {
                 int inWorld = mobs.countIn(world);
                 java.util.Collections.shuffle(players);
@@ -421,4 +440,37 @@ public final class SpawnDirector {
         return feet == null ? spot : feet.getLocation().add(0.5, 0, 0.5);
     }
 
+
+    // ---------- Sous-boss ----------
+
+    /** Un sous-boss de temps en temps près d'un joueur, là où ses conditions sont remplies ; annoncé à ceux du monde. */
+    private void subBossAttempt(World world, List<Player> players) {
+        if (subBosses.isEmpty() || subBossSpawner == null || subBossesPerWorld <= 0) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now < subBossCooldown.getOrDefault(world.getUID(), 0L) || subBossesAlive.applyAsInt(world) >= subBossesPerWorld) {
+            return;
+        }
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        for (SubBoss boss : subBosses) {
+            if (random.nextDouble() >= boss.chance()) {
+                continue;
+            }
+            Location spot = spot(players.get(random.nextInt(players.size())));
+            if (spot == null || !boss.where().matches(spot) || subBossSpawner.apply(boss.id(), spot) != null) {
+                continue;
+            }
+            subBossCooldown.put(world.getUID(), now + Math.round(boss.cooldownMinutes() * 60_000));
+            counters.merge("sous-boss:" + boss.id(), 1, Integer::sum);
+            for (Player online : world.getPlayers()) {
+                if (online.getLocation().distanceSquared(spot) < 200 * 200) {
+                    messages.send(online, "sub-boss.appeared", "name", boss.name(), "x", String.valueOf(spot.getBlockX()),
+                            "z", String.valueOf(spot.getBlockZ()));
+                    online.playSound(online, Sound.ENTITY_WITHER_AMBIENT, 0.4f, 0.7f);
+                }
+            }
+            return;
+        }
+    }
 }

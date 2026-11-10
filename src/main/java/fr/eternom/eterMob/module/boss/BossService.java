@@ -295,6 +295,11 @@ public class BossService {
             } else if (System.currentTimeMillis() - fight.lastPlayerNear() > RESET_MILLIS) {
                 reset(fight);
             }
+            double despawn = fight.boss().despawnMinutes();
+            if (despawn > 0 && System.currentTimeMillis() - fight.lastPlayerNear() > despawn * 60_000) {
+                remove(fight);
+                continue;
+            }
             leash(fight);
             int phase = phaseFor(fight);
             if (phase > fight.phase()) {
@@ -626,6 +631,17 @@ public class BossService {
         chunk.addPluginChunkTicket(plugin);
         Bukkit.getScheduler().runTaskLater(plugin, () -> chunk.removePluginChunkTicket(plugin), REMOVAL_TICKET_TICKS);
         return true;
+    }
+
+    /** Sous-boss en vie dans ce monde (chargés). */
+    public int subBossesIn(org.bukkit.World world) {
+        int count = 0;
+        for (BossFight fight : fights.values()) {
+            if (fight.boss().subBoss() && fight.entity().getWorld().equals(world)) {
+                count++;
+            }
+        }
+        return count;
     }
 
     /** Boss chargé le plus proche, à moins de range blocs, ou null. */

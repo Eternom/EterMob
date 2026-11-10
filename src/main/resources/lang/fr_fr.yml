@@ -3,3 +3,5 @@ blood-night:
   end: "<gray>La Nuit de sang est finie."
 boss:
   appeared: "<dark_red><b>Un boss</b> <red>est apparu vers <accent><x> <z></accent>."
+sub-boss:
+  appeared: "<dark_red><b><name></b> <red>rôde vers <accent><x> <z></accent>."
