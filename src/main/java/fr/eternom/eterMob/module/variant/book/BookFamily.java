@@ -182,7 +182,7 @@ public final class BookFamily {
                     }
                 })
                 .ability(ORDINARY, new BookAbilities.BlackPrayer(Spec.of("id", "priere-noire")))
-                .ability(STURDY, new Blink(Spec.of("id", "fuyant", "mode", "escape", "escape-health", 1.0, "cooldown", 12, "cast", 0.3)))
+                .ability(STURDY, new Blink(Spec.of("id", "fuyant", "mode", "escape", "escape-health", 1.0, "trigger", "on-damaged", "chance", 0.3, "cooldown", 12)))
                 .ability(DANGEROUS, new Curse(Spec.of("id", "silence", "damage", 2, "cast", 1, "cooldown", 14, "states", List.of("silence 1 2"))))
                 .ability(ELITE, new Summon(Spec.of("id", "relever", "mobs", List.of("SKELETON"), "count", List.of(2, 2), "max-alive", 4,
                         "cooldown", 25, "cast", 1.5)))

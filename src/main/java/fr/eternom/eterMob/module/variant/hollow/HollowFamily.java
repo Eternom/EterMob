@@ -2,7 +2,6 @@ package fr.eternom.eterMob.module.variant.hollow;
 
 import fr.eternom.eterLib.module.combat.Stat;
 import fr.eternom.eterMob.module.ability.Spec;
-import fr.eternom.eterMob.module.ability.kind.Aura;
 import fr.eternom.eterMob.module.ability.kind.Blink;
 import fr.eternom.eterMob.module.ability.kind.Boulder;
 import fr.eternom.eterMob.module.ability.kind.Burrow;
@@ -62,7 +61,8 @@ public final class HollowFamily {
                 .stat(STURDY, Stat.ARMOR, 30)
                 .ability(DANGEROUS, new Tombs(Spec.of("id", "racines", "targets", 1, "block", "MANGROVE_ROOTS", "damage", 2, "cooldown", 12,
                         "cast", 1, "states", List.of("root 1 1"))))
-                .stat(ELITE, Stat.DODGE, 0.15)
+                .ability(ELITE, new Leap(Spec.of("id", "bond-moussu", "range", List.of(4.0, 10.0), "damage", 2, "radius", 2, "cooldown", 12,
+                        "cast", 0.5)))
                 .ability(SCOURGE, new Pull(Spec.of("id", "liane", "range", List.of(4.0, 14.0), "damage", 0, "cooldown", 10, "cast", 0.6)))
                 .loot(LootTable.of(List.of(new LootTable.Entry(Material.MOSS_BLOCK, 1, 2, 0.5, 1, null))))
                 .xp(5)
@@ -76,10 +76,11 @@ public final class HollowFamily {
                 .lore("Toiles et couvée.", "Couper la toile, tuer les petits.")
                 .stats(1.2, 1.1, 1.05, 0, 0, 0, 1.1)
                 .ability(ORDINARY, new Strike(Spec.of("id", "morsure", "chance", 0.35, "damage", 0, "cooldown", 2, "states", List.of("bleed 1 3"))))
-                .ability(STURDY, new Leap(Spec.of("id", "bond", "range", List.of(4.0, 10.0), "damage", 3, "radius", 2, "cooldown", 10, "cast", 0.4)))
-                .ability(DANGEROUS, new Pillar(Spec.of("id", "toile", "mode", "cage", "block", "COBWEB", "health", 6, "seconds", 4,
+                .stat(STURDY, Stat.DODGE, 0.1)
+                .ability(DANGEROUS, new Leap(Spec.of("id", "bond", "range", List.of(4.0, 10.0), "damage", 3, "radius", 2, "cooldown", 10,
+                        "cast", 0.4, "states", List.of("slow 0.25 3"))))
+                .ability(ELITE, new Pillar(Spec.of("id", "toile", "mode", "cage", "block", "COBWEB", "health", 6, "seconds", 4,
                         "cooldown", 16, "cast", 0.8)))
-                .ability(ELITE, new Strike(Spec.of("id", "venin", "chance", 0.4, "damage", 0, "cooldown", 4, "states", List.of("slow 0.25 3"))))
                 .ability(SCOURGE, new Summon(Spec.of("id", "couvee", "trigger", "on-death", "mobs", List.of("CAVE_SPIDER"), "count", List.of(3, 3),
                         "max-alive", 6)))
                 .loot(LootTable.of(List.of(new LootTable.Entry(Material.STRING, 1, 3, 1, 1, null),
@@ -136,7 +137,8 @@ public final class HollowFamily {
                 .stat(STURDY, Stat.ARMOR, 30)
                 .ability(DANGEROUS, new Tombs(Spec.of("id", "racines", "targets", 1, "block", "MANGROVE_ROOTS", "damage", 2, "cooldown", 12,
                         "cast", 1, "states", List.of("root 1 1"))))
-                .ability(ELITE, new Aura(Spec.of("id", "spores", "radius", 3, "damage", 1, "cooldown", 3, "particle", "SPORE_BLOSSOM_AIR")))
+                .ability(ELITE, new Leap(Spec.of("id", "rebond", "range", List.of(3.0, 8.0), "damage", 3, "radius", 2, "cooldown", 10,
+                        "cast", 0.4, "states", List.of("slow 0.25 2"))))
                 .ability(SCOURGE, new Pull(Spec.of("id", "liane", "range", List.of(4.0, 14.0), "damage", 0, "cooldown", 12, "cast", 0.6)))
                 .loot(LootTable.of(List.of(new LootTable.Entry(Material.SLIME_BALL, 1, 2, 0.7, 1, null),
                         new LootTable.Entry(Material.MOSS_CARPET, 1, 3, 0.5, 1, null))))
@@ -208,7 +210,7 @@ public final class HollowFamily {
                 .lore("Maléfices et fioles de spores.", "L'interrompre, la tuer vite.")
                 .stats(1.2, 1, 1, 0, 0, 0, 1)
                 .ability(ORDINARY, new Curse(Spec.of("id", "malefice", "damage", 2, "cast", 0.8, "cooldown", 10, "states", List.of("weakness 0.15 4"))))
-                .ability(STURDY, new Blink(Spec.of("id", "fuite", "mode", "escape", "escape-health", 0.6, "cooldown", 14, "cast", 0.3)))
+                .ability(STURDY, new Blink(Spec.of("id", "fuite", "mode", "escape", "escape-health", 1.0, "trigger", "on-damaged", "chance", 0.3, "cooldown", 14)))
                 .ability(DANGEROUS, new Zone(Spec.of("id", "fiole-de-spores", "mode", "linger", "count", 1, "radius", 2.5, "seconds", 6,
                         "damage", 1, "color", "6B8E23", "cooldown", 14, "cast", 0.8, "states", List.of("slow 0.2 2", "weakness 0.1 2"))))
                 .ability(ELITE, new Summon(Spec.of("id", "limons", "mobs", List.of("limon-moussu"), "count", List.of(1, 2), "max-alive", 3,

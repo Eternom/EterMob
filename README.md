@@ -163,7 +163,8 @@ marquent, goules qui saignent.
 ## La famille du Livre (`module/variant/book`)
 
 Les morts-vivants de Mortarius, la nuit (règles `spawns` par défaut). Kit par ratio : Ordinaire / Robuste / Dangereux /
-Élite / Fléau.
+Élite / Fléau. Règle commune à toutes les familles (testée, `TierRuleTest`) : Ordinaire 1 capacité de base, Robuste
+1 passif (statistique, réaction, effet permanent), Dangereux et Élite 1 capacité chacun, Fléau sa signature.
 
 | Variant | Mob | Kit |
 |---|---|---|
@@ -207,11 +208,11 @@ Kit par ratio : Ordinaire / Robuste / Dangereux / Élite / Fléau.
 
 | Variant | Mob | Kit |
 |---|---|---|
-| `creeper-moussu` | Creeper | Nuage de spores (à sa mort ou en explosant) / armure / Racines / esquive / Liane (attire avant d'exploser) |
-| `araignee-galeries` | Araignée | Morsure (saignement) / Bond / Toile (cage cassable) / Venin / Couvée (à sa mort) |
+| `creeper-moussu` | Creeper | Nuage de spores (à sa mort ou en explosant) / armure / Racines / Bond moussu / Liane (attire avant d'exploser) |
+| `araignee-galeries` | Araignée | Morsure (saignement) / esquive / Bond (ralentit) / Toile (cage cassable) / Couvée (à sa mort) |
 | `rodeuse-cristalline` | Araignée des cavernes (grottes, en groupes) | Éclat / esquive / Pas de l'ombre / Paralysie / Éclatement (à sa mort, brut) |
 | `tireur-de-cristal` | Squelette des grottes | Éclats / critique / Recul / Pique de cristal / Pluie de cristaux |
-| `limon-moussu` | Slime | Colle / armure / Racines / Spores / Liane |
+| `limon-moussu` | Slime | Colle / armure / Racines / Rebond / Liane |
 | `noye-des-galeries` | Noyé | Noyade / armure / Harpon / Courant / Tourbillon |
 | `terrassier` | Zombie de surface | Pelletée (cécité) / armure / Jet de terre / Galerie (sous terre) / Éboulement |
 | `pilleur-des-sables` | Husk | Coup lourd / armure / Tempête de sable / Enfouissement / Sables mouvants |
