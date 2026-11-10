@@ -4,7 +4,6 @@ import fr.eternom.eterMob.module.boss.BossCommand;
 import fr.eternom.eterMob.module.boss.BossListener;
 import fr.eternom.eterMob.module.boss.BossRegistry;
 import fr.eternom.eterMob.module.boss.BossService;
-import fr.eternom.eterMob.module.boss.mortarius.Mortarius;
 import fr.eternom.eterMob.module.menu.MobMenu;
 import fr.eternom.eterMob.module.mob.MobCommand;
 import fr.eternom.eterMob.module.mob.MobListener;
@@ -14,32 +13,6 @@ import fr.eternom.eterMob.module.mob.Rarity;
 import fr.eternom.eterMob.module.mob.Ratios;
 import fr.eternom.eterMob.module.mob.TempBlocks;
 import fr.eternom.eterMob.module.mob.Variants;
-import fr.eternom.eterMob.module.variant.creeper.BoomCreeper;
-import fr.eternom.eterMob.module.variant.creeper.ClassicCreeper;
-import fr.eternom.eterMob.module.variant.creeper.FragmentCreeper;
-import fr.eternom.eterMob.module.variant.creeper.FrostCreeper;
-import fr.eternom.eterMob.module.variant.creeper.LaunchCreeper;
-import fr.eternom.eterMob.module.variant.creeper.LightningCreeper;
-import fr.eternom.eterMob.module.variant.creeper.PoisonCreeper;
-import fr.eternom.eterMob.module.variant.skeleton.BlinkSkeleton;
-import fr.eternom.eterMob.module.variant.skeleton.ClassicSkeleton;
-import fr.eternom.eterMob.module.variant.skeleton.HookSkeleton;
-import fr.eternom.eterMob.module.variant.skeleton.RainSkeleton;
-import fr.eternom.eterMob.module.variant.skeleton.ReviveSkeleton;
-import fr.eternom.eterMob.module.variant.skeleton.SniperSkeleton;
-import fr.eternom.eterMob.module.variant.spider.ClassicSpider;
-import fr.eternom.eterMob.module.variant.spider.DarkSpider;
-import fr.eternom.eterMob.module.variant.spider.HiddenSpider;
-import fr.eternom.eterMob.module.variant.spider.JumpSpider;
-import fr.eternom.eterMob.module.variant.spider.PackSpider;
-import fr.eternom.eterMob.module.variant.spider.WebSpider;
-import fr.eternom.eterMob.module.variant.zombie.BurrowZombie;
-import fr.eternom.eterMob.module.variant.zombie.ClassicZombie;
-import fr.eternom.eterMob.module.variant.zombie.FastZombie;
-import fr.eternom.eterMob.module.variant.zombie.IronZombie;
-import fr.eternom.eterMob.module.variant.zombie.SplitZombie;
-import fr.eternom.eterMob.module.variant.zombie.SummonerZombie;
-import fr.eternom.eterMob.module.variant.zombie.VampireZombie;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -55,33 +28,7 @@ public final class Main extends JavaPlugin {
 
     /** Tous les variants : en ajouter un = l'écrire dans module/variant puis l'ajouter ici. */
     private static List<MobVariant> variants() {
-        return List.of(
-                new ClassicCreeper(),
-                new BoomCreeper(),
-                new FrostCreeper(),
-                new LaunchCreeper(),
-                new FragmentCreeper(),
-                new LightningCreeper(),
-                new PoisonCreeper(),
-                new ClassicZombie(),
-                new IronZombie(),
-                new FastZombie(),
-                new VampireZombie(),
-                new SummonerZombie(),
-                new SplitZombie(),
-                new BurrowZombie(),
-                new ClassicSkeleton(),
-                new SniperSkeleton(),
-                new RainSkeleton(),
-                new BlinkSkeleton(),
-                new ReviveSkeleton(),
-                new HookSkeleton(),
-                new ClassicSpider(),
-                new WebSpider(),
-                new JumpSpider(),
-                new HiddenSpider(),
-                new DarkSpider(),
-                new PackSpider());
+        return List.of();
     }
 
     @Override
@@ -98,7 +45,7 @@ public final class Main extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new MobListener(mobs, getConfig().getBoolean("creeper-block-damage", false)), this);
         // Boss : seulement par commande pour l'instant (pas d'apparition naturelle)
-        bosses = new BossService(this, new BossRegistry(this), List.of(new Mortarius()));
+        bosses = new BossService(this, new BossRegistry(this), List.of());
         getServer().getPluginManager().registerEvents(new BossListener(bosses), this);
         MobMenu menu = new MobMenu(mobs, bosses);
         getServer().getPluginManager().registerEvents(menu, this);
