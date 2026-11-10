@@ -78,6 +78,9 @@ public final class Brain {
     private long castStart;
     private long castEnd;
     private boolean wasAware = true;
+    private long dazedUntil;
+    /** Pause globale propre à la phase en cours (boss), 0 : celle du profil. */
+    private double globalCooldown;
 
     private UUID target;
     private double targetScore;
@@ -110,6 +113,11 @@ public final class Brain {
         interrupt(false);
         this.abilities = List.copyOf(next);
         belowFired.clear();
+    }
+
+    /** Pause globale entre deux capacités pour la phase en cours (secondes ; 0 : celle du profil). */
+    public void setGlobalCooldown(double seconds) {
+        this.globalCooldown = Math.max(0, seconds);
     }
 
     /** Cible choisie (null : aucune). */
@@ -205,6 +213,14 @@ public final class Brain {
             return;
         }
         long now = System.currentTimeMillis();
+        if (dazedUntil > 0) {
+            if (now < dazedUntil) {
+                self.getWorld().spawnParticle(Particle.CRIT, self.getLocation().add(0, self.getHeight() + 0.3, 0), 3, 0.3, 0.1, 0.3, 0);
+                return;
+            }
+            dazedUntil = 0;
+            restoreAware();
+        }
         if (casting != null) {
             progressCast(now);
             return;
@@ -296,7 +312,7 @@ public final class Brain {
     private void progressCast(long now) {
         LivingEntity self = caster.entity();
         States states = Services.states();
-        if (states != null && !states.canUseAbilities(self)) {
+        if (states != null && !states.canUseAbilities(self) && casting.interruptible()) {
             // Interrompu (étourdi, réduit au silence) : la moitié du délai seulement, la réponse des joueurs paie
             interrupt(true);
             self.getWorld().playSound(self.getLocation(), Sound.ITEM_SHIELD_BREAK, 0.8f, 1.2f);
@@ -319,8 +335,28 @@ public final class Brain {
     }
 
     private void finish(Ability ability, AbilityContext context, long now) {
-        globalReadyAt = now + Math.round(profile.globalCooldown() * 1000);
+        globalReadyAt = now + Math.round((globalCooldown > 0 ? globalCooldown : profile.globalCooldown()) * 1000);
         ability.cast(context);
+    }
+
+    /**
+     * Sonné (une charge finie dans un mur...) : plus d'IA ni de capacité pendant seconds, télégraphe annulé. Indépendant
+     * des contrôles d'EterLib (un boss n'en subit qu'une partie) : c'est la récompense d'une bonne réponse des joueurs.
+     */
+    public void daze(double seconds) {
+        interrupt(false);
+        dazedUntil = System.currentTimeMillis() + Math.round(seconds * 1000);
+        if (caster.entity() instanceof Mob mob) {
+            mob.getPathfinder().stopPathfinding();
+            wasAware = mob.isAware();
+            mob.setAware(false);
+        }
+        caster.entity().getWorld().playSound(caster.entity().getLocation(), Sound.ENTITY_IRON_GOLEM_DAMAGE, 1.2f, 0.6f);
+    }
+
+    /** Sonné en ce moment ? */
+    public boolean dazed() {
+        return dazedUntil > System.currentTimeMillis();
     }
 
     /** Annule le télégraphe en cours (halfCooldown : son délai est ramené à la moitié). */

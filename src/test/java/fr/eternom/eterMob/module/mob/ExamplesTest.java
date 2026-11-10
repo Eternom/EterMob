@@ -1,7 +1,6 @@
 package fr.eternom.eterMob.module.mob;
 
 import fr.eternom.eterMob.module.ability.Ability;
-import fr.eternom.eterMob.module.boss.ConfiguredBoss;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
@@ -61,17 +60,6 @@ class ExamplesTest {
         assertEquals(Tier.LEADER, captain.tier());
         assertEquals(4, captain.abilities().size());
         assertEquals(2, captain.followersMin());
-    }
-
-    @Test
-    void exampleBossLoads() {
-        List<String> warnings = new ArrayList<>();
-        ConfigurationSection boss = resource("bosses/_exemple.yml").getConfigurationSection("bosses.roi-des-os");
-        ConfiguredBoss loaded = ConfiguredBoss.load("roi-des-os", boss, capture(warnings));
-        assertNotNull(loaded);
-        assertEquals(List.of(), warnings);
-        assertEquals(2, loaded.phaseThresholds().length);
-        assertEquals(0.6, loaded.phaseThresholds()[0]);
     }
 
     @Test

@@ -38,6 +38,7 @@ public final class Summon extends Ability {
     private final int min;
     private final int max;
     private final int maxAlive;
+    private final boolean aroundPlayers;
 
     public Summon(ConfigurationSection config) {
         super("summon", config, new Defaults(Trigger.ACTIVE, 25, 1.5, 0, 32, 1, 0, 0, 0, 0));
@@ -50,6 +51,7 @@ public final class Summon extends Ability {
         this.min = count.size() == 2 ? Math.max(1, count.get(0)) : 2;
         this.max = count.size() == 2 ? Math.max(min, count.get(1)) : 3;
         this.maxAlive = Math.clamp(config.getInt("max-alive", 4), 1, 12);
+        this.aroundPlayers = config.getString("around", "self").equalsIgnoreCase("players");
     }
 
     @Override
@@ -84,7 +86,14 @@ public final class Summon extends Ability {
         self.getWorld().playSound(self.getLocation(), Sound.ENTITY_EVOKER_PREPARE_SUMMON, 1f, 0.9f);
         for (int i = 0; i < count; i++) {
             double angle = ThreadLocalRandom.current().nextDouble(Math.PI * 2);
-            Location spot = Blink.safe(self.getLocation().add(Math.cos(angle) * 2.5, 0, Math.sin(angle) * 2.5));
+            Location center = self.getLocation();
+            if (aroundPlayers) {
+                List<org.bukkit.entity.Player> near = players(self.getLocation(), 24);
+                if (!near.isEmpty()) {
+                    center = near.get(ThreadLocalRandom.current().nextInt(near.size())).getLocation();
+                }
+            }
+            Location spot = Blink.safe(center.add(Math.cos(angle) * 2.5, 0, Math.sin(angle) * 2.5));
             if (spot == null) {
                 continue;
             }

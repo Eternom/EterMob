@@ -19,17 +19,20 @@ import java.util.UUID;
 /**
  * charge : fonce en ligne droite vers le point visé (fixé au début : on l'esquive en se décalant), touche chaque joueur
  * sur son passage une fois (dégâts, poussée, états) ; s'arrête contre un mur. Réglages : speed (blocs par tick, 0,9),
- * distance (au plus, 14).
+ * distance (au plus, 14), wall-stun (secondes où il est sonné s'il finit dans un mur : la bonne réponse est de l'y
+ * attirer).
  */
 public final class Charge extends Ability {
 
     private final double speed;
     private final double distance;
+    private final double wallStun;
 
     public Charge(ConfigurationSection config) {
         super("charge", config, new Defaults(Trigger.ACTIVE, 12, 1, 5, 14, 1, 6, 1.6, 1.2, 0.35));
         this.speed = Math.clamp(config.getDouble("speed", 0.9), 0.3, 2);
         this.distance = Math.max(4, config.getDouble("distance", 14));
+        this.wallStun = Math.max(0, config.getDouble("wall-stun", 0));
     }
 
     @Override
@@ -82,6 +85,9 @@ public final class Charge extends Ability {
                 // Contre un mur : il n'avance plus
                 if (ticks > 3 && now.distanceSquared(last) < speed * speed * 0.1) {
                     self.getWorld().playSound(now, Sound.ENTITY_ZOMBIE_ATTACK_WOODEN_DOOR, 0.8f, 0.8f);
+                    if (wallStun > 0) {
+                        context.caster().brain().daze(wallStun);
+                    }
                     cancel();
                 }
                 last = now;

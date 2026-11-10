@@ -57,20 +57,6 @@ public class BossListener implements Listener {
             }
             event.setDamage(event.getDamage() / (fight.toughness() * fight.boss().toughness()));
             fight.boss().onDamaged(fight, event);
-            if (event.isCancelled()) {
-                return;
-            }
-            LivingEntity boss = fight.entity();
-            double dealt = Math.min(event.getFinalDamage(), boss.getHealth());
-            Player attacker = attacker(event);
-            if (attacker != null) {
-                fight.dealt(attacker, dealt);
-            }
-            if (event.getFinalDamage() >= boss.getHealth()) {
-                // Coup fatal : il s'effondre 3 s avant de mourir
-                event.setCancelled(true);
-                bosses.beginDeath(fight);
-            }
             return;
         }
         if (event.getEntity() instanceof Player player && event instanceof EntityDamageByEntityEvent byEntity) {
@@ -83,6 +69,28 @@ public class BossListener implements Listener {
         BossFight owner = bosses.ownerOf(event.getEntity());
         if (owner != null) {
             owner.boss().onOwnedDamaged(owner, event.getEntity(), event);
+        }
+    }
+
+    /**
+     * Après le calcul du combat d'EterLib (même priorité, EterLib chargé avant) : dégâts faits au boss pour le bilan et
+     * le butin, et coup fatal (il s'effondre 3 s avant de mourir).
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onBossHit(EntityDamageEvent event) {
+        BossFight fight = bosses.fight(event.getEntity());
+        if (fight == null) {
+            return;
+        }
+        LivingEntity boss = fight.entity();
+        double dealt = Math.min(event.getFinalDamage(), boss.getHealth());
+        Player attacker = attacker(event);
+        if (attacker != null) {
+            fight.dealt(attacker, dealt);
+        }
+        if (event.getFinalDamage() >= boss.getHealth()) {
+            event.setCancelled(true);
+            bosses.beginDeath(fight);
         }
     }
 

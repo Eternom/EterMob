@@ -13,7 +13,8 @@ import fr.eternom.eterMob.module.boss.BossFight;
 import fr.eternom.eterMob.module.boss.BossListener;
 import fr.eternom.eterMob.module.boss.BossRegistry;
 import fr.eternom.eterMob.module.boss.BossService;
-import fr.eternom.eterMob.module.boss.ConfiguredBoss;
+import fr.eternom.eterMob.module.boss.BrainBoss;
+import fr.eternom.eterMob.module.boss.mortarius.Mortarius;
 import fr.eternom.eterMob.module.loot.KillStats;
 import fr.eternom.eterMob.module.menu.MobMenu;
 import fr.eternom.eterMob.module.mob.ActiveMob;
@@ -55,7 +56,6 @@ public final class Main extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
         saveExample("variants/_exemple.yml");
-        saveExample("bosses/_exemple.yml");
         EterLib lib = EterLib.get();
         Messages messages = lib.messages(this, "en_us", "fr_fr");
 
@@ -68,15 +68,12 @@ public final class Main extends JavaPlugin {
         TempBlocks.start(this);
 
         BossService.configure(getConfig().getConfigurationSection("boss"));
-        bosses = new BossService(this, new BossRegistry(this), loadBosses());
+        bosses = new BossService(this, new BossRegistry(this), List.of(new Mortarius()));
         mobs.setBossCasters(this::bossCaster);
         getServer().getPluginManager().registerEvents(new BossListener(bosses), this);
 
         KillStats stats = new KillStats(this, lib.database("etermob_"));
-        SpawnDirector director = new SpawnDirector(this, mobs, guard, messages, getConfig(), lib.getServerName(), (id, location) -> {
-            Boss boss = bosses.boss(id);
-            return boss == null ? "boss inconnu : " + id : bosses.spawn(boss, location);
-        });
+        SpawnDirector director = new SpawnDirector(this, mobs, guard, messages, getConfig(), lib.getServerName());
         getServer().getPluginManager().registerEvents(new MobListener(mobs, director, stats,
                 getConfig().getBoolean("creeper-block-damage", false),
                 Math.clamp(getConfig().getDouble("loot-share", 0.5), 0, 1)), this);
@@ -88,6 +85,24 @@ public final class Main extends JavaPlugin {
                 sheet.add(Stat.ARMOR_PEN, caster.piercing(), caster.tier() == Tier.BOSS ? "EterMob : boss" : "EterMob : ratio");
             }
         });
+        lib.getCombatSystem().addProvider((entity, sheet) -> {
+            BossFight fight = bosses.fight(entity);
+            if (fight != null && fight.boss() instanceof BrainBoss boss) {
+                sheet.add(Stat.ARMOR, boss.armor(), "boss");
+                sheet.add(Stat.MAGIC_RESIST, boss.magicResist(), "boss");
+            }
+        });
+        lib.getStates().register(StateType.builder("rot", StateType.Category.DEBUFF)
+                .weight(2).icon("<dark_green>☣").particle(org.bukkit.Particle.SPORE_BLOSSOM_AIR).build());
+        getServer().getPluginManager().registerEvents(new org.bukkit.event.Listener() {
+            // Pourriture : aucun soin tant qu'elle dure
+            @org.bukkit.event.EventHandler(ignoreCancelled = true)
+            public void onRegain(org.bukkit.event.entity.EntityRegainHealthEvent event) {
+                if (event.getEntity() instanceof org.bukkit.entity.LivingEntity living && lib.getStates().has(living, "rot")) {
+                    event.setCancelled(true);
+                }
+            }
+        }, this);
         double damageCap = Math.clamp(getConfig().getDouble("damage-cap", 0.6), 0, 1);
         lib.getCombatSystem().addHook((attacker, victim, kind, damage) -> {
             Caster caster = damageCap <= 0 || !(victim instanceof org.bukkit.entity.Player) ? null : mobs.caster(attacker);
@@ -150,7 +165,7 @@ public final class Main extends JavaPlugin {
 
     private Caster bossCaster(Entity entity) {
         BossFight fight = bosses == null ? null : bosses.fight(entity);
-        return fight != null && fight.boss() instanceof ConfiguredBoss configured ? configured.caster(fight) : null;
+        return fight != null && fight.boss() instanceof BrainBoss boss ? boss.caster(fight) : null;
     }
 
     private void saveExample(String path) {
@@ -166,36 +181,6 @@ public final class Main extends JavaPlugin {
         getLogger().info(count + " variant(s) et meneur(s) chargé(s)");
     }
 
-    /** Les boss de bosses/*.yml (section bosses:), sauf les fichiers en « _ » (exemples). */
-    private List<Boss> loadBosses() {
-        List<Boss> loaded = new ArrayList<>();
-        File folder = new File(getDataFolder(), "bosses");
-        folder.mkdirs();
-        File[] files = folder.listFiles((dir, name) -> name.endsWith(".yml") && !name.startsWith("_"));
-        if (files != null) {
-            java.util.Arrays.sort(files);
-            for (File file : files) {
-                ConfigurationSection section = YamlConfiguration.loadConfiguration(file).getConfigurationSection("bosses");
-                if (section == null) {
-                    continue;
-                }
-                for (String key : section.getKeys(false)) {
-                    String id = key.toLowerCase(Locale.ROOT);
-                    ConfigurationSection boss = section.getConfigurationSection(key);
-                    if (boss == null || loaded.stream().anyMatch(other -> other.id().equals(id))) {
-                        getLogger().warning(file.getName() + " : boss « " + key + " » illisible ou en double");
-                        continue;
-                    }
-                    ConfiguredBoss configured = ConfiguredBoss.load(id, boss, getLogger());
-                    if (configured != null) {
-                        loaded.add(configured);
-                    }
-                }
-            }
-        }
-        getLogger().info(loaded.size() + " boss chargé(s)");
-        return loaded;
-    }
 
     /** Budget d'équilibrage par rareté (config.yml > budgets ; un meneur a 1,5 fois celui de sa rareté). */
     private Map<Rarity, Double> budgets() {

@@ -44,7 +44,6 @@ public class BossService {
     public static final int TICK_PERIOD = 5;
     public static final double BAR_RANGE = 48;
     public static final String TAG = "etermob_boss";
-    private static final double LEASH = 40;
     private static final double RESET_RANGE = 64;
     private static final long RESET_MILLIS = 30_000;
     private static final long TRANSITION_MILLIS = 2_000;
@@ -78,6 +77,7 @@ public class BossService {
     private final Map<UUID, BossFight> owners = new HashMap<>();
     private final NamespacedKey bossKey;
     private final NamespacedKey homeKey;
+    private final NamespacedKey leashKey;
     private long ticks;
 
     public BossService(JavaPlugin plugin, BossRegistry registry, List<Boss> bosses) {
@@ -90,6 +90,7 @@ public class BossService {
         });
         this.bossKey = new NamespacedKey(plugin, "boss");
         this.homeKey = new NamespacedKey(plugin, "boss_home");
+        this.leashKey = new NamespacedKey(plugin, "boss_leash");
     }
 
     /** config.yml > boss : résistance par joueur en plus (toughness-per-player) et son plafond (max-toughness). */
@@ -136,6 +137,14 @@ public class BossService {
 
     /** Fait apparaître ce boss ici ; renvoie null, ou la raison du refus. */
     public String spawn(Boss boss, Location location) {
+        return spawn(boss, location, boss.leashRadius());
+    }
+
+    /**
+     * Fait apparaître ce boss ici avec ce rayon de déplacement maximal (0 : sans limite), gardé sur le boss (il survit
+     * aux redémarrages) : le plugin de donjon donne celui de sa salle. Renvoie null, ou la raison du refus.
+     */
+    public String spawn(Boss boss, Location location, double leashRadius) {
         Location at = location.getBlock().getLocation().add(0.5, 0, 0.5);
         for (int y = 0; y < Math.ceil(boss.height()); y++) {
             if (!at.clone().add(0, y, 0).getBlock().isPassable()) {
@@ -147,6 +156,7 @@ public class BossService {
             PersistentDataContainer data = mob.getPersistentDataContainer();
             data.set(bossKey, PersistentDataType.STRING, boss.id());
             data.set(homeKey, PersistentDataType.STRING, at.getX() + ";" + at.getY() + ";" + at.getZ());
+            data.set(leashKey, PersistentDataType.DOUBLE, Math.max(0, leashRadius));
             mob.addScoreboardTag(TAG);
             // Avant son entrée dans le monde : attach le trouve déjà dans le registre
             registry.add(mob.getUniqueId(), boss.id(), at);
@@ -192,6 +202,7 @@ public class BossService {
         }
         BossFight fight = new BossFight(boss, living, home(living), BossBar.bossBar(Component.empty(), 1f, boss.color(1),
                 BossBar.Overlay.NOTCHED_10));
+        fight.leash(data.getOrDefault(leashKey, PersistentDataType.DOUBLE, boss.leashRadius()));
         fights.put(living.getUniqueId(), fight);
         int phase = phaseFor(fight);
         fight.phase(phase);
@@ -362,11 +373,15 @@ public class BossService {
         fight.boss().onPhase(fight, phase, false);
     }
 
-    /** Ramené à son point d'apparition s'il en est trop loin. */
+    /** Ramené à son point d'apparition s'il sort de son rayon de déplacement (propre à chaque boss, réglable). */
     private void leash(BossFight fight) {
         LivingEntity entity = fight.entity();
         Location home = fight.home();
-        if (home.getWorld() != entity.getWorld() || home.distanceSquared(entity.getLocation()) > LEASH * LEASH) {
+        double radius = fight.leash();
+        if (radius <= 0 && home.getWorld() == entity.getWorld()) {
+            return;
+        }
+        if (home.getWorld() != entity.getWorld() || home.distanceSquared(entity.getLocation()) > radius * radius) {
             entity.getWorld().spawnParticle(Particle.PORTAL, entity.getLocation().add(0, 1, 0), 40, 0.5, 1, 0.5, 0.5);
             entity.teleport(home);
             entity.getWorld().spawnParticle(Particle.PORTAL, home.clone().add(0, 1, 0), 40, 0.5, 1, 0.5, 0.5);

@@ -33,11 +33,12 @@ public class BossCommand {
         switch (args[1].toLowerCase()) {
             case "list" -> list(sender);
             case "remove" -> remove(sender, args.length >= 3 ? args[2] : null);
-            default -> spawn(sender, args[1]);
+            default -> spawn(sender, args[1], args.length >= 3 ? args[2] : null);
         }
     }
 
-    private void spawn(CommandSender sender, String id) {
+    /** /etermob boss <id> [rayon] : rayon de déplacement maximal (défaut : celui du boss, config). */
+    private void spawn(CommandSender sender, String id, String radius) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(Component.text("En jeu seulement.", NamedTextColor.RED));
             return;
@@ -47,7 +48,16 @@ public class BossCommand {
             usage(sender);
             return;
         }
-        String refused = bosses.spawn(boss, player.getLocation());
+        double leash = boss.leashRadius();
+        if (radius != null) {
+            try {
+                leash = Math.max(0, Double.parseDouble(radius));
+            } catch (NumberFormatException e) {
+                sender.sendMessage(Component.text("Rayon : un nombre de blocs (0 : sans limite).", NamedTextColor.RED));
+                return;
+            }
+        }
+        String refused = bosses.spawn(boss, player.getLocation(), leash);
         if (refused != null) {
             sender.sendMessage(Component.text(refused, NamedTextColor.RED));
             return;

@@ -23,8 +23,7 @@ import java.util.logging.Logger;
  * <pre>
  *   mode          replace : une apparition naturelle de ce type de mob devient un des variants (chance) ;
  *                 director : EterMob fait apparaître des groupes autour des joueurs (weight : part des tirages) ;
- *                 boss : un boss apparaît de lui-même, rarement (chance par tentative, cooldown-minutes par monde)
- *   variants      { id: poids }  (boss : boss: id)
+ *   variants      { id: poids } (les boss n'apparaissent jamais d'eux-mêmes : commande, menu, plugin de donjon)
  *   worlds, environments (NORMAL, NETHER, THE_END), biomes (groupes : plains, forests, dark, swamps, jungles,
  *   mountains, dry, cold, rivers ; ou un biome : minecraft:plains), y [min, max], light [min, max] (lumière du bloc),
  *   time (day, night, any), weather (clear, rain, thunder, any), cave (true : sans lumière du ciel)
@@ -34,7 +33,7 @@ import java.util.logging.Logger;
  */
 public final class SpawnRule {
 
-    public enum Mode { REPLACE, DIRECTOR, BOSS }
+    public enum Mode { REPLACE, DIRECTOR }
 
     private final String id;
     private final Mode mode;
@@ -66,11 +65,11 @@ public final class SpawnRule {
         try {
             parsed = Mode.valueOf(section.getString("mode", "director").toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            logger.warning("Règle " + id + " : mode inconnu « " + section.getString("mode") + " » (replace, director, boss)");
+            logger.warning("Règle " + id + " : mode inconnu « " + section.getString("mode") + " » (replace, director)");
             parsed = Mode.DIRECTOR;
         }
         this.mode = parsed;
-        this.chance = Math.clamp(section.getDouble("chance", parsed == Mode.BOSS ? 0.02 : 0.2), 0, 1);
+        this.chance = Math.clamp(section.getDouble("chance", 0.2), 0, 1);
         this.weight = Math.max(0, section.getDouble("weight", 1));
         Map<String, Integer> weights = new LinkedHashMap<>();
         ConfigurationSection list = section.getConfigurationSection("variants");

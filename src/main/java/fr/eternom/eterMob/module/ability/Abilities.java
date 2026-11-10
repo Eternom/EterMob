@@ -5,6 +5,7 @@ import fr.eternom.eterMob.module.ability.kind.Blink;
 import fr.eternom.eterMob.module.ability.kind.Burst;
 import fr.eternom.eterMob.module.ability.kind.Call;
 import fr.eternom.eterMob.module.ability.kind.Charge;
+import fr.eternom.eterMob.module.ability.kind.Cleave;
 import fr.eternom.eterMob.module.ability.kind.Curse;
 import fr.eternom.eterMob.module.ability.kind.Evade;
 import fr.eternom.eterMob.module.ability.kind.Heal;
@@ -14,7 +15,10 @@ import fr.eternom.eterMob.module.ability.kind.Pull;
 import fr.eternom.eterMob.module.ability.kind.Slam;
 import fr.eternom.eterMob.module.ability.kind.Strike;
 import fr.eternom.eterMob.module.ability.kind.Summon;
+import fr.eternom.eterMob.module.ability.kind.Tombs;
 import fr.eternom.eterMob.module.ability.kind.Volley;
+import fr.eternom.eterMob.module.ability.kind.Vortex;
+import fr.eternom.eterMob.module.ability.kind.Wave;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemoryConfiguration;
 
@@ -52,6 +56,10 @@ public final class Abilities {
         register("evade", Evade::new);
         register("burst", Burst::new);
         register("summon", Summon::new);
+        register("cleave", Cleave::new);
+        register("wave", Wave::new);
+        register("tombs", Tombs::new);
+        register("vortex", Vortex::new);
     }
 
     private Abilities() {

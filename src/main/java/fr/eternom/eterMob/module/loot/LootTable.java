@@ -37,6 +37,11 @@ public final class LootTable {
         this.entries = List.copyOf(entries);
     }
 
+    /** Une table écrite dans le code (boss et monstres codés en dur). */
+    public static LootTable of(List<Entry> entries) {
+        return entries.isEmpty() ? EMPTY : new LootTable(entries);
+    }
+
     public static LootTable load(ConfigurationSection parent, String path, String owner, Logger logger) {
         List<Entry> entries = new ArrayList<>();
         if (parent == null) {

@@ -2,6 +2,7 @@ package fr.eternom.eterMob.module.ability.kind;
 
 import fr.eternom.eterMob.module.ability.Ability;
 import fr.eternom.eterMob.module.ability.AbilityContext;
+import fr.eternom.eterMob.module.ability.Services;
 import fr.eternom.eterMob.module.mob.Hits;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -12,15 +13,18 @@ import org.bukkit.util.Vector;
 
 /**
  * pull : un crochet (ligne de particules) qui ramène la cible vers lui, avec ses états (ralentissement...). Contre les
- * tireurs et les joueurs perchés hors d'atteinte. Réglage : strength (force de traction, 1,2).
+ * tireurs et les joueurs perchés hors d'atteinte. Réglage : strength (force de traction, 1,2) ; root-first : enracine d'abord
+ * tant de secondes, puis tire (chaînes).
  */
 public final class Pull extends Ability {
 
     private final double strength;
+    private final double rootFirst;
 
     public Pull(ConfigurationSection config) {
         super("pull", config, new Defaults(Trigger.ACTIVE, 14, 0.7, 6, 22, 1, 1, 0, 0, 0));
         this.strength = Math.clamp(config.getDouble("strength", 1.2), 0.3, 3);
+        this.rootFirst = Math.max(0, config.getDouble("root-first", 0));
     }
 
     @Override
@@ -50,6 +54,22 @@ public final class Pull extends Ability {
             return;
         }
         line(self.getEyeLocation(), target.getEyeLocation(), Particle.CRIT);
+        if (rootFirst > 0) {
+            // Chaînes : enraciné d'abord, puis tiré quand les chaînes se tendent
+            if (Services.states() != null) {
+                Services.states().apply(target, "root", 1, rootFirst, self);
+            }
+            org.bukkit.Bukkit.getScheduler().runTaskLater(Services.plugin(), () -> {
+                if (target.isValid() && self.isValid() && target.getWorld().equals(self.getWorld())) {
+                    drag(context, self, target);
+                }
+            }, Math.round(rootFirst * 20));
+            return;
+        }
+        drag(context, self, target);
+    }
+
+    private void drag(AbilityContext context, LivingEntity self, LivingEntity target) {
         Vector toward = self.getLocation().toVector().subtract(target.getLocation().toVector());
         double distance = toward.length();
         if (distance < 0.5) {

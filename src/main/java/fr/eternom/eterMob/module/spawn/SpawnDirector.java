@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.BiFunction;
 
 /**
  * Les apparitions d'EterMob (config.yml > spawning et spawns) :
@@ -36,15 +35,12 @@ import java.util.function.BiFunction;
  *   <li>directeur : toutes les interval-seconds, autour de chaque joueur qui a de la place (per-player monstres d'EterMob
  *   à moins de 48 blocs, × la densité du serveur et de la Nuit de sang), un groupe d'une règle director, parfois mené ;
  *   plafonds par chunk et par monde ; jamais près du point d'apparition du monde ni sur un terrain de clan ;</li>
- *   <li>boss : de temps en temps, un boss d'une règle boss, un par monde, avec un délai ;</li>
  *   <li>ratios : bonus la nuit, dans le Nether, dans l'End ; un seul Fléau dans un rayon ; les débutants (moins de
  *   beginner.hours de jeu) ne croisent pas plus fort que beginner.max-ratio.</li>
  * </ul>
  */
 public final class SpawnDirector {
 
-    /** Fait apparaître un boss (BossService) : null si c'est fait, sinon la raison du refus. */
-    private final BiFunction<String, Location, String> bossSpawner;
     private final JavaPlugin plugin;
     private final MobService mobs;
     private final SpawnGuard guard;
@@ -67,16 +63,14 @@ public final class SpawnDirector {
     private final double endBonus;
     private final BloodNight bloodNight;
     private List<SpawnRule> rules;
-    private final Map<UUID, Long> bossCooldown = new HashMap<>();
     private final Map<String, Integer> counters = new HashMap<>();
 
     public SpawnDirector(JavaPlugin plugin, MobService mobs, SpawnGuard guard, Messages messages, ConfigurationSection config,
-                         String serverName, BiFunction<String, Location, String> bossSpawner) {
+                         String serverName) {
         this.plugin = plugin;
         this.mobs = mobs;
         this.guard = guard;
         this.messages = messages;
-        this.bossSpawner = bossSpawner;
         ConfigurationSection spawning = config.getConfigurationSection("spawning");
         ConfigurationSection server = server(spawning, serverName);
         this.enabled = (spawning == null || spawning.getBoolean("enabled", true)) && (server == null || server.getBoolean("enabled", true));
@@ -260,7 +254,6 @@ public final class SpawnDirector {
                     }
                 }
             }
-            bossAttempt(world, players);
         }
     }
 
@@ -428,32 +421,4 @@ public final class SpawnDirector {
         return feet == null ? spot : feet.getLocation().add(0.5, 0, 0.5);
     }
 
-    // ---------- Boss automatiques ----------
-
-    private void bossAttempt(World world, List<Player> players) {
-        long now = System.currentTimeMillis();
-        if (now < bossCooldown.getOrDefault(world.getUID(), 0L)) {
-            return;
-        }
-        for (SpawnRule rule : rules) {
-            if (rule.mode() != SpawnRule.Mode.BOSS || rule.boss() == null || ThreadLocalRandom.current().nextDouble() >= rule.chance()) {
-                continue;
-            }
-            Player player = players.get(ThreadLocalRandom.current().nextInt(players.size()));
-            Location spot = spot(player);
-            if (spot == null || !rule.matches(spot)) {
-                continue;
-            }
-            String refused = bossSpawner.apply(rule.boss(), spot);
-            if (refused == null) {
-                bossCooldown.put(world.getUID(), now + Math.round(rule.cooldownMinutes() * 60_000));
-                counters.merge(rule.id(), 1, Integer::sum);
-                for (Player online : world.getPlayers()) {
-                    messages.send(online, "boss.appeared", "x", String.valueOf(spot.getBlockX()), "z", String.valueOf(spot.getBlockZ()));
-                    online.playSound(online, Sound.ENTITY_WITHER_SPAWN, 0.4f, 0.8f);
-                }
-                return;
-            }
-        }
-    }
 }

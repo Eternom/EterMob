@@ -1,11 +1,12 @@
 # EterMob
 
-Les **monstres du réseau** côté Paper : variants, meneurs (sous-boss) et boss, décrits en YAML sans code, avec des
+Les **monstres du réseau** côté Paper : variants, meneurs (sous-boss) et boss, avec des
 capacités en briques, une IA commune (choix de la cible et des capacités), les états d'EterLib, des ratios de puissance
 et l'apparition automatique. Document développeur, à tenir à jour avec le code.
 
-Depuis 2.0.0, le plugin ne contient plus aucun variant ni boss : il fournit le socle. Les monstres s'écrivent dans
-`plugins/EterMob/variants/*.yml` et `plugins/EterMob/bosses/*.yml` (modèles : `_exemple.yml`, jamais chargés). Les
+Depuis 2.1.0, les boss sont **codés en dur** (`module/boss`, ex. `mortarius/Mortarius`) en assemblant les briques de capacités
+et l'IA commune (`BrainBoss`) ; leurs chiffres sont dans `config.yml > bosses.<id>`. Les variants et meneurs (encore en YAML :
+`plugins/EterMob/variants/*.yml`, modèle `_exemple.yml`) passeront aussi en code. Les
 donjons seront des maps à part, gérées par leur propre plugin (qui pourra s'appuyer sur ce socle).
 
 ## Prérequis
@@ -20,7 +21,7 @@ donjons seront des maps à part, gérées par leur propre plugin (qui pourra s'a
 |---|---|---|
 | `variant` | `variants/` | Le commun, avec ses capacités |
 | `meneur` | `variants/` (`tier: meneur`) | Sous-boss à la tête d'un groupe (`followers`) ; ses suiveurs le rejoignent quand ils n'ont pas de cible |
-| `boss` | `bosses/` | Combat à phases (`BossService` : barre, phases, résistance de groupe plafonnée, laisse, remise à zéro, rage, bilan) |
+| `boss` | codé (`BrainBoss`) | Combat à phases, rayon de déplacement maximal (`leash-radius`, ou la salle du donjon : `BossService#spawn(boss, lieu, rayon)`, `/etermob boss <id> [rayon]`), jamais d'apparition naturelle (`BossService` : barre, phases, résistance de groupe plafonnée, laisse, remise à zéro, rage, bilan) |
 
 Les mobs de Minecraft de `spawning.natural-ratios` reçoivent un **ratio** en apparaissant (sans devenir un variant) et
 passent par l'IA de ciblage, en gardant leur caractère (neutres tant qu'on ne les attaque pas).
@@ -56,7 +57,11 @@ Une capacité est une **brique** (`Ability`) réglée dans le YAML d'un monstre 
 | `call` | Appel à l'aide : les monstres sans cible prennent la sienne |
 | `evade` | En étant frappé : bond en arrière, états à l'attaquant |
 | `burst` | Déflagration (à la mort, sous un seuil, ou active ; `suicide`) |
-| `summon` | Sbires (mobs ou variants), plafonnés, sans butin |
+| `summon` | Sbires (mobs ou variants), autour de lui ou des joueurs, plafonnés, sans butin |
+| `cleave` | Coup en cône (fissure au sol), bloquable au bouclier, ne s'interrompt pas |
+| `wave` | Anneaux qui s'élargissent, à sauter |
+| `tombs` | Une tombe sous chaque joueur (affichage), à fuir |
+| `vortex` | Aspiration : attirés, puis frappés et étourdis ; interruptible |
 
 Un autre plugin peut ajouter une sorte (`Abilities.register`). Les blocs temporaires (`TempBlocks`) sont notés dans
 `temp-blocks.yml` : un arrêt brutal ne les laisse jamais pour toujours.
@@ -90,7 +95,7 @@ Un autre plugin peut ajouter une sorte (`Abilities.register`). Les blocs tempora
 - **replace** : une apparition naturelle de ce type devient un des variants (chance) ;
 - **director** : toutes les `interval-seconds`, un groupe autour de chaque joueur qui a de la place (`per-player` × densité
   du serveur et de la Nuit de sang), avec plafonds par chunk et par monde ; parfois mené (`group.leader`) ;
-- **boss** : un boss de temps en temps, un par monde, `cooldown-minutes`, annoncé.
+- les **boss** n'apparaissent jamais d'eux-mêmes (commande, menu, plugin de donjon).
 
 Conditions : mondes, environnements, groupes de biomes (`Spawns`, Terralith compris), hauteur, lumière, grotte, heure,
 météo. Jamais près du point d'apparition du monde ni sur un terrain de clan (`SpawnGuard`). Réglages par serveur
@@ -121,3 +126,13 @@ Toutes à `op` par défaut ; `etermob.admin` donne les autres.
   n'existe plus (EterMob 1.x, variant retiré) redevient celui de Minecraft au chargement.
 - Les boss ne survivent pas à un changement de leur fichier en cours de combat : `/etermob reload` relit les variants et
   les règles, pas les boss ni les ratios (redémarrage).
+
+## Mortarius (`module/boss/mortarius`)
+
+Le Seigneur des Tombes, tenu par le Livre des morts : mage-guerrier tank pour un donjon de 4 joueurs au plus. Masse
+(physique, ne s'interrompt pas), sorts du Livre (magiques, interruptibles), pourriture (brute, état `rot` : aucun soin).
+Phase 1 : masse, bond, Lecture funeste (silence), Levée des morts. Phase 2 : Livre planté, 4 piliers à rôle (Garde :
+intouchable ; Vie : soin ; Tourment : aura élargie ; Appel : morts plus fréquents), tous tombés : 60 s de vulnérabilité ;
+charge (sonné 3 s dans un mur), Chaînes d'âmes. Phase 3 : plus rapide, onde sismique, tombes, aspiration (étourdi
+1,5 s), dernier souffle à 10 %. Butin personnel, dont une Page du Livre des morts (`etermob:item` = `page-livre-des-morts`).
+Chiffres : `config.yml > bosses.mortarius`.

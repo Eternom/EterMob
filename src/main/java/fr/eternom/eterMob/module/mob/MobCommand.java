@@ -223,7 +223,7 @@ public class MobCommand implements TabExecutor {
         say(sender, "<gold>Règles d'apparition (" + director.rules().size() + ")");
         for (SpawnRule rule : director.rules()) {
             say(sender, " <yellow>" + rule.id() + " <gray>" + rule.mode().name().toLowerCase(Locale.ROOT)
-                    + (rule.mode() == SpawnRule.Mode.BOSS ? " · boss " + rule.boss() : " · " + rule.variants().keySet())
+                    + " · " + rule.variants().keySet()
                     + " · apparus : <white>" + director.counters().getOrDefault(rule.id(), 0));
         }
     }

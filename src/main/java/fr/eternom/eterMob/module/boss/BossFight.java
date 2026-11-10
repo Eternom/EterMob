@@ -32,6 +32,8 @@ public class BossFight {
     private final LivingEntity entity;
     private final Location home;
     private double toughness = 1;
+    /** Rayon de déplacement maximal (0 : pas de limite). */
+    private double leash;
     /** Joueurs du combat : dernière fois vus dans la zone. */
     private final Map<UUID, Long> participants = new HashMap<>();
     private final BossBar bar;
@@ -71,6 +73,15 @@ public class BossFight {
     /** Point d'apparition : la laisse le ramène ici. */
     public Location home() {
         return home.clone();
+    }
+
+    /** Rayon de déplacement maximal autour de son point d'apparition (0 : pas de limite). */
+    public double leash() {
+        return leash;
+    }
+
+    void leash(double radius) {
+        this.leash = Math.max(0, radius);
     }
 
     /** Résistance selon les joueurs du combat (recomptés en continu) : les dégâts reçus (boss et piliers) en sont divisés. */

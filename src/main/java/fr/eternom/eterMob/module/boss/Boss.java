@@ -119,6 +119,14 @@ public abstract class Boss {
     public void configure(org.bukkit.configuration.ConfigurationSection section) {
     }
 
+    /**
+     * Rayon de déplacement maximal autour de son point d'apparition (blocs) : plus loin, il y est ramené. Par défaut ;
+     * le plugin de donjon donne celui de sa salle (BossService#spawn avec un rayon). 0 : pas de limite.
+     */
+    public double leashRadius() {
+        return 40;
+    }
+
     /** Minutes de combat avant la rage de fin (ses coups font +50 %). */
     public double enrageMinutes() {
         return 15;

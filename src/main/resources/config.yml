@@ -3,7 +3,7 @@
 # ============================================================
 #
 #  - Variants et meneurs : plugins/EterMob/variants/*.yml (modèle : variants/_exemple.yml)
-#  - Boss                : plugins/EterMob/bosses/*.yml   (modèle : bosses/_exemple.yml)
+#  - Boss                : codés dans le plugin (Mortarius) ; leurs chiffres ci-dessous (bosses)
 #  - Où et quand ils sortent : spawns (plus bas)
 #  Les fichiers qui commencent par « _ » ne sont jamais chargés (modèles). /etermob reload relit les variants et les
 #  règles ; les ratios et les boss demandent un redémarrage.
@@ -149,10 +149,10 @@ blood-night:
   density: 2.0
   ratio-shift: 1
 
-# Règles d'apparition (exemples commentés ; rien ne sort tant qu'aucun variant n'existe) :
+# Règles d'apparition (exemples commentés ; rien ne sort tant qu'aucun variant n'existe). Les boss n'apparaissent jamais
+# d'eux-mêmes : /etermob boss, le menu, ou le plugin de donjon.
 #  mode replace  : une apparition naturelle de ce type devient un des variants (chance)
 #  mode director : EterMob fait apparaître un groupe (weight : part des tirages entre règles qui marchent ici)
-#  mode boss     : un boss apparaît de lui-même (chance par tour, cooldown-minutes par monde, annoncé)
 #  conditions    : worlds, environments (NORMAL, NETHER, THE_END), biomes (plains, forests, dark, swamps, jungles,
 #                  mountains, dry, cold, rivers, ou minecraft:<biome>), y [min, max], light [min, max], cave,
 #                  time (day, night, any), weather (clear, rain, thunder, any)
@@ -172,13 +172,6 @@ spawns: {}
 #    variants: { zombie-mineur: 1 }
 #    cave: true
 #    y: [-64, 40]
-#  roi-des-os:
-#    mode: boss
-#    boss: roi-des-os
-#    chance: 0.01
-#    cooldown-minutes: 180
-#    time: night
-#    environments: [NORMAL]
 
 # ============================================================
 #  Boss
@@ -189,3 +182,33 @@ boss:
   toughness-per-player: 0.35
   max-toughness: 3
   control-factor: 0.33
+
+# Chaque boss (codé dans le plugin) : ses chiffres. leash-radius : rayon de déplacement maximal autour de son point
+# d'apparition (le plugin de donjon donne celui de sa salle ; /etermob boss <id> [rayon]) ; 0 : sans limite.
+bosses:
+  mortarius:
+    health: 1000
+    # Résistance de base (les dégâts reçus en sont divisés), puis × la résistance de groupe (boss.toughness-per-player)
+    toughness: 1.5
+    # Défense (combat d'EterLib) : armure EN PLUS de son équipement (≈ 90 : casque et plastron en netherite), résistance
+    # magique, et part de l'armure des joueurs qu'il ignore
+    armor: 110
+    magic-resist: 80
+    piercing: 0.35
+    leash-radius: 40
+    enrage-minutes: 15
+    # Phase 2 : PV de chaque pilier, et durée où il est vulnérable une fois les 4 tombés
+    pillar-health: 80
+    window-seconds: 60
+    damage:
+      attack: 12
+      cleave: 16
+      leap: 10
+      charge: 10
+      wave: 10
+      tombs: 12
+      vortex: 4
+      curse: 3
+      chains: 3
+      # Aura de pourriture (dégâts bruts toutes les 2 s) en phase 1, 2 et 3
+      aura: [1, 2, 2]

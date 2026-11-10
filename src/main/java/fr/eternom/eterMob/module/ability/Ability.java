@@ -55,6 +55,7 @@ public abstract class Ability {
     protected final double lift;
     protected final List<StateSpec> states;
     protected final DamageKind damageKind;
+    protected final boolean interruptible;
 
     protected Ability(String kind, ConfigurationSection config, Defaults defaults) {
         this.kind = kind;
@@ -81,6 +82,7 @@ public abstract class Ability {
             kindOf = defaultKind();
         }
         this.damageKind = kindOf;
+        this.interruptible = config.getBoolean("interruptible", true);
     }
 
     /** Valeurs par défaut propres à chaque sorte de capacité. */
@@ -102,6 +104,11 @@ public abstract class Ability {
     /** Type de dégâts par défaut de cette sorte (physique ; magique pour les sorts). Réglage : damage-type. */
     protected DamageKind defaultKind() {
         return DamageKind.PHYSICAL;
+    }
+
+    /** Un étourdissement ou un silence pendant le télégraphe l'annule (false : un coup de masse lancé part quand même). */
+    public boolean interruptible() {
+        return interruptible;
     }
 
     public DamageKind damageKind() {
