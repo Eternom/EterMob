@@ -67,6 +67,7 @@ Une capacité est une **brique** (`Ability`) assemblée dans le code d'un monstr
 | `beam` | Trait en ligne droite (direction fixée au début) |
 | `burrow` | Plonge sous terre, ressort sous sa cible (cercle qui se fige) |
 | `zone` | Flaques qui restent au sol (linger) ou impacts (impact) |
+| `boulder` | Rochers en faux blocs : lancés en cloche (throw) ou tombés du ciel (fall), ombre au sol |
 
 Un autre plugin peut ajouter une sorte (`Abilities.register`). **Faux blocs** (`FakeBlocks`) : colonnes affichées, avec ou sans vie (un coup compté par joueur toutes les 500 ms), pour
 les capacités et les boss (piliers de Mortarius). **Rien ne touche la map** : pierres, tombes, piliers, éboulements sont des affichages (BlockDisplay) ou des
@@ -175,3 +176,13 @@ Les morts-vivants de Mortarius, la nuit (règles `spawns` par défaut). Kit par 
 | `zombie-mineur` | Zombie, pioche (grottes) | Coup de pioche / armure +40 / Éboulement / Lanterne (cécité) / Effondrement |
 
 Les boss, sous-boss, leurs sbires et les piliers ne ramassent aucun objet (il disparaîtrait avec eux).
+
+## Orveth (`module/boss/golem`, Hollow Dungeon)
+
+Le Gardien du monument : golem de pierre (×2,2) à qui les mineurs ont volé son cœur. Armure 300, résistance magique 40
+(le tank magique y est roi). Point faible dans le dos (+30 %, +50 % en phase 3) ; Enracinement s'il reste immobile 3 s
+(régénère, −30 % de dégâts : il faut le faire bouger). Phase 1 : Poing de pierre, Jet de rocher, Frappe sismique,
+Ronces. Phase 2 : Fragments de mousse (arrivent des bords, le soignent et l'arment s'ils l'atteignent), Rouleau (sonné
+3 s dans un mur), Éboulement. Phase 3 : Onde du sceau, Poigne, Jet de rocher ×2 ; Dernier éboulement à 10 % (8 s de
+rochers sur ceux qu'il voit : se cacher derrière un pilier). Butin dont un Éclat du cœur (`eclat-du-coeur`).
+Chiffres : `config.yml > bosses.orveth`.

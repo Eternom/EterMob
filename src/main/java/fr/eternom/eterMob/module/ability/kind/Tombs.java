@@ -21,15 +21,21 @@ import java.util.List;
 /**
  * tombs : une tombe sous chaque joueur à moins de reach blocs (24) : un cercle au sol pendant le télégraphe (fixé au
  * début : on s'en écarte), puis une pierre tombale (affichage, aucun vrai bloc) jaillit : dégâts et états à ceux encore
- * dans le cercle (radius 1,4). L'IA la lance quand on est dispersé.
+ * dans le cercle (radius 1,4). targets : joueurs visés au plus (tous) ; block : matière affichée (pierre
+ * taillée ; racines, ronces...). L'IA la lance quand on est dispersé.
  */
 public final class Tombs extends Ability {
 
     private final double reach;
+    private final int targets;
+    private final Material material;
 
     public Tombs(ConfigurationSection config) {
         super("tombs", config, new Defaults(Trigger.ACTIVE, 16, 1.2, 0, 30, 1, 10, 1.4, 0, 0.6));
         this.reach = Math.clamp(config.getDouble("reach", 24), 4, 64);
+        this.targets = Math.clamp(config.getInt("targets", 12), 1, 24);
+        Material chosen = Material.matchMaterial(config.getString("block", "CHISELED_STONE_BRICKS"));
+        this.material = chosen == null ? Material.CHISELED_STONE_BRICKS : chosen;
     }
 
     @Override
@@ -48,6 +54,9 @@ public final class Tombs extends Ability {
     public void begin(AbilityContext context) {
         List<Location> spots = new ArrayList<>();
         for (Player player : players(context.self().getLocation(), reach)) {
+            if (spots.size() >= targets) {
+                break;
+            }
             spots.add(player.getLocation());
         }
         context.data(spots);
@@ -66,7 +75,7 @@ public final class Tombs extends Ability {
     @Override
     public void cast(AbilityContext context) {
         List<Location> spots = context.data();
-        BlockData stone = Material.CHISELED_STONE_BRICKS.createBlockData();
+        BlockData stone = material.createBlockData();
         for (Location spot : spots) {
             spot.getWorld().playSound(spot, Sound.BLOCK_STONE_BREAK, 1.2f, 0.5f);
             spot.getWorld().spawnParticle(Particle.BLOCK, spot.clone().add(0, 0.5, 0), 25, 0.4, 0.4, 0.4, 0.1, stone);

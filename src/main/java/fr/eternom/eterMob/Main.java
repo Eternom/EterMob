@@ -68,7 +68,7 @@ public final class Main extends JavaPlugin {
         TempBlocks.start(this);
 
         BossService.configure(getConfig().getConfigurationSection("boss"));
-        bosses = new BossService(this, new BossRegistry(this), List.of(new Mortarius(),
+        bosses = new BossService(this, new BossRegistry(this), List.of(new Mortarius(), new fr.eternom.eterMob.module.boss.golem.Orveth(),
                 new fr.eternom.eterMob.module.boss.disciple.Scribe(), new fr.eternom.eterMob.module.boss.disciple.Gravedigger(),
                 new fr.eternom.eterMob.module.boss.disciple.SoulWarden()));
         mobs.setBossCasters(this::bossCaster);

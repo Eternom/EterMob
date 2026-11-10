@@ -246,6 +246,17 @@ bosses:
       # Aura de pourriture (dégâts bruts toutes les 2 s) en phase 1, 2 et 3
       aura: [1, 2, 2]
 
+  # Orveth, le Gardien du monument (Hollow Dungeon) : armure énorme, résistance magique faible
+  orveth:
+    health: 1000
+    toughness: 1.6
+    armor: 300
+    magic-resist: 40
+    piercing: 0.3
+    leash-radius: 40
+    enrage-minutes: 15
+    damage: { attack: 15, fist: 18, boulder: 12, slam: 10, brambles: 6, roll: 14, rockfall: 10, wave: 10, grip: 8, last-stand: 8 }
+
   # ---- Sous-boss (disciples de Mortarius) : au-dessus d'un Fléau, tout leur kit, 2 phases. Ils apparaissent en survie
   # (spawn : conditions comme une règle d'apparition, chance par tour du directeur, cooldown-minutes par monde),
   # sans rayon de déplacement, et disparaissent après despawn-minutes sans joueur proche.

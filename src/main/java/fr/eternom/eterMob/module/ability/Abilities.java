@@ -3,6 +3,7 @@ package fr.eternom.eterMob.module.ability;
 import fr.eternom.eterMob.module.ability.kind.Aura;
 import fr.eternom.eterMob.module.ability.kind.Beam;
 import fr.eternom.eterMob.module.ability.kind.Blink;
+import fr.eternom.eterMob.module.ability.kind.Boulder;
 import fr.eternom.eterMob.module.ability.kind.Burrow;
 import fr.eternom.eterMob.module.ability.kind.Burst;
 import fr.eternom.eterMob.module.ability.kind.Call;
@@ -66,6 +67,7 @@ public final class Abilities {
         register("beam", Beam::new);
         register("burrow", Burrow::new);
         register("zone", Zone::new);
+        register("boulder", Boulder::new);
     }
 
     private Abilities() {
