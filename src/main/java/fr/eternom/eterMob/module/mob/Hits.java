@@ -1,6 +1,7 @@
 package fr.eternom.eterMob.module.mob;
 
 import fr.eternom.eterLib.EterLib;
+import fr.eternom.eterLib.module.combat.DamageKind;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.damage.DamageSource;
@@ -36,14 +37,24 @@ public final class Hits {
         return abilityDamage;
     }
 
-    /** Dégâts d'une capacité venant de source (l'armure compte, moins le perce-armure de source). */
+    /** Dégâts physiques d'une capacité venant de source (armure de la cible, pénétration de source). */
     public static void abilityDamage(LivingEntity victim, double amount, Entity source) {
+        abilityDamage(victim, amount, source, DamageKind.PHYSICAL);
+    }
+
+    /** Dégâts typés d'une capacité, par le combat d'EterLib (physiques : armure ; magiques : résistance ; bruts). */
+    public static void abilityDamage(LivingEntity victim, double amount, Entity source, DamageKind kind) {
         if (amount <= 0 || victim.isDead()) {
             return;
         }
         abilityDamage = true;
         try {
-            victim.damage(amount, source);
+            EterLib lib = EterLib.get();
+            if (lib != null && lib.getCombatSystem() != null) {
+                lib.getCombatSystem().damage(source, victim, amount, kind);
+            } else {
+                victim.damage(amount, source);
+            }
         } finally {
             abilityDamage = false;
         }

@@ -29,6 +29,11 @@ public final class Aura extends Ability {
     }
 
     @Override
+    protected fr.eternom.eterLib.module.combat.DamageKind defaultKind() {
+        return fr.eternom.eterLib.module.combat.DamageKind.MAGIC;
+    }
+
+    @Override
     public void cast(AbilityContext context) {
         Location center = context.self().getLocation();
         ring(center, radius, particle);

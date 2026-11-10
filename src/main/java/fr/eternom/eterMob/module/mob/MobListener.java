@@ -9,8 +9,6 @@ import fr.eternom.eterMob.module.ability.kind.Volley;
 import fr.eternom.eterMob.module.ai.Caster;
 import fr.eternom.eterMob.module.loot.KillStats;
 import fr.eternom.eterMob.module.spawn.SpawnDirector;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -35,7 +33,7 @@ import java.util.Map;
 
 /**
  * Apparitions naturelles (variants, ratios), suivi des monstres chargés, et tout ce qui nourrit leur IA : coups reçus
- * (menace, part des joueurs), coups donnés (perce-armure, plafond, capacités au coup), cible imposée, mort (capacités,
+ * (menace, part des joueurs), coups donnés (capacités au coup ; perce-armure et plafond : combat d'EterLib), cible imposée, mort (capacités,
  * butin, statistiques, quêtes).
  */
 public class MobListener implements Listener {
@@ -44,17 +42,14 @@ public class MobListener implements Listener {
     private final SpawnDirector director;
     private final KillStats stats;
     private final boolean creeperBlockDamage;
-    /** Un coup d'un monstre (hors boss) ne retire jamais plus que cette part de la vie max d'un joueur (0 : pas de plafond). */
-    private final double damageCap;
     /** Part des dégâts qui doit venir des joueurs pour le butin et l'expérience en plus. */
     private final double lootShare;
 
-    public MobListener(MobService mobs, SpawnDirector director, KillStats stats, boolean creeperBlockDamage, double damageCap, double lootShare) {
+    public MobListener(MobService mobs, SpawnDirector director, KillStats stats, boolean creeperBlockDamage, double lootShare) {
         this.mobs = mobs;
         this.director = director;
         this.stats = stats;
         this.creeperBlockDamage = creeperBlockDamage;
-        this.damageCap = damageCap;
         this.lootShare = lootShare;
     }
 
@@ -101,47 +96,9 @@ public class MobListener implements Listener {
         if (caster == null || caster.entity() == victim) {
             return;
         }
-        if (victim instanceof Player && event.getCause() != EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
-            pierce(event, caster.piercing());
-        }
         // Un vrai coup au corps à corps (pas une capacité, pas un état, pas un projectile) : capacités « au coup »
         if (!stateDamage && !Hits.isAbilityDamage() && byEntity.getDamager() == caster.entity()) {
             caster.brain().onHit(victim);
-        }
-    }
-
-    /** Plafond par coup (hors boss) : pas de mort en un coup d'un monstre ordinaire. Après l'armure et le perce-armure. */
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onCap(EntityDamageByEntityEvent event) {
-        if (damageCap <= 0 || !(event.getEntity() instanceof Player player)) {
-            return;
-        }
-        Caster caster = mobs.caster(attacker(event.getDamager()));
-        if (caster == null || caster.tier() == Tier.BOSS) {
-            return;
-        }
-        AttributeInstance max = player.getAttribute(Attribute.MAX_HEALTH);
-        double cap = (max == null ? 20 : max.getValue()) * damageCap;
-        double dealt = event.getFinalDamage();
-        if (dealt > cap && dealt > 0) {
-            event.setDamage(event.getDamage() * cap / dealt);
-        }
-    }
-
-    /**
-     * Perce-armure : le coup ignore cette part de ce que l'armure et la protection retirent. Pas les explosions de
-     * creepers (calées pour que la Protection IV suffise).
-     */
-    @SuppressWarnings({"deprecation", "removal"})
-    private static void pierce(EntityDamageEvent event, double piercing) {
-        if (piercing <= 0) {
-            return;
-        }
-        for (EntityDamageEvent.DamageModifier modifier : new EntityDamageEvent.DamageModifier[]{
-                EntityDamageEvent.DamageModifier.ARMOR, EntityDamageEvent.DamageModifier.MAGIC}) {
-            if (event.isApplicable(modifier)) {
-                event.setDamage(modifier, event.getDamage(modifier) * (1 - piercing));
-            }
         }
     }
 

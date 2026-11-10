@@ -1,5 +1,6 @@
 package fr.eternom.eterMob.module.ability;
 
+import fr.eternom.eterLib.module.combat.DamageKind;
 import fr.eternom.eterLib.module.state.States;
 import fr.eternom.eterMob.module.ai.Caster;
 import fr.eternom.eterMob.module.mob.Hits;
@@ -28,6 +29,7 @@ import java.util.concurrent.ThreadLocalRandom;
  *   below     below-health : sous cette part de vie (0,5)          damage    dégâts de base (× la puissance du ratio)
  *   radius    rayon d'effet                                        knockback / lift : poussée et soulèvement
  *   states    états EterLib posés : ["bleed 1 4", "slow 0.3 3"]
+ *   damage-type  physical (armure), magic (résistance magique), true (brut) ; défaut : physique, magique pour les sorts
  * </pre>
  * Une capacité active est notée (score, 0 à 1 environ) par l'IA selon la situation ; la mieux notée est lancée. Une
  * capacité ne garde rien d'un lancement à l'autre : son état de lancement est dans AbilityContext.
@@ -52,6 +54,7 @@ public abstract class Ability {
     protected final double knockback;
     protected final double lift;
     protected final List<StateSpec> states;
+    protected final DamageKind damageKind;
 
     protected Ability(String kind, ConfigurationSection config, Defaults defaults) {
         this.kind = kind;
@@ -71,6 +74,13 @@ public abstract class Ability {
         this.knockback = config.getDouble("knockback", defaults.knockback());
         this.lift = config.getDouble("lift", defaults.lift());
         this.states = StateSpec.list(config, "states");
+        DamageKind kindOf;
+        try {
+            kindOf = DamageKind.valueOf(config.getString("damage-type", defaultKind().name()).toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            kindOf = defaultKind();
+        }
+        this.damageKind = kindOf;
     }
 
     /** Valeurs par défaut propres à chaque sorte de capacité. */
@@ -87,6 +97,15 @@ public abstract class Ability {
         } catch (IllegalArgumentException e) {
             return fallback;
         }
+    }
+
+    /** Type de dégâts par défaut de cette sorte (physique ; magique pour les sorts). Réglage : damage-type. */
+    protected DamageKind defaultKind() {
+        return DamageKind.PHYSICAL;
+    }
+
+    public DamageKind damageKind() {
+        return damageKind;
     }
 
     public String id() {
@@ -174,7 +193,7 @@ public abstract class Ability {
             return;
         }
         if (baseDamage > 0) {
-            Hits.abilityDamage(victim, context.scale(baseDamage), context.self());
+            Hits.abilityDamage(victim, context.scale(baseDamage), context.self(), damageKind);
         }
         applyStates(context, victim);
         if ((knockback != 0 || lift != 0) && victim instanceof Player player) {

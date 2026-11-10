@@ -10,7 +10,7 @@ donjons seront des maps à part, gérées par leur propre plugin (qui pourra s'a
 
 ## Prérequis
 
-- **EterLib 1.26.0+** (`depend`) : états (`getStates`), rôles de combat (`CombatRoles`), base, langues, pont des quêtes,
+- **EterLib 1.27.0+** (`depend`) : combat (dégâts physiques, magiques, bruts ; armure, résistance magique, pénétration), états (`getStates`), rôles de combat (`CombatRoles`), base, langues, pont des quêtes,
   classements, vanish.
 - **EterClan** (lu à l'usage, s'il est là) : pas d'apparition ni de bloc temporaire sur un terrain de clan.
 
@@ -28,17 +28,17 @@ passent par l'IA de ciblage, en gardant leur caractère (neutres tant qu'on ne l
 ## Ratios (`config.yml > ratios`)
 
 Ordinaire, Robuste, Dangereux, Élite, Fléau : multiplicateurs **séparés** de vie, de dégâts et de capacités ;
-**perce-armure** (part de l'armure et de la protection ignorée, sauf explosions de creepers), **ténacité** (contrôles
+**perce-armure** (pénétration d'armure du combat d'EterLib : part de l'armure de la cible ignorée), **ténacité** (contrôles
 plus courts), résistance au recul, butin, expérience. Tirage favorisé par la profondeur, la nuit, le Nether et l'End
 (`ratio-bonus`), +1 pendant la Nuit de sang ; un seul Fléau par rayon (`top-ratio-radius`) ; les débutants
 (`beginner.hours`) ne croisent pas plus fort que `beginner.max-ratio`. Un coup d'un monstre (hors boss) ne retire jamais
-plus de `damage-cap` de la vie max d'un joueur. `/etermob balance` : coups pour tuer selon l'armure.
+plus de `damage-cap` de la vie max d'un joueur (crochet du combat d'EterLib). `/etermob balance` : coups pour tuer selon l'armure.
 
 ## Capacités (`module/ability`)
 
 Une capacité est une **brique** (`Ability`) réglée dans le YAML d'un monstre : `kind` + réglages communs (`trigger`,
 `cooldown`, `cast` = télégraphe, `range`, `sight`, `weight`, `chance`, `below`, `damage`, `radius`, `knockback`,
-`lift`, `states`). Les dégâts et la puissance des états suivent le ratio ; jamais la durée des contrôles.
+`lift`, `states`, `damage-type` : physical, magic, true ; défaut physique, magique pour `curse` et `aura`). Les dégâts et la puissance des états suivent le ratio ; jamais la durée des contrôles.
 
 | Sorte | Effet |
 |---|---|

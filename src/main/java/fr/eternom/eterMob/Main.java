@@ -3,6 +3,7 @@ package fr.eternom.eterMob;
 import fr.eternom.eterLib.EterLib;
 import fr.eternom.eterLib.helper.message.Messages;
 import fr.eternom.eterLib.module.combat.CombatRoles;
+import fr.eternom.eterLib.module.combat.Stat;
 import fr.eternom.eterLib.module.state.StateType;
 import fr.eternom.eterMob.module.ability.Services;
 import fr.eternom.eterMob.module.ai.Caster;
@@ -22,6 +23,7 @@ import fr.eternom.eterMob.module.mob.MobService;
 import fr.eternom.eterMob.module.mob.Rarity;
 import fr.eternom.eterMob.module.mob.Ratios;
 import fr.eternom.eterMob.module.mob.TempBlocks;
+import fr.eternom.eterMob.module.mob.Tier;
 import fr.eternom.eterMob.module.mob.Variants;
 import fr.eternom.eterMob.module.spawn.SpawnDirector;
 import fr.eternom.eterMob.module.spawn.SpawnGuard;
@@ -77,9 +79,24 @@ public final class Main extends JavaPlugin {
         });
         getServer().getPluginManager().registerEvents(new MobListener(mobs, director, stats,
                 getConfig().getBoolean("creeper-block-damage", false),
-                Math.clamp(getConfig().getDouble("damage-cap", 0.6), 0, 1),
                 Math.clamp(getConfig().getDouble("loot-share", 0.5), 0, 1)), this);
 
+        // Combat d'EterLib : le perce-armure des ratios et des boss, et le plafond par coup des monstres (hors boss)
+        lib.getCombatSystem().addProvider((entity, sheet) -> {
+            Caster caster = mobs.caster(entity);
+            if (caster != null && caster.piercing() > 0) {
+                sheet.add(Stat.ARMOR_PEN, caster.piercing(), caster.tier() == Tier.BOSS ? "EterMob : boss" : "EterMob : ratio");
+            }
+        });
+        double damageCap = Math.clamp(getConfig().getDouble("damage-cap", 0.6), 0, 1);
+        lib.getCombatSystem().addHook((attacker, victim, kind, damage) -> {
+            Caster caster = damageCap <= 0 || !(victim instanceof org.bukkit.entity.Player) ? null : mobs.caster(attacker);
+            if (caster == null || caster.tier() == Tier.BOSS) {
+                return damage;
+            }
+            org.bukkit.attribute.AttributeInstance max = victim.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+            return Math.min(damage, (max == null ? 20 : max.getValue()) * damageCap);
+        });
         // Ténacité des monstres (contrôles plus courts) et des boss ; les boss ne subissent qu'un tiers des contrôles
         lib.getStates().addTenacity(entity -> {
             ActiveMob mob = mobs.get(entity);

@@ -32,6 +32,11 @@ public final class Curse extends Ability {
     }
 
     @Override
+    protected fr.eternom.eterLib.module.combat.DamageKind defaultKind() {
+        return fr.eternom.eterLib.module.combat.DamageKind.MAGIC;
+    }
+
+    @Override
     public void telegraph(AbilityContext context, double progress) {
         super.telegraph(context, progress);
         context.self().getWorld().spawnParticle(Particle.WITCH, context.self().getEyeLocation(), 4, 0.3, 0.3, 0.3, 0);

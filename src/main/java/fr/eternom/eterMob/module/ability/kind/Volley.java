@@ -34,7 +34,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public final class Volley extends Ability {
 
     /** Projectiles en vol : qui les a tirés, et ce qu'ils font en touchant. Retirés à l'impact ou au bout de 10 s. */
-    private record Shot(Caster caster, double damage, List<StateSpec> states, long until) {
+    private record Shot(Caster caster, double damage, fr.eternom.eterLib.module.combat.DamageKind kind, List<StateSpec> states, long until) {
     }
 
     private static final Map<UUID, Shot> SHOTS = new HashMap<>();
@@ -92,7 +92,7 @@ public final class Volley extends Ability {
             }
             Projectile shot = launch(self, direction);
             if (shot != null) {
-                SHOTS.put(shot.getUniqueId(), new Shot(context.caster(), context.scale(damage), states, now + 10_000));
+                SHOTS.put(shot.getUniqueId(), new Shot(context.caster(), context.scale(damage), damageKind, states, now + 10_000));
             }
         }
     }
@@ -123,7 +123,7 @@ public final class Volley extends Ability {
         }
         if (event.getHitEntity() instanceof LivingEntity victim && victim != shot.caster().entity()
                 && (!(victim instanceof Player player) || Hits.fighting(player))) {
-            Hits.abilityDamage(victim, shot.damage(), shot.caster().entity());
+            Hits.abilityDamage(victim, shot.damage(), shot.caster().entity(), shot.kind());
             applyStates(shot.caster(), victim, shot.states());
         }
         event.setCancelled(true);

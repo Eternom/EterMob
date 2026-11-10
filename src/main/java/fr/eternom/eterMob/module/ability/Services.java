@@ -31,7 +31,7 @@ public final class Services {
         try {
             EterLib lib = EterLib.get();
             return lib == null ? null : lib.getStates();
-        } catch (LinkageError e) {
+        } catch (LinkageError | IllegalStateException e) {
             return null;
         }
     }
