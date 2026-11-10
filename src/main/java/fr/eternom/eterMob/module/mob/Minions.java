@@ -38,6 +38,8 @@ public final class Minions {
             mob.getPersistentDataContainer().set(key(), PersistentDataType.BYTE, (byte) 1);
             mob.setPersistent(false);
             noReinforcements(mob);
+            // Retiré en fin de combat : il ne ramasse rien (l'objet disparaîtrait avec lui)
+            mob.setCanPickupItems(false);
             setup.accept(mob);
         });
     }

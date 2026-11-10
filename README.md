@@ -5,8 +5,9 @@ capacités en briques, une IA commune (choix de la cible et des capacités), les
 et l'apparition automatique. Document développeur, à tenir à jour avec le code.
 
 Depuis 2.1.0, les boss sont **codés en dur** (`module/boss`, ex. `mortarius/Mortarius`) en assemblant les briques de capacités
-et l'IA commune (`BrainBoss`) ; leurs chiffres sont dans `config.yml > bosses.<id>`. Les variants et meneurs (encore en YAML :
-`plugins/EterMob/variants/*.yml`, modèle `_exemple.yml`) passeront aussi en code. Les
+et l'IA commune (`BrainBoss`) ; leurs chiffres sont dans `config.yml > bosses.<id>`. Les variants aussi
+(`module/variant`, `MobVariant.builder`) : leur **ratio débloque leur kit** (capacités, statistiques, crochets, chacun avec un
+ratio minimal : Ordinaire la base, Fléau tout). Les monstres naissent avec leurs boss (famille du Livre : Mortarius). Les
 donjons seront des maps à part, gérées par leur propre plugin (qui pourra s'appuyer sur ce socle).
 
 ## Prérequis
@@ -38,7 +39,7 @@ plus de `damage-cap` de la vie max d'un joueur (crochet du combat d'EterLib). `/
 
 ## Capacités (`module/ability`)
 
-Une capacité est une **brique** (`Ability`) réglée dans le YAML d'un monstre : `kind` + réglages communs (`trigger`,
+Une capacité est une **brique** (`Ability`) assemblée dans le code d'un monstre (`Spec.of(...)`) : réglages communs (`trigger`,
 `cooldown`, `cast` = télégraphe, `range`, `sight`, `weight`, `chance`, `below`, `damage`, `radius`, `knockback`,
 `lift`, `states`, `damage-type` : physical, magic, true ; défaut physique, magique pour `curse` et `aura`). Les dégâts et la puissance des états suivent le ratio ; jamais la durée des contrôles.
 
@@ -94,7 +95,7 @@ Un autre plugin peut ajouter une sorte (`Abilities.register`). Les blocs tempora
 
 ## Apparitions (`module/spawn`)
 
-`config.yml > spawning` et `spawns` :
+`config.yml > spawning` et `spawns` : (les règles de la famille du Livre y sont par défaut)
 
 - **replace** : une apparition naturelle de ce type devient un des variants (chance) ;
 - **director** : toutes les `interval-seconds`, un groupe autour de chaque joueur qui a de la place (`per-player` × densité
@@ -156,3 +157,20 @@ Chiffres : `config.yml > bosses.mortarius`.
 
 États ajoutés par EterMob : `rot` (aucun soin), `soullink`, `pact`. Sbires à états (`Minions.hitStates`) : Pages qui
 marquent, goules qui saignent.
+
+## La famille du Livre (`module/variant/book`)
+
+Les morts-vivants de Mortarius, la nuit (règles `spawns` par défaut). Kit par ratio : Ordinaire / Robuste / Dangereux /
+Élite / Fléau.
+
+| Variant | Mob | Kit |
+|---|---|---|
+| `goule` | Husk | Griffes (saignement) / Affamée (+20 % de vitesse sur une cible qui saigne) / Bond / Dévorer / Frénésie |
+| `page-volante` | Vex | Coupure (marque) / esquive 15 % / Tourbillon / Encre (ralentit) / Reliure (3 Pages → Livre volant, rayon) |
+| `ame-enchainee` | Vex | Garde des morts (état `ward`) / Plainte / Lien / Hantise (peur) / Délivrance (soigne en mourant) |
+| `garde-os` | Squelette, épée | Coup d'épée (fragilité) / Bouclier (−30 % aux tirs de face) / Charge / Interposition / Mur d'os |
+| `archer-os` | Squelette, arc | Salve / critique 15 % / Recul / Flèche clouante / Pluie de flèches |
+| `acolyte` | Evoker (sans ses sorts) | Prière noire (soigne un mort-vivant) / Fuyant / Silence / Relever / Bénédiction du Livre |
+| `zombie-mineur` | Zombie, pioche (grottes) | Coup de pioche / armure +40 / Éboulement / Lanterne (cécité) / Effondrement |
+
+Les boss, sous-boss, leurs sbires et les piliers ne ramassent aucun objet (il disparaîtrait avec eux).

@@ -208,6 +208,7 @@ public class MobService {
         ActiveMob mob = new ActiveMob(living, variant, ratio, ratios.level(ratio), leader == null ? null : UUID.fromString(leader),
                 data.has(minionKey, PersistentDataType.BYTE));
         active.put(living.getEntityId(), mob);
+        variant.load(living);
     }
 
     /**

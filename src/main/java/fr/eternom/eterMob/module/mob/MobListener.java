@@ -85,6 +85,9 @@ public class MobListener implements Listener {
             } else {
                 mobs.otherDamage(damaged, event.getDamage());
             }
+            for (MobVariant.GatedHook hook : damaged.variant().damagedHooksFor(damaged.ratio())) {
+                hook.hook().accept(damaged, event);
+            }
             if (!stateDamage) {
                 damaged.brain().onDamaged(source instanceof LivingEntity living ? living : null);
             }

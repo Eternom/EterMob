@@ -19,7 +19,8 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * zone : count zones au sol (3), sous les joueurs à moins de reach blocs (24) puis au hasard autour d'eux.
  * mode linger : une flaque qui reste seconds (10) : chaque seconde, dégâts et états à ceux dedans (encre, poison...) ;
- * mode impact : un cercle pendant le télégraphe, puis un seul coup (pluie d'âmes, météores). color : RRGGBB.
+ * mode impact : un cercle pendant le télégraphe, puis un seul coup (pluie d'âmes, météores). particle : celle de
+ * l'impact (SOUL). color : RRGGBB.
  */
 public final class Zone extends Ability {
 
@@ -28,6 +29,7 @@ public final class Zone extends Ability {
     private final double seconds;
     private final double reach;
     private final Color color;
+    private final Particle impact;
 
     public Zone(ConfigurationSection config) {
         super("zone", config, new Defaults(Trigger.ACTIVE, 18, 1, 0, 30, 1, 2, 2.5, 0, 0));
@@ -42,6 +44,13 @@ public final class Zone extends Ability {
             parsed = Color.fromRGB(0x1A1A2E);
         }
         this.color = parsed;
+        Particle particle;
+        try {
+            particle = Particle.valueOf(config.getString("particle", "SOUL").toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            particle = Particle.SOUL;
+        }
+        this.impact = particle.getDataType() == Void.class ? particle : Particle.SOUL;
     }
 
     @Override
@@ -84,7 +93,7 @@ public final class Zone extends Ability {
         Particle.DustOptions dust = new Particle.DustOptions(color, 1.6f);
         if (!linger) {
             for (Location spot : spots) {
-                spot.getWorld().spawnParticle(Particle.SOUL, spot.clone().add(0, 1.5, 0), 25, 0.5, 1, 0.5, 0.05);
+                spot.getWorld().spawnParticle(impact, spot.clone().add(0, 1.5, 0), 25, 0.5, 1, 0.5, 0.05);
                 spot.getWorld().playSound(spot, Sound.PARTICLE_SOUL_ESCAPE, 1.2f, 0.6f);
                 for (Player player : players(spot, radius)) {
                     hit(context, player, damage, spot);

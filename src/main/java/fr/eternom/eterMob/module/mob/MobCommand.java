@@ -36,7 +36,7 @@ import java.util.function.Consumer;
  *   balance                      ratios : multiplicateurs, perce-armure, coups pour tuer un joueur en fer / diamant / netherite
  *   clear [rayon]                retire les monstres d'EterMob autour de soi (32) (etermob.spawn)
  *   event bloodnight [minutes|stop]   Nuit de sang (etermob.admin)
- *   reload                       relit variants/ et les règles (les boss : au redémarrage) (etermob.admin)
+ *   reload                       relit les règles d'apparition (le reste : au redémarrage) (etermob.admin)
  *   boss ...                     boss (BossCommand) (etermob.admin)
  * </pre>
  */
@@ -124,7 +124,7 @@ public class MobCommand implements TabExecutor {
                     + (mobs.variants().disabled(variant.id()) ? " <dark_gray>(désactivé)" : ""));
         }
         if (mobs.variants().all().isEmpty()) {
-            say(sender, "<gray>Aucun : à écrire dans plugins/EterMob/variants/ (modèle : _exemple.yml), puis /etermob reload.");
+            say(sender, "<gray>Aucun.");
         }
     }
 
@@ -142,8 +142,9 @@ public class MobCommand implements TabExecutor {
         say(sender, "<gray>IA : portée " + format(ai.range()) + " · menace " + format(ai.threat()) + " · proximité " + format(ai.proximity())
                 + " · achever " + format(ai.finish()) + " · tireurs " + format(ai.ranged()) + " · soigneurs " + format(ai.healer())
                 + " · tanks " + format(ai.tank()) + " · collant ×" + format(ai.sticky()) + " · pause " + format(ai.globalCooldown()) + " s");
-        for (Ability ability : variant.abilities()) {
-            say(sender, " <yellow>" + ability.id() + " <gray>(" + ability.kind() + ", " + ability.trigger().name().toLowerCase(Locale.ROOT)
+        for (MobVariant.Gated gated : variant.gated()) {
+            Ability ability = gated.ability();
+            say(sender, " <gray>[" + mobs.ratios().status(gated.minRatio()) + "<gray>] <yellow>" + ability.id() + " <gray>(" + ability.kind() + ", " + ability.trigger().name().toLowerCase(Locale.ROOT)
                     + ", " + format(ability.cooldown()) + " s, télégraphe " + format(ability.castTime()) + " s) <dark_gray>valeur "
                     + format(ability.value()) + " · " + format(ability.valuePerSecond()) + "/s");
         }

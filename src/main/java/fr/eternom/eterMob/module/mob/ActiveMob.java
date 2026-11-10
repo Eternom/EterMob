@@ -23,6 +23,8 @@ public final class ActiveMob implements Caster {
     private final boolean minion;
     private final Map<UUID, Double> damageBy = new HashMap<>();
     private double otherDamage;
+    private UUID lastPlayerHit;
+    private long lastPlayerHitAt;
 
     ActiveMob(LivingEntity entity, MobVariant variant, int ratio, Ratios.Level level, UUID leader, boolean minion) {
         this.entity = entity;
@@ -31,7 +33,7 @@ public final class ActiveMob implements Caster {
         this.level = level;
         this.leader = leader;
         this.minion = minion;
-        this.brain = new Brain(this, variant.ai(), variant.abilities());
+        this.brain = new Brain(this, variant.ai(), variant.abilitiesFor(ratio));
     }
 
     @Override
@@ -93,6 +95,17 @@ public final class ActiveMob implements Caster {
 
     void damagedBy(UUID player, double amount) {
         damageBy.merge(player, amount, Double::sum);
+        lastPlayerHit = player;
+        lastPlayerHitAt = System.currentTimeMillis();
+    }
+
+    /** Le dernier joueur qui l'a frappé, et quand (Garde d'os : interposition). */
+    public UUID lastPlayerHit() {
+        return lastPlayerHit;
+    }
+
+    public long lastPlayerHitAt() {
+        return lastPlayerHitAt;
     }
 
     void otherDamage(double amount) {

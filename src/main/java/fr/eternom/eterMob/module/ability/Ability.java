@@ -29,6 +29,7 @@ import java.util.concurrent.ThreadLocalRandom;
  *   below     below-health : sous cette part de vie (0,5)          damage    dégâts de base (× la puissance du ratio)
  *   radius    rayon d'effet                                        knockback / lift : poussée et soulèvement
  *   states    états EterLib posés : ["bleed 1 4", "slow 0.3 3"]
+ *   blind     secondes de Cécité aux joueurs touchés
  *   damage-type  physical (armure), magic (résistance magique), true (brut) ; défaut : physique, magique pour les sorts
  * </pre>
  * Une capacité active est notée (score, 0 à 1 environ) par l'IA selon la situation ; la mieux notée est lancée. Une
@@ -56,6 +57,7 @@ public abstract class Ability {
     protected final List<StateSpec> states;
     protected final DamageKind damageKind;
     protected final boolean interruptible;
+    protected final double blind;
 
     protected Ability(String kind, ConfigurationSection config, Defaults defaults) {
         this.kind = kind;
@@ -83,6 +85,7 @@ public abstract class Ability {
         }
         this.damageKind = kindOf;
         this.interruptible = config.getBoolean("interruptible", true);
+        this.blind = Math.max(0, config.getDouble("blind", 0));
     }
 
     /** Valeurs par défaut propres à chaque sorte de capacité. */
@@ -203,6 +206,10 @@ public abstract class Ability {
             Hits.abilityDamage(victim, context.scale(baseDamage), context.self(), damageKind);
         }
         applyStates(context, victim);
+        if (blind > 0 && victim instanceof Player blinded) {
+            blinded.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.BLINDNESS,
+                    (int) Math.round(blind * 20), 0, true, false, true));
+        }
         if ((knockback != 0 || lift != 0) && victim instanceof Player player) {
             Hits.knock(player, from, knockback, lift);
         }

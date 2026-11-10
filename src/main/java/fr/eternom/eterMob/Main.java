@@ -55,7 +55,6 @@ public final class Main extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
-        saveExample("variants/_exemple.yml");
         EterLib lib = EterLib.get();
         Messages messages = lib.messages(this, "en_us", "fr_fr");
 
@@ -64,7 +63,8 @@ public final class Main extends JavaPlugin {
                 getConfig().getString("tag.format", "<white><name> <dark_gray>·</dark_gray> <status>"));
         SpawnGuard guard = new SpawnGuard(getConfig().getConfigurationSection("guard"));
         Services.init(this, mobs, guard);
-        loadVariants(variants);
+        fr.eternom.eterMob.module.variant.book.BookFamily.variants().forEach(variants::register);
+        getLogger().info(variants.all().size() + " variant(s) codé(s)");
         TempBlocks.start(this);
 
         BossService.configure(getConfig().getConfigurationSection("boss"));
@@ -86,6 +86,12 @@ public final class Main extends JavaPlugin {
             if (caster != null && caster.piercing() > 0) {
                 sheet.add(Stat.ARMOR_PEN, caster.piercing(), caster.tier() == Tier.BOSS ? "EterMob : boss" : "EterMob : ratio");
             }
+            // Statistiques du kit d'un variant à son ratio (esquive, critique, armure...)
+            if (caster instanceof ActiveMob mob) {
+                for (fr.eternom.eterMob.module.mob.MobVariant.GatedStat stat : mob.variant().statsFor(mob.ratio())) {
+                    sheet.add(stat.stat(), stat.value(), "EterMob : " + mob.variant().id());
+                }
+            }
         });
         lib.getCombatSystem().addProvider((entity, sheet) -> {
             BossFight fight = bosses.fight(entity);
@@ -95,6 +101,9 @@ public final class Main extends JavaPlugin {
         });
         lib.getStates().register(StateType.builder("rot", StateType.Category.DEBUFF)
                 .weight(2).icon("<dark_green>☣").particle(org.bukkit.Particle.SPORE_BLOSSOM_AIR).build());
+        // Garde des morts, Bénédiction du Livre : dégâts reçus réduits
+        lib.getStates().register(StateType.builder("ward", StateType.Category.BUFF)
+                .stacking(StateType.Stacking.STRONGEST, 1).weight(3).icon("<aqua>⛉").particle(org.bukkit.Particle.ENCHANT).damageTaken(-1).build());
         // Lien d'âmes (la Gardienne) et pacte : l'icône ; le partage des dégâts est un crochet du combat
         lib.getStates().register(StateType.builder("soullink", StateType.Category.DEBUFF)
                 .weight(3).icon("<aqua>∞").particle(org.bukkit.Particle.SOUL).build());
@@ -149,10 +158,8 @@ public final class Main extends JavaPlugin {
         if (command != null) {
             MobCommand executor = new MobCommand(mobs, director, new BossCommand(bosses), menu, budgets(), sender -> {
                 reloadConfig();
-                loadVariants(variants);
                 director.reloadRules(getConfig());
-                sender.sendMessage(MiniMessage.miniMessage().deserialize("<green>EterMob relu : " + variants.all().size()
-                        + " variants, " + director.rules().size() + " règles <gray>(ratios et boss : au redémarrage)."));
+                sender.sendMessage(MiniMessage.miniMessage().deserialize("<green>EterMob relu : " + director.rules().size() + " règles d'apparition <gray>(le reste : au redémarrage)."));
             });
             command.setExecutor(executor);
             command.setTabCompleter(executor);
@@ -187,18 +194,6 @@ public final class Main extends JavaPlugin {
         return fight != null && fight.boss() instanceof BrainBoss boss ? boss.caster(fight) : null;
     }
 
-    private void saveExample(String path) {
-        if (!new File(getDataFolder(), path).exists()) {
-            saveResource(path, false);
-        }
-    }
-
-    private void loadVariants(Variants variants) {
-        File folder = new File(getDataFolder(), "variants");
-        folder.mkdirs();
-        int count = variants.load(folder, getLogger());
-        getLogger().info(count + " variant(s) et meneur(s) chargé(s)");
-    }
 
 
     /** Budget d'équilibrage par rareté (config.yml > budgets ; un meneur a 1,5 fois celui de sa rareté). */

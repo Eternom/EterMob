@@ -162,6 +162,8 @@ public class BossService {
             registry.add(mob.getUniqueId(), boss.id(), at);
             mob.setPersistent(true);
             mob.setRemoveWhenFarAway(false);
+            // Il garde son équipement et ne ramasse rien : un objet ramassé disparaîtrait avec lui
+            mob.setCanPickupItems(false);
             boss.setup(mob);
             AttributeInstance max = mob.getAttribute(Attribute.MAX_HEALTH);
             if (max != null) {
@@ -200,6 +202,7 @@ public class BossService {
         if (entry == null) {
             registry.add(living.getUniqueId(), boss.id(), living.getLocation());
         }
+        living.setCanPickupItems(false);
         BossFight fight = new BossFight(boss, living, home(living), BossBar.bossBar(Component.empty(), 1f, boss.color(1),
                 BossBar.Overlay.NOTCHED_10));
         fight.leash(data.getOrDefault(leashKey, PersistentDataType.DOUBLE, boss.leashRadius()));

@@ -1,14 +1,13 @@
 package fr.eternom.eterMob.module.mob;
 
-import fr.eternom.eterMob.module.ability.Abilities;
+import fr.eternom.eterLib.module.combat.Stat;
 import fr.eternom.eterMob.module.ability.Ability;
 import fr.eternom.eterMob.module.ai.AiProfile;
 import fr.eternom.eterMob.module.loot.LootTable;
 import org.bukkit.Material;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Mob;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
 import java.util.ArrayList;
@@ -18,15 +17,29 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.logging.Logger;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
- * Un variant ou un meneur, décrit dans plugins/EterMob/variants/*.yml (aucun code à écrire) : son mob, son rang, ses
- * stats de base (× le ratio), son équipement, son IA, ses capacités (briques d'Ability) et son butin. Les règles
- * d'apparition (spawns) disent où et quand il sort. Un vanilla « avec ratio » (natural-ratios) a un MobVariant
- * implicite, sans capacité (vanilla()).
+ * Un variant ou un meneur, codé en dur (module/variant) avec un Builder : son mob, son rang, ses stats de base (× le
+ * ratio), son équipement, son IA, son butin, et son kit débloqué par le ratio : chaque capacité, statistique de combat
+ * (esquive, critique, armure...) ou crochet de dégâts a un ratio minimal (1 Ordinaire, 2 Robuste, 3 Dangereux, 4 Élite,
+ * 5 Fléau). Un Ordinaire n'a que sa base, un Fléau tout son kit. Un vanilla « avec ratio » (natural-ratios) a un
+ * MobVariant implicite, sans capacité (vanilla()).
  */
 public final class MobVariant {
+
+    /** Une capacité et le ratio à partir duquel il l'a. */
+    public record Gated(int minRatio, Ability ability) {
+    }
+
+    /** Une statistique de combat (EterLib) et le ratio à partir duquel il l'a. */
+    public record GatedStat(int minRatio, Stat stat, double value) {
+    }
+
+    /** Un crochet sur les dégâts qu'il reçoit (avant le calcul du combat) et le ratio à partir duquel il l'a. */
+    public record GatedHook(int minRatio, BiConsumer<ActiveMob, EntityDamageEvent> hook) {
+    }
 
     private final String id;
     private final EntityType type;
@@ -43,7 +56,10 @@ public final class MobVariant {
     private final double scale;
     private final Map<EquipmentSlot, Material> equipment;
     private final AiProfile ai;
-    private final List<Ability> abilities;
+    private final List<Gated> abilities;
+    private final List<GatedStat> stats;
+    private final List<GatedHook> damagedHooks;
+    private final Consumer<LivingEntity> onLoad;
     private final LootTable loot;
     private final int xp;
     private final Map<String, Integer> followers;
@@ -51,112 +67,41 @@ public final class MobVariant {
     private final int followersMax;
     private final boolean vanilla;
 
-    private MobVariant(String id, EntityType type, Tier tier, Rarity rarity, String name, List<String> lore, double health,
-                       double damage, double speed, double armor, double knockback, double tenacity, double scale,
-                       Map<EquipmentSlot, Material> equipment, AiProfile ai, List<Ability> abilities, LootTable loot, int xp,
-                       Map<String, Integer> followers, int followersMin, int followersMax, boolean vanilla) {
-        this.id = id;
-        this.type = type;
-        this.tier = tier;
-        this.rarity = rarity;
-        this.name = name;
-        this.lore = List.copyOf(lore);
-        this.health = health;
-        this.damage = damage;
-        this.speed = speed;
-        this.armor = armor;
-        this.knockback = knockback;
-        this.tenacity = tenacity;
-        this.scale = scale;
-        this.equipment = Collections.unmodifiableMap(equipment);
-        this.ai = ai;
-        this.abilities = List.copyOf(abilities);
-        this.loot = loot;
-        this.xp = xp;
-        this.followers = Collections.unmodifiableMap(followers);
-        this.followersMin = followersMin;
-        this.followersMax = followersMax;
+    private MobVariant(Builder builder, boolean vanilla) {
+        this.id = builder.id;
+        this.type = builder.type;
+        this.tier = builder.tier;
+        this.rarity = builder.rarity;
+        this.name = builder.name;
+        this.lore = List.copyOf(builder.lore);
+        this.health = builder.health;
+        this.damage = builder.damage;
+        this.speed = builder.speed;
+        this.armor = builder.armor;
+        this.knockback = builder.knockback;
+        this.tenacity = builder.tenacity;
+        this.scale = builder.scale;
+        this.equipment = Collections.unmodifiableMap(new EnumMap<>(builder.equipment));
+        this.ai = builder.ai == null ? AiProfile.defaults(builder.tier) : builder.ai;
+        this.abilities = List.copyOf(builder.abilities);
+        this.stats = List.copyOf(builder.stats);
+        this.damagedHooks = List.copyOf(builder.damagedHooks);
+        this.onLoad = builder.onLoad;
+        this.loot = builder.loot;
+        this.xp = builder.xp;
+        this.followers = Collections.unmodifiableMap(new LinkedHashMap<>(builder.followers));
+        this.followersMin = builder.followersMin;
+        this.followersMax = builder.followersMax;
         this.vanilla = vanilla;
+    }
+
+    public static Builder builder(String id, EntityType type) {
+        return new Builder(id, type);
     }
 
     /** Le variant implicite d'un mob de Minecraft avec ratio (natural-ratios) : ses stats de base, son IA de ciblage. */
     public static MobVariant vanilla(EntityType type) {
-        String id = "vanilla:" + type.name().toLowerCase(Locale.ROOT);
-        return new MobVariant(id, type, Tier.VARIANT, Rarity.COMMUN, "", List.of(), 1, 1, 1, 0, 0, 0, 1,
-                new EnumMap<>(EquipmentSlot.class), AiProfile.defaults(Tier.VARIANT), List.of(), LootTable.EMPTY, 0,
-                Map.of(), 0, 0, true);
-    }
-
-    /** Lit un variant (section variants.<id> d'un fichier) ; null et un avertissement s'il est illisible. */
-    public static MobVariant load(String id, ConfigurationSection section, Logger logger) {
-        String owner = "Variant " + id;
-        EntityType type;
-        try {
-            type = EntityType.valueOf(section.getString("type", "").toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            logger.warning(owner + " : type de mob inconnu « " + section.getString("type") + " »");
-            return null;
-        }
-        if (type.getEntityClass() == null || !Mob.class.isAssignableFrom(type.getEntityClass())) {
-            logger.warning(owner + " : " + type + " n'est pas un monstre");
-            return null;
-        }
-        Tier tier = Tier.parse(section.getString("tier"), Tier.VARIANT);
-        if (tier == Tier.BOSS) {
-            logger.warning(owner + " : les boss vont dans bosses/, pas dans variants/");
-            return null;
-        }
-        Rarity rarity = Rarity.parse(section.getString("rarity"), Rarity.COMMUN);
-        ConfigurationSection stats = section.getConfigurationSection("stats");
-        Map<EquipmentSlot, Material> equipment = new EnumMap<>(EquipmentSlot.class);
-        ConfigurationSection gear = section.getConfigurationSection("equipment");
-        if (gear != null) {
-            for (String key : gear.getKeys(false)) {
-                EquipmentSlot slot = slot(key);
-                Material material = Material.matchMaterial(gear.getString(key, ""));
-                if (slot == null || material == null) {
-                    logger.warning(owner + " : équipement illisible " + key + ": " + gear.getString(key));
-                } else {
-                    equipment.put(slot, material);
-                }
-            }
-        }
-        Map<String, Integer> followers = new LinkedHashMap<>();
-        int followersMin = 0;
-        int followersMax = 0;
-        ConfigurationSection group = section.getConfigurationSection("followers");
-        if (group != null) {
-            ConfigurationSection variants = group.getConfigurationSection("variants");
-            if (variants != null) {
-                variants.getKeys(false).forEach(key -> followers.put(key.toLowerCase(Locale.ROOT), Math.max(1, variants.getInt(key, 1))));
-            }
-            List<Integer> size = group.getIntegerList("size");
-            followersMin = size.size() == 2 ? Math.max(0, size.get(0)) : 2;
-            followersMax = size.size() == 2 ? Math.max(followersMin, size.get(1)) : 4;
-        }
-        return new MobVariant(id, type, tier, rarity, section.getString("name", id), section.getStringList("lore"),
-                stat(stats, "health", 1), stat(stats, "damage", 1), Math.clamp(stat(stats, "speed", 1), 0.3, 2.5),
-                Math.max(0, stat(stats, "armor", 0)), Math.clamp(stat(stats, "knockback-resistance", 0), 0, 1),
-                Math.clamp(stat(stats, "tenacity", 0), 0, 0.9), Math.clamp(stat(stats, "scale", 1), 0.4, 3),
-                equipment, AiProfile.load(section.getConfigurationSection("ai"), tier),
-                Abilities.load(section, "abilities", owner, logger), LootTable.load(section, "loot", owner, logger),
-                Math.max(0, section.getInt("xp", 0)), followers, followersMin, followersMax, false);
-    }
-
-    private static double stat(ConfigurationSection stats, String key, double fallback) {
-        return stats == null ? fallback : stats.getDouble(key, fallback);
-    }
-
-    private static EquipmentSlot slot(String key) {
-        return switch (key.toLowerCase(Locale.ROOT).replace('_', '-')) {
-            case "main-hand", "hand" -> EquipmentSlot.HAND;
-            case "off-hand" -> EquipmentSlot.OFF_HAND;
-            case "helmet", "head" -> EquipmentSlot.HEAD;
-            case "chestplate", "chest" -> EquipmentSlot.CHEST;
-            case "leggings", "legs" -> EquipmentSlot.LEGS;
-            case "boots", "feet" -> EquipmentSlot.FEET;
-            default -> null;
-        };
+        return new MobVariant(new Builder("vanilla:" + type.name().toLowerCase(Locale.ROOT), type).name(""), true);
     }
 
     /** Pose l'équipement (jamais lâché à la mort : le butin est dans loot). */
@@ -168,6 +113,34 @@ public final class MobVariant {
             entity.getEquipment().setItem(slot, org.bukkit.inventory.ItemStack.of(material));
             entity.getEquipment().setDropChance(slot, 0);
         });
+    }
+
+    /** À chaque chargement (ce que Minecraft ne garde pas : buts de l'IA retirés...). */
+    void load(LivingEntity entity) {
+        if (onLoad != null) {
+            onLoad.accept(entity);
+        }
+    }
+
+    /** Ses capacités à ce ratio. */
+    public List<Ability> abilitiesFor(int ratio) {
+        List<Ability> list = new ArrayList<>();
+        for (Gated gated : abilities) {
+            if (ratio >= gated.minRatio()) {
+                list.add(gated.ability());
+            }
+        }
+        return list;
+    }
+
+    /** Ses statistiques de combat à ce ratio. */
+    public List<GatedStat> statsFor(int ratio) {
+        return stats.stream().filter(stat -> ratio >= stat.minRatio()).toList();
+    }
+
+    /** Ses crochets de dégâts reçus à ce ratio. */
+    public List<GatedHook> damagedHooksFor(int ratio) {
+        return damagedHooks.stream().filter(hook -> ratio >= hook.minRatio()).toList();
     }
 
     public String id() {
@@ -226,8 +199,18 @@ public final class MobVariant {
         return ai;
     }
 
-    public List<Ability> abilities() {
+    /** Tout son kit, avec le ratio de chaque capacité. */
+    public List<Gated> gated() {
         return abilities;
+    }
+
+    /** Tout son kit (ratio le plus fort). */
+    public List<Ability> abilities() {
+        return abilities.stream().map(Gated::ability).toList();
+    }
+
+    public List<GatedStat> stats() {
+        return stats;
     }
 
     public LootTable loot() {
@@ -254,22 +237,143 @@ public final class MobVariant {
         return vanilla;
     }
 
-    /** Valeur d'équilibrage de ses capacités par seconde (somme), pour le budget de sa rareté. */
-    public double abilityValuePerSecond() {
+    /** Valeur d'équilibrage de ses capacités par seconde à ce ratio. */
+    public double abilityValuePerSecond(int ratio) {
         double total = 0;
-        for (Ability ability : abilities) {
+        for (Ability ability : abilitiesFor(ratio)) {
             total += ability.valuePerSecond();
         }
         return total;
     }
 
-    /** Valeur d'équilibrage totale : vie et dégâts de base, plus ses capacités (budget de la rareté). */
-    public double value() {
-        return health * 10 + damage * 10 + abilityValuePerSecond() * 10;
+    /** Valeur d'équilibrage à ce ratio : vie et dégâts de base, plus ses capacités (budget de la rareté). */
+    public double value(int ratio) {
+        return health * 10 + damage * 10 + abilityValuePerSecond(ratio) * 10;
     }
 
-    /** Copie de la liste des capacités (pour une IA). */
-    public List<Ability> abilityList() {
-        return new ArrayList<>(abilities);
+    /** Valeur avec tout son kit (Fléau). */
+    public double value() {
+        return value(Integer.MAX_VALUE);
+    }
+
+    public static final class Builder {
+
+        private final String id;
+        private final EntityType type;
+        private Tier tier = Tier.VARIANT;
+        private Rarity rarity = Rarity.COMMUN;
+        private String name;
+        private final List<String> lore = new ArrayList<>();
+        private double health = 1;
+        private double damage = 1;
+        private double speed = 1;
+        private double armor;
+        private double knockback;
+        private double tenacity;
+        private double scale = 1;
+        private final Map<EquipmentSlot, Material> equipment = new EnumMap<>(EquipmentSlot.class);
+        private AiProfile ai;
+        private final List<Gated> abilities = new ArrayList<>();
+        private final List<GatedStat> stats = new ArrayList<>();
+        private final List<GatedHook> damagedHooks = new ArrayList<>();
+        private Consumer<LivingEntity> onLoad;
+        private LootTable loot = LootTable.EMPTY;
+        private int xp;
+        private final Map<String, Integer> followers = new LinkedHashMap<>();
+        private int followersMin;
+        private int followersMax;
+
+        private Builder(String id, EntityType type) {
+            this.id = id;
+            this.type = type;
+            this.name = id;
+        }
+
+        public Builder tier(Tier tier) {
+            this.tier = tier;
+            return this;
+        }
+
+        public Builder rarity(Rarity rarity) {
+            this.rarity = rarity;
+            return this;
+        }
+
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder lore(String... lines) {
+            this.lore.addAll(List.of(lines));
+            return this;
+        }
+
+        /** × la vie, × les dégâts, × la vitesse du mob ; armure en plus (points de Minecraft) ; recul ; ténacité ; taille. */
+        public Builder stats(double health, double damage, double speed, double armor, double knockback, double tenacity, double scale) {
+            this.health = health;
+            this.damage = damage;
+            this.speed = Math.clamp(speed, 0.3, 2.5);
+            this.armor = armor;
+            this.knockback = Math.clamp(knockback, 0, 1);
+            this.tenacity = Math.clamp(tenacity, 0, 0.9);
+            this.scale = Math.clamp(scale, 0.4, 3);
+            return this;
+        }
+
+        public Builder equip(EquipmentSlot slot, Material material) {
+            equipment.put(slot, material);
+            return this;
+        }
+
+        public Builder ai(AiProfile ai) {
+            this.ai = ai;
+            return this;
+        }
+
+        /** Une capacité, à partir de ce ratio (1 Ordinaire ... 5 Fléau). */
+        public Builder ability(int minRatio, Ability ability) {
+            abilities.add(new Gated(minRatio, ability));
+            return this;
+        }
+
+        /** Une statistique de combat (EterLib), à partir de ce ratio. */
+        public Builder stat(int minRatio, Stat stat, double value) {
+            stats.add(new GatedStat(minRatio, stat, value));
+            return this;
+        }
+
+        /** Un crochet sur les dégâts reçus (avant le calcul du combat), à partir de ce ratio. */
+        public Builder onDamaged(int minRatio, BiConsumer<ActiveMob, EntityDamageEvent> hook) {
+            damagedHooks.add(new GatedHook(minRatio, hook));
+            return this;
+        }
+
+        /** À chaque chargement du mob (buts de l'IA de Minecraft à retirer...). */
+        public Builder onLoad(Consumer<LivingEntity> onLoad) {
+            this.onLoad = onLoad;
+            return this;
+        }
+
+        public Builder loot(LootTable loot) {
+            this.loot = loot;
+            return this;
+        }
+
+        public Builder xp(int xp) {
+            this.xp = xp;
+            return this;
+        }
+
+        public Builder followers(Map<String, Integer> variants, int min, int max) {
+            followers.putAll(variants);
+            followersMin = min;
+            followersMax = max;
+            return this;
+        }
+
+        public MobVariant build() {
+            return new MobVariant(this, false);
+        }
     }
 }

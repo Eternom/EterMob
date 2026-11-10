@@ -641,6 +641,7 @@ public final class Mortarius extends BrainBoss {
                 support.setCollidable(false);
                 support.setPersistent(false);
                 support.setShouldBurnInDay(false);
+                support.setCanPickupItems(false);
                 if (support.getEquipment() != null) {
                     support.getEquipment().clear();
                 }
