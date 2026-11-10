@@ -38,6 +38,7 @@ public final class Summon extends Ability {
     private final int min;
     private final int max;
     private final int maxAlive;
+    private final int ratio;
     private final boolean aroundPlayers;
 
     public Summon(ConfigurationSection config) {
@@ -51,6 +52,7 @@ public final class Summon extends Ability {
         this.min = count.size() == 2 ? Math.max(1, count.get(0)) : 2;
         this.max = count.size() == 2 ? Math.max(min, count.get(1)) : 3;
         this.maxAlive = Math.clamp(config.getInt("max-alive", 4), 1, 12);
+        this.ratio = config.getInt("ratio", 0);
         this.aroundPlayers = config.getString("around", "self").equalsIgnoreCase("players");
     }
 
@@ -109,10 +111,10 @@ public final class Summon extends Ability {
         }
     }
 
-    private static LivingEntity spawn(String what, Location spot, AbilityContext context) {
+    private LivingEntity spawn(String what, Location spot, AbilityContext context) {
         MobVariant variant = Services.mobs() == null ? null : Services.mobs().variants().get(what.toLowerCase(Locale.ROOT));
         if (variant != null) {
-            return Services.mobs().spawnMinion(variant, Services.mobs().casterRatio(context.caster()), spot);
+            return Services.mobs().spawnMinion(variant, ratio > 0 ? ratio : Services.mobs().casterRatio(context.caster()), spot);
         }
         EntityType type;
         try {

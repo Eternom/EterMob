@@ -138,6 +138,11 @@ public abstract class BrainBoss extends Boss {
         return natural;
     }
 
+    /** Facteur sur les dégâts qu'il porte à victim (avant le calcul du combat) : coup dans le dos, etc. */
+    public double attackFactor(BossFight fight, LivingEntity victim) {
+        return 1;
+    }
+
     /** Ses statistiques de combat (EterLib) : armure, résistance magique, et ce que le boss ajoute (bonus magiques...). */
     public void contribute(BossFight fight, fr.eternom.eterLib.module.combat.StatSheet sheet) {
         sheet.add(fr.eternom.eterLib.module.combat.Stat.ARMOR, armor(), "boss");

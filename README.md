@@ -186,3 +186,16 @@ Ronces. Phase 2 : Fragments de mousse (arrivent des bords, le soignent et l'arme
 3 s dans un mur), Éboulement. Phase 3 : Onde du sceau, Poigne, Jet de rocher ×2 ; Dernier éboulement à 10 % (8 s de
 rochers sur ceux qu'il voit : se cacher derrière un pilier). Butin dont un Éclat du cœur (`eclat-du-coeur`).
 Chiffres : `config.yml > bosses.orveth`.
+
+## Les sous-boss d'Orveth (`module/boss/hollow`)
+
+- **Le Contremaître** (`contremaitre`, grottes) : brute qui commande ; Lanterne (marque), Chef d'équipe (ses zombies :
+  état `fury`) ; phase 1 : Coup de pioche, Appel des mineurs (zombies mineurs Dangereux), Dynamite (mèche 2 s),
+  Wagonnet ; phase 2 : Grisou (nuages qui détonent quand une dynamite explose dedans), Dynamite ×3, Éboulement.
+- **La Dryade des ronces** (`dryade`, jungles et marais) : soutien ; Photosynthèse, Pollen ; phase 1 : Spores, Ronces,
+  Bourgeon (faux bloc avec de la vie qui la soigne), Fuite ; phase 2 : Liane, Pluie de pollen, Bourgeons ×3, Étreinte
+  végétale (enracine le groupe, s'interrompt).
+- **Le Voleur du cœur** (`voleur`, badlands et forêts sombres) : assassin ; Éclats (dégâts bruts quand on le frappe),
+  Ombre (invisible tant qu'il ne frappe pas), Coup dans le dos (+50 %) ; phase 1 : Pas de l'ombre, Larcin, Bombe
+  fumigène ; phase 2 : Éclats d'améthyste, Pièges (cristaux qui enracinent), Résonance (les cristaux explosent),
+  Frénésie sous 25 %.

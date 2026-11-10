@@ -70,7 +70,9 @@ public final class Main extends JavaPlugin {
         BossService.configure(getConfig().getConfigurationSection("boss"));
         bosses = new BossService(this, new BossRegistry(this), List.of(new Mortarius(), new fr.eternom.eterMob.module.boss.golem.Orveth(),
                 new fr.eternom.eterMob.module.boss.disciple.Scribe(), new fr.eternom.eterMob.module.boss.disciple.Gravedigger(),
-                new fr.eternom.eterMob.module.boss.disciple.SoulWarden()));
+                new fr.eternom.eterMob.module.boss.disciple.SoulWarden(),
+                new fr.eternom.eterMob.module.boss.hollow.Foreman(), new fr.eternom.eterMob.module.boss.hollow.Dryad(),
+                new fr.eternom.eterMob.module.boss.hollow.HeartThief()));
         mobs.setBossCasters(this::bossCaster);
         getServer().getPluginManager().registerEvents(new BossListener(bosses), this);
 
@@ -102,6 +104,9 @@ public final class Main extends JavaPlugin {
         lib.getStates().register(StateType.builder("rot", StateType.Category.DEBUFF)
                 .weight(2).icon("<dark_green>☣").particle(org.bukkit.Particle.SPORE_BLOSSOM_AIR).build());
         // Garde des morts, Bénédiction du Livre : dégâts reçus réduits
+        // Chef d'équipe (le Contremaître) : dégâts infligés en plus
+        lib.getStates().register(StateType.builder("fury", StateType.Category.BUFF)
+                .stacking(StateType.Stacking.STRONGEST, 1).weight(3).icon("<red>⚒").particle(org.bukkit.Particle.CRIT).damageDealt(1).build());
         lib.getStates().register(StateType.builder("ward", StateType.Category.BUFF)
                 .stacking(StateType.Stacking.STRONGEST, 1).weight(3).icon("<aqua>⛉").particle(org.bukkit.Particle.ENCHANT).damageTaken(-1).build());
         // Lien d'âmes (la Gardienne) et pacte : l'icône ; le partage des dégâts est un crochet du combat

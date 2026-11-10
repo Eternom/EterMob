@@ -307,3 +307,50 @@ bosses:
       cooldown-minutes: 45
       environments: [NORMAL, NETHER]
       biomes: [cold, mountains, "minecraft:soul_sand_valley"]
+  # ---- Sous-boss d'Orveth (Hollow Dungeon) : même règles que les disciples
+  contremaitre:
+    health: 550
+    toughness: 1.2
+    armor: 200
+    magic-resist: 40
+    piercing: 0.25
+    despawn-minutes: 10
+    enrage-minutes: 10
+    damage: { attack: 10, dynamite: 9, cart: 8, gas: 12, rockfall: 8 }
+    spawn:
+      enabled: true
+      chance: 0.01
+      cooldown-minutes: 45
+      environments: [NORMAL]
+      cave: true
+      y: [-64, 50]
+  dryade:
+    health: 450
+    toughness: 1.2
+    armor: 50
+    magic-resist: 170
+    piercing: 0
+    despawn-minutes: 10
+    enrage-minutes: 10
+    damage: { spores: 4, brambles: 6, vine: 3, pollen: 1 }
+    spawn:
+      enabled: true
+      chance: 0.01
+      cooldown-minutes: 45
+      environments: [NORMAL]
+      biomes: [jungles, swamps]
+  voleur:
+    health: 480
+    toughness: 1.2
+    armor: 110
+    magic-resist: 90
+    piercing: 0.3
+    despawn-minutes: 10
+    enrage-minutes: 10
+    damage: { attack: 9, shards: 4, trap: 5, resonance: 9, splinter: 2 }
+    spawn:
+      enabled: true
+      chance: 0.01
+      cooldown-minutes: 45
+      environments: [NORMAL]
+      biomes: [dry, dark]

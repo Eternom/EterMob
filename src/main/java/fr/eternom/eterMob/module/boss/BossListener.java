@@ -64,6 +64,9 @@ public class BossListener implements Listener {
             if (source != null && source.enraged()) {
                 event.setDamage(event.getDamage() * BossService.ENRAGE_DAMAGE);
             }
+            if (source != null && source.boss() instanceof BrainBoss brain && byEntity.getDamager() == source.entity()) {
+                event.setDamage(event.getDamage() * brain.attackFactor(source, player));
+            }
             return;
         }
         BossFight owner = bosses.ownerOf(event.getEntity());
