@@ -178,7 +178,9 @@ public final class SpawnDirector {
         if (!guard.allowsSpawn(at)) {
             return;
         }
-        for (SpawnRule rule : rules) {
+        // Les bébés (zombies...) ne deviennent jamais des variants : seuls les adultes sont remplacés
+        boolean baby = entity instanceof org.bukkit.entity.Ageable ageable && !ageable.isAdult();
+        for (SpawnRule rule : baby ? List.<SpawnRule>of() : rules) {
             if (rule.mode() != SpawnRule.Mode.REPLACE || ThreadLocalRandom.current().nextDouble() >= rule.chance() || !rule.matches(at)) {
                 continue;
             }
@@ -192,7 +194,7 @@ public final class SpawnDirector {
                 return;
             }
         }
-        if (naturalRatios.contains(entity.getType())) {
+        if (!baby && naturalRatios.contains(entity.getType())) {
             mobs.apply(entity, mobs.vanilla(entity.getType()), rollRatio(at, 0), null, false);
         }
     }

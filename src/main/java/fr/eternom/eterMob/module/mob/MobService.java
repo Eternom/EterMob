@@ -131,6 +131,10 @@ public class MobService {
         if (health != null) {
             entity.setHealth(health.getValue());
         }
+        // Un variant est toujours adulte (Minecraft fait parfois naître les zombies bébés)
+        if (!variant.vanilla() && entity instanceof org.bukkit.entity.Ageable ageable && !ageable.isAdult()) {
+            ageable.setAdult();
+        }
         variant.equip(entity);
         // Un mob de Minecraft ordinaire (ratio 1) garde son nom ; les autres ont leur statut (et leur nom de variant)
         if (!variant.vanilla() || ratio > 1) {
