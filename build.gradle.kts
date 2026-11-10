@@ -4,12 +4,30 @@ plugins {
 }
 
 repositories {
-    mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
+    mavenCentral()
+    // Plugins Eter (EterLib, API des autres plugins) : le jar de leur release GitHub (publiée par la CI à chaque tag)
+    ivy {
+        url = uri("https://github.com/Eternom/")
+        patternLayout { artifact("[module]/releases/download/[revision]/[module]-[revision].[ext]") }
+        metadataSources { artifact() }
+        content { includeGroup("com.github.Eternom") }
+    }
+    // Repli : EterLib publié sur cette machine (`gradlew publishToMavenLocal` dans EterLib)
+    mavenLocal()
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:26.2.build.+")
+    compileOnly("io.papermc.paper:paper-api:26.2.build.129-stable")
+    // Socle : états (saignement, étourdissement...), rôles de combat, base, langues, pont des quêtes, classements
+    compileOnly("com.github.Eternom:EterLib:1.26.0")
+    // Terrains des clans (lu à l'usage) : pas d'apparition ni de bloc temporaire sur un terrain
+    compileOnly("com.github.Eternom:EterClan:1.7.0")
+
+    testImplementation("io.papermc.paper:paper-api:26.2.build.129-stable")
+    testImplementation(platform("org.junit:junit-bom:5.11.4"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 java {
@@ -17,6 +35,10 @@ java {
 }
 
 tasks {
+    test {
+        useJUnitPlatform()
+    }
+
     runServer {
         minecraftVersion("26.2")
         jvmArgs("-Xms2G", "-Xmx2G")

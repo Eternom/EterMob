@@ -1,0 +1,5 @@
+blood-night:
+  start: "<dark_red><b>Nuit de sang</b> <red>· les monstres sont plus nombreux et plus forts jusqu'au matin."
+  end: "<gray>La Nuit de sang est finie."
+boss:
+  appeared: "<dark_red><b>Un boss</b> <red>est apparu vers <accent><x> <z></accent>."

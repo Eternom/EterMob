@@ -53,7 +53,9 @@ public class BossService {
      * 1 + 0,35 par joueur en plus). Plutôt qu'une vie plus grande : la vie d'un mob est plafonnée à 1 024. Recompté en
      * continu ; un joueur sorti de la zone compte encore 10 s (sortir et revenir ne le fait pas baisser).
      */
-    private static final double TOUGHNESS_PER_EXTRA_PLAYER = 0.35;
+    private static double toughnessPerPlayer = 0.35;
+    /** Plafond de la résistance de groupe (3 : au-delà de 6 joueurs, plus de résistance en plus). */
+    private static double maxToughness = 3;
     private static final long PARTICIPANT_MEMORY_MILLIS = 10_000;
     /** Position du boss enregistrée dans le registre toutes les 30 s. */
     private static final int SAVE_TICKS = 600;
@@ -88,6 +90,14 @@ public class BossService {
         });
         this.bossKey = new NamespacedKey(plugin, "boss");
         this.homeKey = new NamespacedKey(plugin, "boss_home");
+    }
+
+    /** config.yml > boss : résistance par joueur en plus (toughness-per-player) et son plafond (max-toughness). */
+    public static void configure(org.bukkit.configuration.ConfigurationSection section) {
+        if (section != null) {
+            toughnessPerPlayer = Math.clamp(section.getDouble("toughness-per-player", 0.35), 0, 2);
+            maxToughness = Math.clamp(section.getDouble("max-toughness", 3), 1, 20);
+        }
     }
 
     public Collection<Boss> bosses() {
@@ -301,7 +311,7 @@ public class BossService {
             }
         }
         fight.participants().values().removeIf(seen -> now - seen > PARTICIPANT_MEMORY_MILLIS);
-        fight.toughness(1 + TOUGHNESS_PER_EXTRA_PLAYER * Math.max(0, fight.participants().size() - 1));
+        fight.toughness(Math.min(maxToughness, 1 + toughnessPerPlayer * Math.max(0, fight.participants().size() - 1)));
     }
 
     /**

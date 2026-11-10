@@ -1,45 +1,173 @@
 package fr.eternom.eterMob.module.mob;
 
-import org.bukkit.Location;
-import org.bukkit.Particle;
+import fr.eternom.eterMob.module.ability.Abilities;
+import fr.eternom.eterMob.module.ability.Ability;
+import fr.eternom.eterMob.module.ai.AiProfile;
+import fr.eternom.eterMob.module.loot.LootTable;
+import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityDeathEvent;
-import org.bukkit.event.entity.EntityShootBowEvent;
-import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
-import org.bukkit.event.entity.ProjectileHitEvent;
-import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.entity.Mob;
+import org.bukkit.inventory.EquipmentSlot;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
- * Un variant de mob, codé en dur : conditions d'apparition et capacités. Chaque capacité part de valeurs de base propres
- * au variant, multipliées par le ratio du mob (ActiveMob#scale). Les méthodes on... ne font rien par défaut : un variant
- * n'écrit que celles dont il a besoin. Thread principal.
+ * Un variant ou un meneur, décrit dans plugins/EterMob/variants/*.yml (aucun code à écrire) : son mob, son rang, ses
+ * stats de base (× le ratio), son équipement, son IA, ses capacités (briques d'Ability) et son butin. Les règles
+ * d'apparition (spawns) disent où et quand il sort. Un vanilla « avec ratio » (natural-ratios) a un MobVariant
+ * implicite, sans capacité (vanilla()).
  */
-public abstract class MobVariant {
+public final class MobVariant {
 
     private final String id;
     private final EntityType type;
+    private final Tier tier;
     private final Rarity rarity;
     private final String name;
-    private MobService service;
+    private final List<String> lore;
+    private final double health;
+    private final double damage;
+    private final double speed;
+    private final double armor;
+    private final double knockback;
+    private final double tenacity;
+    private final double scale;
+    private final Map<EquipmentSlot, Material> equipment;
+    private final AiProfile ai;
+    private final List<Ability> abilities;
+    private final LootTable loot;
+    private final int xp;
+    private final Map<String, Integer> followers;
+    private final int followersMin;
+    private final int followersMax;
+    private final boolean vanilla;
 
-    /**
-     * @param id     identifiant stocké sur le mob : ne jamais le changer une fois en production
-     * @param type   mob de Minecraft transformé
-     * @param rarity chance d'être choisi parmi les variants du même mob
-     * @param name   nom affiché dans le tag
-     */
-    protected MobVariant(String id, EntityType type, Rarity rarity, String name) {
+    private MobVariant(String id, EntityType type, Tier tier, Rarity rarity, String name, List<String> lore, double health,
+                       double damage, double speed, double armor, double knockback, double tenacity, double scale,
+                       Map<EquipmentSlot, Material> equipment, AiProfile ai, List<Ability> abilities, LootTable loot, int xp,
+                       Map<String, Integer> followers, int followersMin, int followersMax, boolean vanilla) {
         this.id = id;
         this.type = type;
+        this.tier = tier;
         this.rarity = rarity;
         this.name = name;
+        this.lore = List.copyOf(lore);
+        this.health = health;
+        this.damage = damage;
+        this.speed = speed;
+        this.armor = armor;
+        this.knockback = knockback;
+        this.tenacity = tenacity;
+        this.scale = scale;
+        this.equipment = Collections.unmodifiableMap(equipment);
+        this.ai = ai;
+        this.abilities = List.copyOf(abilities);
+        this.loot = loot;
+        this.xp = xp;
+        this.followers = Collections.unmodifiableMap(followers);
+        this.followersMin = followersMin;
+        this.followersMax = followersMax;
+        this.vanilla = vanilla;
+    }
+
+    /** Le variant implicite d'un mob de Minecraft avec ratio (natural-ratios) : ses stats de base, son IA de ciblage. */
+    public static MobVariant vanilla(EntityType type) {
+        String id = "vanilla:" + type.name().toLowerCase(Locale.ROOT);
+        return new MobVariant(id, type, Tier.VARIANT, Rarity.COMMUN, "", List.of(), 1, 1, 1, 0, 0, 0, 1,
+                new EnumMap<>(EquipmentSlot.class), AiProfile.defaults(Tier.VARIANT), List.of(), LootTable.EMPTY, 0,
+                Map.of(), 0, 0, true);
+    }
+
+    /** Lit un variant (section variants.<id> d'un fichier) ; null et un avertissement s'il est illisible. */
+    public static MobVariant load(String id, ConfigurationSection section, Logger logger) {
+        String owner = "Variant " + id;
+        EntityType type;
+        try {
+            type = EntityType.valueOf(section.getString("type", "").toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            logger.warning(owner + " : type de mob inconnu « " + section.getString("type") + " »");
+            return null;
+        }
+        if (type.getEntityClass() == null || !Mob.class.isAssignableFrom(type.getEntityClass())) {
+            logger.warning(owner + " : " + type + " n'est pas un monstre");
+            return null;
+        }
+        Tier tier = Tier.parse(section.getString("tier"), Tier.VARIANT);
+        if (tier == Tier.BOSS) {
+            logger.warning(owner + " : les boss vont dans bosses/, pas dans variants/");
+            return null;
+        }
+        Rarity rarity = Rarity.parse(section.getString("rarity"), Rarity.COMMUN);
+        ConfigurationSection stats = section.getConfigurationSection("stats");
+        Map<EquipmentSlot, Material> equipment = new EnumMap<>(EquipmentSlot.class);
+        ConfigurationSection gear = section.getConfigurationSection("equipment");
+        if (gear != null) {
+            for (String key : gear.getKeys(false)) {
+                EquipmentSlot slot = slot(key);
+                Material material = Material.matchMaterial(gear.getString(key, ""));
+                if (slot == null || material == null) {
+                    logger.warning(owner + " : équipement illisible " + key + ": " + gear.getString(key));
+                } else {
+                    equipment.put(slot, material);
+                }
+            }
+        }
+        Map<String, Integer> followers = new LinkedHashMap<>();
+        int followersMin = 0;
+        int followersMax = 0;
+        ConfigurationSection group = section.getConfigurationSection("followers");
+        if (group != null) {
+            ConfigurationSection variants = group.getConfigurationSection("variants");
+            if (variants != null) {
+                variants.getKeys(false).forEach(key -> followers.put(key.toLowerCase(Locale.ROOT), Math.max(1, variants.getInt(key, 1))));
+            }
+            List<Integer> size = group.getIntegerList("size");
+            followersMin = size.size() == 2 ? Math.max(0, size.get(0)) : 2;
+            followersMax = size.size() == 2 ? Math.max(followersMin, size.get(1)) : 4;
+        }
+        return new MobVariant(id, type, tier, rarity, section.getString("name", id), section.getStringList("lore"),
+                stat(stats, "health", 1), stat(stats, "damage", 1), Math.clamp(stat(stats, "speed", 1), 0.3, 2.5),
+                Math.max(0, stat(stats, "armor", 0)), Math.clamp(stat(stats, "knockback-resistance", 0), 0, 1),
+                Math.clamp(stat(stats, "tenacity", 0), 0, 0.9), Math.clamp(stat(stats, "scale", 1), 0.4, 3),
+                equipment, AiProfile.load(section.getConfigurationSection("ai"), tier),
+                Abilities.load(section, "abilities", owner, logger), LootTable.load(section, "loot", owner, logger),
+                Math.max(0, section.getInt("xp", 0)), followers, followersMin, followersMax, false);
+    }
+
+    private static double stat(ConfigurationSection stats, String key, double fallback) {
+        return stats == null ? fallback : stats.getDouble(key, fallback);
+    }
+
+    private static EquipmentSlot slot(String key) {
+        return switch (key.toLowerCase(Locale.ROOT).replace('_', '-')) {
+            case "main-hand", "hand" -> EquipmentSlot.HAND;
+            case "off-hand" -> EquipmentSlot.OFF_HAND;
+            case "helmet", "head" -> EquipmentSlot.HEAD;
+            case "chestplate", "chest" -> EquipmentSlot.CHEST;
+            case "leggings", "legs" -> EquipmentSlot.LEGS;
+            case "boots", "feet" -> EquipmentSlot.FEET;
+            default -> null;
+        };
+    }
+
+    /** Pose l'équipement (jamais lâché à la mort : le butin est dans loot). */
+    void equip(LivingEntity entity) {
+        if (entity.getEquipment() == null || equipment.isEmpty()) {
+            return;
+        }
+        equipment.forEach((slot, material) -> {
+            entity.getEquipment().setItem(slot, org.bukkit.inventory.ItemStack.of(material));
+            entity.getEquipment().setDropChance(slot, 0);
+        });
     }
 
     public String id() {
@@ -50,6 +178,10 @@ public abstract class MobVariant {
         return type;
     }
 
+    public Tier tier() {
+        return tier;
+    }
+
     public Rarity rarity() {
         return rarity;
     }
@@ -58,122 +190,86 @@ public abstract class MobVariant {
         return name;
     }
 
-    /** Appelé par MobService à sa création. */
-    void bind(MobService service) {
-        this.service = service;
-    }
-
-    /** Pour les variants qui font apparaître un variant (résurrection...). */
-    protected MobService service() {
-        return service;
-    }
-
-    /** Description courte (capacités, biomes) pour le menu. */
     public List<String> lore() {
-        return List.of();
+        return lore;
     }
 
-    /** Conditions d'apparition (biome, hauteur, lumière, heure, mob bébé...), au point d'apparition. Par défaut : partout. */
-    public boolean canSpawn(LivingEntity entity) {
-        return true;
-    }
-
-    /** Vie de base, en fois la vie normale du mob : multipliée ensuite par le ratio. */
     public double health() {
-        return 1;
+        return health;
     }
 
-    /** Dégâts de base, en fois les dégâts normaux du mob : multipliés ensuite par le ratio. */
     public double damage() {
-        return 1;
+        return damage;
     }
 
-    /** Vitesse, en fois celle du mob : PAS multipliée par le ratio (un Fléau deux fois plus rapide serait injouable). */
     public double speed() {
-        return 1;
+        return speed;
     }
 
-    /** Une seule fois, à la création du mob (rayon d'explosion, équipement...) : ce qui est posé ici est gardé par Minecraft. */
-    public void onSpawn(ActiveMob mob) {
+    public double armor() {
+        return armor;
     }
 
-    /** Chaque fois que le mob entre dans le monde (apparu ou rechargé) : ce que Minecraft ne sauvegarde pas (IA...). */
-    public void onLoad(ActiveMob mob) {
+    public double knockback() {
+        return knockback;
     }
 
-    /** Chaque fois que le mob sort du monde (mort ou déchargé) : oublier ce que le variant garde en mémoire pour lui. */
-    public void onRemove(ActiveMob mob) {
+    public double tenacity() {
+        return tenacity;
     }
 
-    /** Le mob frappe (de près, ou avec un projectile qu'il a tiré). */
-    public void onAttack(ActiveMob mob, LivingEntity victim, EntityDamageByEntityEvent event) {
+    public double scale() {
+        return scale;
     }
 
-    /** Le mob reçoit des dégâts. */
-    public void onDamaged(ActiveMob mob, EntityDamageEvent event) {
+    public AiProfile ai() {
+        return ai;
     }
 
-    public void onDeath(ActiveMob mob, EntityDeathEvent event) {
+    public List<Ability> abilities() {
+        return abilities;
     }
 
-    /** Le mob tire à l'arc (squelette) : la flèche est event.getProjectile(). */
-    public void onShoot(ActiveMob mob, EntityShootBowEvent event) {
+    public LootTable loot() {
+        return loot;
     }
 
-    /** Un projectile tiré par le mob touche quelque chose (bloc ou entité), avant les dégâts éventuels. */
-    public void onProjectileHit(ActiveMob mob, ProjectileHitEvent event) {
+    public int xp() {
+        return xp;
     }
 
-    /** Le mob prend une cible (event.getTarget(), jamais null ici). */
-    public void onTarget(ActiveMob mob, EntityTargetLivingEntityEvent event) {
+    public Map<String, Integer> followers() {
+        return followers;
     }
 
-    /** Le mob explose (creeper). */
-    public void onExplode(ActiveMob mob, EntityExplodeEvent event) {
+    public int followersMin() {
+        return followersMin;
     }
 
-    /**
-     * Animation des Fléaux (ratio le plus fort) seulement, pour qu'ils se repèrent sans couvrir le monde de particules :
-     * toutes les MobService.AMBIENT_PERIOD ticks, si un joueur est à moins de MobService.AMBIENT_RANGE blocs.
-     */
-    public void ambient(ActiveMob mob) {
+    public int followersMax() {
+        return followersMax;
     }
 
-    /** Particules autour du mob, à height blocs de ses pieds, dispersées sur spread blocs (pour ambient). */
-    protected static void puff(ActiveMob mob, Particle particle, int count, double height, double spread) {
-        puff(mob, particle, count, height, spread, null);
+    public boolean vanilla() {
+        return vanilla;
     }
 
-    /** Pareil, avec les données de la particule (couleur de Particle.DUST...). */
-    protected static <T> void puff(ActiveMob mob, Particle particle, int count, double height, double spread, T data) {
-        Location location = mob.entity().getLocation().add(0, height, 0);
-        location.getWorld().spawnParticle(particle, location, count, spread, spread, spread, 0.01, data);
+    /** Valeur d'équilibrage de ses capacités par seconde (somme), pour le budget de sa rareté. */
+    public double abilityValuePerSecond() {
+        double total = 0;
+        for (Ability ability : abilities) {
+            total += ability.valuePerSecond();
+        }
+        return total;
     }
 
-    /**
-     * Onde de choc : les joueurs à moins de radius blocs du centre (sauf créatif et spectateur) prennent damage (venant de
-     * source) et sont poussés vers l'extérieur (push) et vers le haut (lift), en blocs par tick.
-     */
-    protected static void shockwave(LivingEntity source, Location center, double radius, double damage, double push, double lift) {
-        Hits.shockwave(source, center, radius, damage, push, lift);
+    /** Valeur d'équilibrage totale : vie et dégâts de base, plus ses capacités (budget de la rareté). */
+    public double value() {
+        return health * 10 + damage * 10 + abilityValuePerSecond() * 10;
     }
 
-    /**
-     * Dégâts qui ignorent l'armure et les enchantements : retirés directement de la vie (cœurs d'absorption d'abord).
-     * Un coup fatal passe par de vrais dégâts magiques venant de cause (null : sans auteur), pour le message de mort et
-     * le totem d'immortalité. Magiques : ils ignorent l'armure et ne l'usent pas (des dégâts « infinis » qui passent par
-     * l'armure la détruisent entièrement, au lieu qu'elle tombe à la mort). Rien en créatif ni en spectateur.
-     */
-    protected static void trueDamage(Player player, double damage, Entity cause) {
-        Hits.trueDamage(player, damage, cause);
-    }
-
-    /** Toutes les combien de ticks appeler tick (multiple de MobService.TICK_PERIOD) ; 0 = jamais. */
-    public int tickInterval() {
-        return 0;
-    }
-
-    /** Capacité périodique : appelée seulement si un joueur est à moins de MobService.TICK_RANGE blocs. */
-    public void tick(ActiveMob mob) {
+    /** Copie de la liste des capacités (pour une IA). */
+    public List<Ability> abilityList() {
+        return new ArrayList<>(abilities);
     }
 }

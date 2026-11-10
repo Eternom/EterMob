@@ -1,5 +1,6 @@
 package fr.eternom.eterMob.module.mob;
 
+import fr.eternom.eterLib.EterLib;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.damage.DamageSource;
@@ -9,22 +10,49 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-/** Coups communs aux variants et aux boss : dégâts qui ignorent l'armure, onde de choc. Jamais en créatif ni en spectateur. */
+/**
+ * Coups communs aux variants et aux boss : dégâts d'une capacité, dégâts qui ignorent l'armure, onde de choc. Jamais en
+ * créatif, en spectateur, ni sur un membre du staff invisible.
+ */
 public final class Hits {
+
+    /** Vrai pendant les dégâts d'une capacité : les déclencheurs « au coup » ne se relancent pas dessus. */
+    private static boolean abilityDamage;
 
     private Hits() {
     }
 
     public static boolean fighting(Player player) {
-        return player.isOnline() && !player.isDead() && player.getGameMode() != GameMode.CREATIVE
-                && player.getGameMode() != GameMode.SPECTATOR;
+        if (!player.isOnline() || player.isDead() || player.getGameMode() == GameMode.CREATIVE
+                || player.getGameMode() == GameMode.SPECTATOR) {
+            return false;
+        }
+        EterLib lib = EterLib.get();
+        return lib == null || lib.getVanish() == null || !lib.getVanish().isVanished(player.getUniqueId());
+    }
+
+    /** Les dégâts en cours viennent-ils d'une capacité (et pas d'un coup normal) ? */
+    public static boolean isAbilityDamage() {
+        return abilityDamage;
+    }
+
+    /** Dégâts d'une capacité venant de source (l'armure compte, moins le perce-armure de source). */
+    public static void abilityDamage(LivingEntity victim, double amount, Entity source) {
+        if (amount <= 0 || victim.isDead()) {
+            return;
+        }
+        abilityDamage = true;
+        try {
+            victim.damage(amount, source);
+        } finally {
+            abilityDamage = false;
+        }
     }
 
     /**
      * Dégâts qui ignorent l'armure et les enchantements : retirés directement de la vie (cœurs d'absorption d'abord).
      * Un coup fatal passe par de vrais dégâts magiques venant de cause (null : sans auteur), pour le message de mort et
-     * le totem d'immortalité. Magiques : ils ignorent l'armure et ne l'usent pas (des dégâts « infinis » qui passent par
-     * l'armure la détruisent entièrement, au lieu qu'elle tombe à la mort).
+     * le totem d'immortalité.
      */
     public static void trueDamage(Player player, double damage, Entity cause) {
         if (!fighting(player)) {
@@ -60,7 +88,7 @@ public final class Hits {
             if (!fighting(player)) {
                 continue;
             }
-            player.damage(damage, source);
+            abilityDamage(player, damage, source);
             knock(player, center, push, lift);
         }
     }

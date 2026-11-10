@@ -73,6 +73,11 @@ public class MobMenu implements Listener {
         this.bosses = bosses;
     }
 
+    private static String familyName(EntityType type) {
+        String known = FAMILIES.get(type);
+        return known != null ? known : type.name().charAt(0) + type.name().substring(1).toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
+    }
+
     public void open(Player player) {
         home(player);
     }
@@ -82,11 +87,13 @@ public class MobMenu implements Listener {
     private void home(Player player) {
         Screen screen = screen(27, "<dark_gray>EterMob");
         int slot = 10;
-        for (Map.Entry<EntityType, String> family : FAMILIES.entrySet()) {
-            long count = mobs.variants().all().stream().filter(variant -> variant.type() == family.getKey()).count();
-            set(screen, slot, item(egg(family.getKey()), "<gold>" + family.getValue(),
-                    List.of("<gray>" + count + " variants", "", "<yellow>Clic : voir les variants")), p -> family(p, family.getKey()));
-            slot += 2;
+        // Les familles : les types de mob qui ont des variants (variants/*.yml), 7 au plus
+        List<EntityType> types = mobs.variants().all().stream().map(fr.eternom.eterMob.module.mob.MobVariant::type).distinct()
+                .sorted(java.util.Comparator.comparing(Enum::name)).limit(7).toList();
+        for (EntityType type : types) {
+            long count = mobs.variants().all().stream().filter(variant -> variant.type() == type).count();
+            set(screen, slot++, item(egg(type), "<gold>" + familyName(type),
+                    List.of("<gray>" + count + " variants", "", "<yellow>Clic : voir les variants")), p -> family(p, type));
         }
         set(screen, 22, item(Material.WITHER_SKELETON_SKULL, "<red><b>Boss</b>",
                 List.of("<gray>" + bosses.registry().entries().size() + " en vie", "", "<yellow>Clic : apparition et boss en vie")),
@@ -95,7 +102,7 @@ public class MobMenu implements Listener {
     }
 
     private void family(Player player, EntityType type) {
-        Screen screen = screen(54, "<dark_gray>EterMob · " + FAMILIES.get(type));
+        Screen screen = screen(54, "<dark_gray>EterMob · " + familyName(type));
         int index = 0;
         for (MobVariant variant : mobs.variants().all()) {
             if (variant.type() != type || index >= CONTENT.length) {
@@ -128,7 +135,7 @@ public class MobMenu implements Listener {
                             "<gray>Perce-armure : <white>" + Math.round(mobs.ratios().armorPiercing(ratio) * 100) + " %",
                             "", "<yellow>Clic : le faire apparaître devant toi")),
                     p -> {
-                        mobs.spawn(variant, chosen, inFront(p));
+                        mobs.spawn(variant, chosen, inFront(p), null);
                         p.sendMessage(MiniMessage.miniMessage().deserialize("<green>" + variant.name() + " apparu, ratio " + chosen + "."));
                     });
         }

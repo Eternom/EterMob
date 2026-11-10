@@ -1,5 +1,7 @@
 package fr.eternom.eterMob.module.mob;
 
+import fr.eternom.eterMob.module.ai.Caster;
+import fr.eternom.eterMob.module.ai.PlayerIndex;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
@@ -10,46 +12,51 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mob;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
 
 /**
- * Transforme un mob en variant et suit les variants chargés. Le variant et le ratio sont écrits sur le mob (données
- * persistantes) : ils survivent aux redémarrages sans base de données. Les variants chargés sont gardés en mémoire par
- * identifiant d'entité, pour que les événements les retrouvent sans relire le mob. Thread principal.
+ * Fait d'un mob un monstre d'EterMob (variant, meneur, ou vanilla avec ratio) et suit ceux qui sont chargés. Variant,
+ * ratio, meneur et sbire sont écrits sur le mob (données persistantes) : ils survivent aux redémarrages sans base de
+ * données. Toutes les 5 ticks, l'IA de chaque monstre proche d'un joueur réfléchit (Brain). Thread principal.
  */
 public class MobService {
 
-    /** Période de la tâche des capacités périodiques (ticks). */
+    /** Période de la tâche de l'IA (ticks). */
     public static final int TICK_PERIOD = 5;
-    /** Une capacité périodique ne tourne que si un joueur est à moins de cette distance (blocs). */
-    public static final double TICK_RANGE = 32;
-    /** Animation des Fléaux : période (ticks, multiple de TICK_PERIOD) et distance d'un joueur (blocs). */
-    public static final int AMBIENT_PERIOD = 10;
-    public static final double AMBIENT_RANGE = 24;
+    /** L'IA ne tourne que si un joueur est à moins de cette distance (blocs). */
+    public static final double TICK_RANGE = 48;
+    /** Un suiveur sans cible rejoint son meneur s'il en est à plus de cette distance. */
+    private static final double FOLLOW_RANGE = 10;
 
     private final JavaPlugin plugin;
     private final Variants variants;
     private final Ratios ratios;
     private final String tagFormat;
+    private final PlayerIndex players = new PlayerIndex();
     private final NamespacedKey variantKey;
     private final NamespacedKey ratioKey;
-    /** Clé des modificateurs de vie et de dégâts posés par EterMob. */
+    private final NamespacedKey leaderKey;
+    private final NamespacedKey minionKey;
+    /** Modificateurs de stats posés par EterMob (2.0.0) ; « ratio » : ceux d'avant, retirés à la migration. */
     private final NamespacedKey modifierKey;
-
+    private final NamespacedKey legacyModifierKey;
+    private final Map<EntityType, MobVariant> vanilla = new EnumMap<>(EntityType.class);
     private final Map<Integer, ActiveMob> active = new HashMap<>();
-    /** Sous-ensemble de active : les variants qui ont une capacité périodique. */
-    private final Map<Integer, ActiveMob> ticking = new HashMap<>();
-    /** Sous-ensemble de active : les Fléaux (ratio le plus fort), animés. */
-    private final Map<Integer, ActiveMob> ambient = new HashMap<>();
-    private long ticks;
+    private Function<Entity, Caster> bossCasters = entity -> null;
 
     public MobService(JavaPlugin plugin, Variants variants, Ratios ratios, String tagFormat) {
         this.plugin = plugin;
@@ -58,8 +65,10 @@ public class MobService {
         this.tagFormat = tagFormat;
         this.variantKey = new NamespacedKey(plugin, "variant");
         this.ratioKey = new NamespacedKey(plugin, "ratio");
-        this.modifierKey = new NamespacedKey(plugin, "ratio");
-        variants.all().forEach(variant -> variant.bind(this));
+        this.leaderKey = new NamespacedKey(plugin, "leader");
+        this.minionKey = new NamespacedKey(plugin, "minion");
+        this.modifierKey = new NamespacedKey(plugin, "stats");
+        this.legacyModifierKey = new NamespacedKey(plugin, "ratio");
     }
 
     public Variants variants() {
@@ -70,7 +79,20 @@ public class MobService {
         return ratios;
     }
 
-    /** Suit les mobs déjà chargés (serveur démarré avant le plugin), puis lance la tâche des capacités périodiques. */
+    public PlayerIndex players() {
+        return players;
+    }
+
+    /** Les boss (BossService) se déclarent ici : caster() les trouve aussi. */
+    public void setBossCasters(Function<Entity, Caster> lookup) {
+        this.bossCasters = lookup;
+    }
+
+    public MobVariant vanilla(EntityType type) {
+        return vanilla.computeIfAbsent(type, MobVariant::vanilla);
+    }
+
+    /** Suit les mobs déjà chargés, puis lance la tâche de l'IA. */
     public void start() {
         for (World world : Bukkit.getWorlds()) {
             for (LivingEntity entity : world.getLivingEntities()) {
@@ -80,44 +102,67 @@ public class MobService {
         Bukkit.getScheduler().runTaskTimer(plugin, this::tick, TICK_PERIOD, TICK_PERIOD);
     }
 
+    // ---------- Création ----------
+
     /**
-     * Fait de ce mob un variant de ce ratio : données, vie, dégâts, vitesse, tag, puis MobVariant#onSpawn. Appelé avant que le
-     * mob entre dans le monde : il sera suivi par track (EntityAddToWorldEvent).
+     * Fait de ce mob un monstre d'EterMob, avant son entrée dans le monde (il sera suivi par track) : données, stats
+     * (× ratio), équipement, tag. leader : son meneur (groupe) ; minion : sbire d'une capacité.
      */
-    public void apply(LivingEntity entity, MobVariant variant, int ratio) {
+    public void apply(LivingEntity entity, MobVariant variant, int ratio, UUID leader, boolean minion) {
         ratio = ratios.clamp(ratio);
-        double power = ratios.multiplier(ratio);
+        Ratios.Level level = ratios.level(ratio);
         PersistentDataContainer data = entity.getPersistentDataContainer();
         data.set(variantKey, PersistentDataType.STRING, variant.id());
         data.set(ratioKey, PersistentDataType.INTEGER, ratio);
-
-        scale(entity, Attribute.MAX_HEALTH, variant.health() * power);
-        scale(entity, Attribute.ATTACK_DAMAGE, variant.damage() * power);
-        scale(entity, Attribute.MOVEMENT_SPEED, variant.speed());
+        if (leader != null) {
+            data.set(leaderKey, PersistentDataType.STRING, leader.toString());
+        }
+        if (minion) {
+            data.set(minionKey, PersistentDataType.BYTE, (byte) 1);
+            entity.setPersistent(false);
+        }
+        multiply(entity, Attribute.MAX_HEALTH, variant.health() * level.health());
+        multiply(entity, Attribute.ATTACK_DAMAGE, variant.damage() * level.damage());
+        multiply(entity, Attribute.MOVEMENT_SPEED, variant.speed());
+        add(entity, Attribute.ARMOR, variant.armor());
+        add(entity, Attribute.KNOCKBACK_RESISTANCE, Math.max(variant.knockback(), level.knockback()));
+        multiply(entity, Attribute.SCALE, variant.scale());
         AttributeInstance health = entity.getAttribute(Attribute.MAX_HEALTH);
         if (health != null) {
             entity.setHealth(health.getValue());
         }
-
-        entity.customName(MiniMessage.miniMessage().deserialize(tagFormat,
-                Placeholder.parsed("status", ratios.status(ratio)), Placeholder.unparsed("name", variant.name())));
-        // Visible seulement en visant le mob : rien à afficher ni à calculer pour les autres, jamais à travers les blocs
+        variant.equip(entity);
+        // Un mob de Minecraft ordinaire (ratio 1) garde son nom ; les autres ont leur statut (et leur nom de variant)
+        if (!variant.vanilla() || ratio > 1) {
+            entity.customName(MiniMessage.miniMessage().deserialize(variant.vanilla() ? "<status>" : tagFormat,
+                    Placeholder.parsed("status", ratios.status(ratio)), Placeholder.unparsed("name", variant.name())));
+        }
+        // Visible seulement en le visant : jamais à travers les blocs
         entity.setCustomNameVisible(false);
         // Un nom ne doit pas le rendre permanent : il disparaît loin des joueurs comme un mob normal
         entity.setRemoveWhenFarAway(true);
-
-        variant.onSpawn(new ActiveMob(entity, variant, ratio, power));
+        Minions.noReinforcements(entity);
     }
 
-    /** Fait apparaître ce variant de ce ratio ici (hors apparition naturelle : commande, menu). */
-    public LivingEntity spawn(MobVariant variant, int ratio, Location location) {
+    /** Fait apparaître ce variant ici (commande, apparition d'EterMob, groupe). */
+    public LivingEntity spawn(MobVariant variant, int ratio, Location location, UUID leader) {
         int clamped = ratios.clamp(ratio);
-        return (LivingEntity) location.getWorld().spawnEntity(location, variant.type(), CreatureSpawnEvent.SpawnReason.COMMAND,
-                entity -> apply((LivingEntity) entity, variant, clamped));
+        return (LivingEntity) location.getWorld().spawnEntity(location, variant.type(), CreatureSpawnEvent.SpawnReason.CUSTOM,
+                entity -> apply((LivingEntity) entity, variant, clamped, leader, false));
     }
 
-    /** Multiplie l'attribut par factor (rien si le mob ne l'a pas : un creeper n'a pas de dégâts d'attaque). */
-    private void scale(LivingEntity entity, Attribute attribute, double factor) {
+    /** Un sbire d'une capacité, sous la forme d'un variant (ni butin, ni expérience, jamais sauvegardé). */
+    public LivingEntity spawnMinion(MobVariant variant, int ratio, Location location) {
+        int clamped = ratios.clamp(ratio);
+        return (LivingEntity) location.getWorld().spawnEntity(location, variant.type(), CreatureSpawnEvent.SpawnReason.CUSTOM,
+                entity -> apply((LivingEntity) entity, variant, clamped, null, true));
+    }
+
+    public int casterRatio(Caster caster) {
+        return caster instanceof ActiveMob mob ? mob.ratio() : 1;
+    }
+
+    private void multiply(LivingEntity entity, Attribute attribute, double factor) {
         AttributeInstance instance = entity.getAttribute(attribute);
         if (instance == null) {
             return;
@@ -128,7 +173,18 @@ public class MobService {
         }
     }
 
-    /** Mob entré dans le monde (apparu ou chargé) : suivi s'il est un variant connu. */
+    private void add(LivingEntity entity, Attribute attribute, double amount) {
+        AttributeInstance instance = entity.getAttribute(attribute);
+        if (instance == null || amount == 0) {
+            return;
+        }
+        instance.removeModifier(modifierKey);
+        instance.addModifier(new AttributeModifier(modifierKey, amount, AttributeModifier.Operation.ADD_NUMBER));
+    }
+
+    // ---------- Suivi ----------
+
+    /** Mob entré dans le monde (apparu ou chargé) : suivi s'il est à EterMob ; un ancien variant disparu redevient vanilla. */
     public void track(Entity entity) {
         if (!(entity instanceof LivingEntity living)) {
             return;
@@ -138,57 +194,133 @@ public class MobService {
         if (id == null) {
             return;
         }
-        MobVariant variant = variants.get(id);
-        if (variant == null) {
+        MobVariant variant = id.startsWith("vanilla:") ? vanilla(living.getType()) : variants.get(id);
+        if (variant == null || variant.type() != living.getType()) {
+            migrate(living);
             return;
         }
+        // Un arrêt pendant un télégraphe l'a laissé figé (IA coupée) : il se réveille
+        if (living instanceof Mob mob && !mob.isAware()) {
+            mob.setAware(true);
+        }
         int ratio = ratios.clamp(data.getOrDefault(ratioKey, PersistentDataType.INTEGER, 1));
-        // Variants d'EterMob 1.0.0 à 1.0.2 : tag toujours visible, à travers les blocs
-        living.setCustomNameVisible(false);
-        ActiveMob mob = new ActiveMob(living, variant, ratio, ratios.multiplier(ratio));
+        String leader = data.get(leaderKey, PersistentDataType.STRING);
+        ActiveMob mob = new ActiveMob(living, variant, ratio, ratios.level(ratio), leader == null ? null : UUID.fromString(leader),
+                data.has(minionKey, PersistentDataType.BYTE));
         active.put(living.getEntityId(), mob);
-        if (variant.tickInterval() > 0) {
-            ticking.put(living.getEntityId(), mob);
+    }
+
+    /**
+     * Variant qui n'existe plus (EterMob 1.x, ou retiré de variants/) : le mob redevient celui de Minecraft (données,
+     * stats, nom retirés) au lieu de rester à moitié transformé.
+     */
+    private void migrate(LivingEntity living) {
+        PersistentDataContainer data = living.getPersistentDataContainer();
+        data.remove(variantKey);
+        data.remove(ratioKey);
+        data.remove(leaderKey);
+        for (Attribute attribute : new Attribute[]{Attribute.MAX_HEALTH, Attribute.ATTACK_DAMAGE, Attribute.MOVEMENT_SPEED,
+                Attribute.ARMOR, Attribute.KNOCKBACK_RESISTANCE, Attribute.SCALE}) {
+            AttributeInstance instance = living.getAttribute(attribute);
+            if (instance != null) {
+                instance.removeModifier(modifierKey);
+                instance.removeModifier(legacyModifierKey);
+            }
         }
-        if (ratio == ratios.max()) {
-            ambient.put(living.getEntityId(), mob);
+        AttributeInstance max = living.getAttribute(Attribute.MAX_HEALTH);
+        if (max != null && living.getHealth() > max.getValue()) {
+            living.setHealth(max.getValue());
         }
-        variant.onLoad(mob);
+        living.customName(null);
+        living.setCustomNameVisible(false);
     }
 
     /** Mob sorti du monde (mort, déchargé) : plus suivi. */
     public void untrack(Entity entity) {
         ActiveMob mob = active.remove(entity.getEntityId());
         if (mob != null) {
-            mob.variant().onRemove(mob);
+            mob.brain().interrupt(false);
         }
-        ticking.remove(entity.getEntityId());
-        ambient.remove(entity.getEntityId());
     }
 
-    /** Variant chargé de cette entité, ou null. */
+    /** Monstre d'EterMob chargé de cette entité, ou null. */
     public ActiveMob get(Entity entity) {
         return entity == null ? null : active.get(entity.getEntityId());
     }
 
-    private void tick() {
-        ticks += TICK_PERIOD;
-        // Copie : une capacité peut faire apparaître ou tuer des mobs pendant le tour
-        if (!ticking.isEmpty()) {
-            for (ActiveMob mob : new ArrayList<>(ticking.values())) {
-                int interval = mob.variant().tickInterval();
-                if (ticks % interval != 0 || !mob.entity().isValid()) {
-                    continue;
-                }
-                if (!mob.entity().getLocation().getNearbyPlayers(TICK_RANGE).isEmpty()) {
-                    mob.variant().tick(mob);
-                }
+    /** Ce qui lance des capacités : un monstre d'EterMob ou un boss, ou null. */
+    public Caster caster(Entity entity) {
+        if (entity == null) {
+            return null;
+        }
+        ActiveMob mob = active.get(entity.getEntityId());
+        return mob != null ? mob : bossCasters.apply(entity);
+    }
+
+    public Collection<ActiveMob> active() {
+        return active.values();
+    }
+
+    /** Monstres d'EterMob (hors sbires) à moins de range blocs. */
+    public int countNear(Location at, double range) {
+        double max = range * range;
+        int count = 0;
+        for (ActiveMob mob : active.values()) {
+            Location there = mob.entity().getLocation();
+            if (!mob.minion() && there.getWorld().equals(at.getWorld()) && there.distanceSquared(at) <= max) {
+                count++;
             }
         }
-        if (!ambient.isEmpty() && ticks % AMBIENT_PERIOD == 0) {
-            for (ActiveMob mob : new ArrayList<>(ambient.values())) {
-                if (mob.entity().isValid() && !mob.entity().getLocation().getNearbyPlayers(AMBIENT_RANGE).isEmpty()) {
-                    mob.variant().ambient(mob);
+        return count;
+    }
+
+    /** Un monstre de ce ratio (ou plus) à moins de range blocs ? (un seul Fléau à la fois dans un coin). */
+    public boolean ratioNear(Location at, double range, int ratio) {
+        double max = range * range;
+        for (ActiveMob mob : active.values()) {
+            Location there = mob.entity().getLocation();
+            if (mob.ratio() >= ratio && there.getWorld().equals(at.getWorld()) && there.distanceSquared(at) <= max) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public int countIn(World world) {
+        int count = 0;
+        for (ActiveMob mob : active.values()) {
+            if (mob.entity().getWorld().equals(world) && !mob.minion()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    void damagedBy(ActiveMob mob, UUID player, double amount) {
+        mob.damagedBy(player, amount);
+    }
+
+    void otherDamage(ActiveMob mob, double amount) {
+        mob.otherDamage(amount);
+    }
+
+    private void tick() {
+        players.refresh();
+        if (active.isEmpty()) {
+            return;
+        }
+        // Copie : une capacité peut faire apparaître ou tuer des mobs pendant le tour
+        for (ActiveMob mob : new ArrayList<>(active.values())) {
+            LivingEntity entity = mob.entity();
+            if (!entity.isValid() || !players.any(entity.getLocation(), TICK_RANGE)) {
+                continue;
+            }
+            mob.brain().tick(players);
+            if (mob.leader() != null && mob.brain().target() == null && entity instanceof Mob follower) {
+                Entity leader = Bukkit.getEntity(mob.leader());
+                if (leader != null && leader.isValid() && leader.getWorld().equals(entity.getWorld())
+                        && leader.getLocation().distanceSquared(entity.getLocation()) > FOLLOW_RANGE * FOLLOW_RANGE) {
+                    follower.getPathfinder().moveTo(leader.getLocation(), 1.1);
                 }
             }
         }

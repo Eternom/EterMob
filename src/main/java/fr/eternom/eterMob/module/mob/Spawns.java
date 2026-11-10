@@ -76,7 +76,24 @@ public final class Spawns {
             Biome.STONY_SHORE),
             "river", "beach", "shore", "coast", "isle", "island");
 
+    private static final java.util.Map<String, Group> BY_NAME = java.util.Map.of("plains", PLAINS, "forests", FORESTS, "dark", DARK,
+            "swamps", SWAMPS, "jungles", JUNGLES, "mountains", MOUNTAINS, "dry", DRY, "cold", COLD, "rivers", RIVERS);
+
     private Spawns() {
+    }
+
+    /** Un groupe par son nom (plains, forests, dark, swamps, jungles, mountains, dry, cold, rivers), ou null. */
+    public static Group group(String name) {
+        return name == null ? null : BY_NAME.get(name.toLowerCase(java.util.Locale.ROOT));
+    }
+
+    public static java.util.Set<String> groupNames() {
+        return BY_NAME.keySet();
+    }
+
+    /** Ce biome est-il dans le groupe ? */
+    public static boolean in(Group group, Biome biome) {
+        return group.contains(biome);
     }
 
     /** Le mob apparaît dans un de ces groupes de biomes (biome du bloc à ses pieds, en 3D : vaut aussi sous terre). */

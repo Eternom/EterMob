@@ -2,6 +2,15 @@ package fr.eternom.eterMob.module.mob;
 
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
+import fr.eternom.eterLib.module.quest.QuestBridge;
+import fr.eternom.eterLib.module.state.States;
+import fr.eternom.eterMob.module.ability.Services;
+import fr.eternom.eterMob.module.ability.kind.Volley;
+import fr.eternom.eterMob.module.ai.Caster;
+import fr.eternom.eterMob.module.loot.KillStats;
+import fr.eternom.eterMob.module.spawn.SpawnDirector;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -10,42 +19,50 @@ import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.event.entity.EntityShootBowEvent;
+import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
-import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 
-/** Apparitions naturelles transformées en variants, suivi des variants chargés, et capacités déclenchées par les événements. */
+import java.util.Locale;
+import java.util.Map;
+
+/**
+ * Apparitions naturelles (variants, ratios), suivi des monstres chargés, et tout ce qui nourrit leur IA : coups reçus
+ * (menace, part des joueurs), coups donnés (perce-armure, plafond, capacités au coup), cible imposée, mort (capacités,
+ * butin, statistiques, quêtes).
+ */
 public class MobListener implements Listener {
 
     private final MobService mobs;
-    /** false : les explosions de creepers (variants ou non) ne cassent ni blocs, ni cadres, ni tableaux. */
+    private final SpawnDirector director;
+    private final KillStats stats;
     private final boolean creeperBlockDamage;
+    /** Un coup d'un monstre (hors boss) ne retire jamais plus que cette part de la vie max d'un joueur (0 : pas de plafond). */
+    private final double damageCap;
+    /** Part des dégâts qui doit venir des joueurs pour le butin et l'expérience en plus. */
+    private final double lootShare;
 
-    public MobListener(MobService mobs, boolean creeperBlockDamage) {
+    public MobListener(MobService mobs, SpawnDirector director, KillStats stats, boolean creeperBlockDamage, double damageCap, double lootShare) {
         this.mobs = mobs;
+        this.director = director;
+        this.stats = stats;
         this.creeperBlockDamage = creeperBlockDamage;
+        this.damageCap = damageCap;
+        this.lootShare = lootShare;
     }
 
     /** Seulement les apparitions naturelles : jamais les spawners, les œufs, les commandes ni les autres plugins. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onSpawn(CreatureSpawnEvent event) {
-        if (event.getSpawnReason() != CreatureSpawnEvent.SpawnReason.NATURAL) {
-            return;
-        }
-        LivingEntity entity = event.getEntity();
-        if (!mobs.variants().has(entity.getType())) {
-            return;
-        }
-        MobVariant variant = mobs.variants().pick(entity);
-        if (variant != null) {
-            mobs.apply(entity, variant, mobs.ratios().roll(event.getLocation()));
+        if (event.getSpawnReason() == CreatureSpawnEvent.SpawnReason.NATURAL) {
+            director.onNatural(event.getEntity());
         }
     }
 
@@ -61,24 +78,59 @@ public class MobListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamage(EntityDamageEvent event) {
+        States states = Services.states();
+        boolean stateDamage = states != null && states.isStateDamage();
+        Entity source = event instanceof EntityDamageByEntityEvent byEntity ? attacker(byEntity.getDamager()) : null;
         ActiveMob damaged = mobs.get(event.getEntity());
         if (damaged != null) {
-            damaged.variant().onDamaged(damaged, event);
-        }
-        if (event instanceof EntityDamageByEntityEvent byEntity && event.getEntity() instanceof LivingEntity victim) {
-            ActiveMob attacker = mobs.get(attacker(byEntity.getDamager()));
-            if (attacker != null) {
-                attacker.variant().onAttack(attacker, victim, byEntity);
-                if (victim instanceof Player && event.getCause() != EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
-                    pierce(event, mobs.ratios().armorPiercing(attacker.ratio()));
-                }
+            if (source instanceof Player player) {
+                boolean ranged = ((EntityDamageByEntityEvent) event).getDamager() instanceof Projectile;
+                mobs.damagedBy(damaged, player.getUniqueId(), event.getDamage());
+                damaged.brain().damagedBy(player, event.getDamage(), ranged);
+            } else {
+                mobs.otherDamage(damaged, event.getDamage());
             }
+            if (!stateDamage) {
+                damaged.brain().onDamaged(source instanceof LivingEntity living ? living : null);
+            }
+        }
+        if (!(event instanceof EntityDamageByEntityEvent byEntity) || !(event.getEntity() instanceof LivingEntity victim)) {
+            return;
+        }
+        Caster caster = mobs.caster(source);
+        if (caster == null || caster.entity() == victim) {
+            return;
+        }
+        if (victim instanceof Player && event.getCause() != EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
+            pierce(event, caster.piercing());
+        }
+        // Un vrai coup au corps à corps (pas une capacité, pas un état, pas un projectile) : capacités « au coup »
+        if (!stateDamage && !Hits.isAbilityDamage() && byEntity.getDamager() == caster.entity()) {
+            caster.brain().onHit(victim);
+        }
+    }
+
+    /** Plafond par coup (hors boss) : pas de mort en un coup d'un monstre ordinaire. Après l'armure et le perce-armure. */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onCap(EntityDamageByEntityEvent event) {
+        if (damageCap <= 0 || !(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        Caster caster = mobs.caster(attacker(event.getDamager()));
+        if (caster == null || caster.tier() == Tier.BOSS) {
+            return;
+        }
+        AttributeInstance max = player.getAttribute(Attribute.MAX_HEALTH);
+        double cap = (max == null ? 20 : max.getValue()) * damageCap;
+        double dealt = event.getFinalDamage();
+        if (dealt > cap && dealt > 0) {
+            event.setDamage(event.getDamage() * cap / dealt);
         }
     }
 
     /**
-     * Perce-armure : le coup ignore cette part de ce que l'armure et les enchantements de protection du joueur lui
-     * retirent. Pas les explosions de creepers (déjà calées pour que la Protection IV suffise, sauf face au Fléau).
+     * Perce-armure : le coup ignore cette part de ce que l'armure et la protection retirent. Pas les explosions de
+     * creepers (calées pour que la Protection IV suffise).
      */
     @SuppressWarnings({"deprecation", "removal"})
     private static void pierce(EntityDamageEvent event, double piercing) {
@@ -101,56 +153,64 @@ public class MobListener implements Listener {
         return damager;
     }
 
+    /** L'IA de Minecraft ne remplace pas la cible choisie par celle d'EterMob (sauf provocation et cible disparue). */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onTarget(EntityTargetLivingEntityEvent event) {
+        if (event.getReason() == EntityTargetEvent.TargetReason.CUSTOM) {
+            return;
+        }
+        Caster caster = mobs.caster(event.getEntity());
+        if (caster == null) {
+            return;
+        }
+        LivingEntity chosen = caster.brain().target();
+        if (chosen != null && chosen.isValid() && !chosen.isDead() && event.getTarget() != chosen) {
+            event.setCancelled(true);
+        }
+    }
+
     @EventHandler
     public void onDeath(EntityDeathEvent event) {
-        if (Minions.is(event.getEntity())) {
+        LivingEntity entity = event.getEntity();
+        if (Minions.is(entity)) {
             event.getDrops().clear();
             event.setDroppedExp(0);
         }
-        ActiveMob mob = mobs.get(event.getEntity());
-        if (mob != null) {
-            mob.variant().onDeath(mob, event);
+        ActiveMob mob = mobs.get(entity);
+        if (mob == null) {
+            return;
         }
+        Player killer = entity.getKiller();
+        mob.brain().onDeath(killer);
+        if (mob.minion()) {
+            event.getDrops().clear();
+            event.setDroppedExp(0);
+            return;
+        }
+        if (killer == null || mob.playerShare() < lootShare) {
+            return;
+        }
+        MobVariant variant = mob.variant();
+        event.getDrops().addAll(variant.loot().roll(mob.ratio(), mob.level().loot()));
+        event.setDroppedExp((int) Math.round((event.getDroppedExp() + variant.xp()) * mob.level().xp()));
+        stats.add(killer.getUniqueId(), variant.id(), mob.ratio());
+        QuestBridge.signal(killer, "etermob:kill", Map.of("type", entity.getType().name().toLowerCase(Locale.ROOT),
+                "variant", variant.id(), "ratio", String.valueOf(mob.ratio()), "tier", variant.tier().id()), 1);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onProjectileHit(ProjectileHitEvent event) {
-        if (event.getEntity().getShooter() instanceof Entity shooter) {
-            ActiveMob mob = mobs.get(shooter);
-            if (mob != null) {
-                mob.variant().onProjectileHit(mob, event);
-            }
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onTarget(EntityTargetLivingEntityEvent event) {
-        ActiveMob mob = mobs.get(event.getEntity());
-        if (mob != null && event.getTarget() != null) {
-            mob.variant().onTarget(mob, event);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onShoot(EntityShootBowEvent event) {
-        ActiveMob mob = mobs.get(event.getEntity());
-        if (mob != null) {
-            mob.variant().onShoot(mob, event);
-        }
+        Volley.onHit(event);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onExplode(EntityExplodeEvent event) {
-        ActiveMob mob = mobs.get(event.getEntity());
-        if (mob != null) {
-            mob.variant().onExplode(mob, event);
-        }
         if (!creeperBlockDamage && event.getEntity() instanceof Creeper) {
             event.blockList().clear();
         }
     }
 
-    /** Bloc temporaire d'un variant (toile...) cassé par un joueur : il ne lâche rien. */
+    /** Bloc temporaire d'une capacité (pilier...) cassé par un joueur : il ne lâche rien. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         if (TempBlocks.is(event.getBlock())) {

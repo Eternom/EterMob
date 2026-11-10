@@ -1,62 +1,126 @@
 package fr.eternom.eterMob;
 
+import fr.eternom.eterLib.EterLib;
+import fr.eternom.eterLib.helper.message.Messages;
+import fr.eternom.eterLib.module.combat.CombatRoles;
+import fr.eternom.eterLib.module.state.StateType;
+import fr.eternom.eterMob.module.ability.Services;
+import fr.eternom.eterMob.module.ai.Caster;
+import fr.eternom.eterMob.module.boss.Boss;
 import fr.eternom.eterMob.module.boss.BossCommand;
+import fr.eternom.eterMob.module.boss.BossFight;
 import fr.eternom.eterMob.module.boss.BossListener;
 import fr.eternom.eterMob.module.boss.BossRegistry;
 import fr.eternom.eterMob.module.boss.BossService;
+import fr.eternom.eterMob.module.boss.ConfiguredBoss;
+import fr.eternom.eterMob.module.loot.KillStats;
 import fr.eternom.eterMob.module.menu.MobMenu;
+import fr.eternom.eterMob.module.mob.ActiveMob;
 import fr.eternom.eterMob.module.mob.MobCommand;
 import fr.eternom.eterMob.module.mob.MobListener;
 import fr.eternom.eterMob.module.mob.MobService;
-import fr.eternom.eterMob.module.mob.MobVariant;
 import fr.eternom.eterMob.module.mob.Rarity;
 import fr.eternom.eterMob.module.mob.Ratios;
 import fr.eternom.eterMob.module.mob.TempBlocks;
 import fr.eternom.eterMob.module.mob.Variants;
+import fr.eternom.eterMob.module.spawn.SpawnDirector;
+import fr.eternom.eterMob.module.spawn.SpawnGuard;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.entity.Entity;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
-/** Variants de mobs : chaque apparition naturelle devient un variant de son mob, avec un ratio de puissance. */
+/**
+ * EterMob : les monstres du réseau. Variants et meneurs (variants/*.yml), boss (bosses/*.yml), capacités en briques
+ * (Ability), IA commune (Brain : cible et capacités), états d'EterLib, ratios de puissance, apparition automatique
+ * (SpawnDirector), butin, statistiques et quêtes.
+ */
 public final class Main extends JavaPlugin {
 
     private BossService bosses;
 
-    /** Tous les variants : en ajouter un = l'écrire dans module/variant puis l'ajouter ici. */
-    private static List<MobVariant> variants() {
-        return List.of();
-    }
-
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        saveExample("variants/_exemple.yml");
+        saveExample("bosses/_exemple.yml");
+        EterLib lib = EterLib.get();
+        Messages messages = lib.messages(this, "en_us", "fr_fr");
 
-        Map<Rarity, Double> rarityWeights = new EnumMap<>(Rarity.class);
-        for (Rarity rarity : Rarity.values()) {
-            rarityWeights.put(rarity, getConfig().getDouble("rarities." + rarity.id(), 0));
-        }
-        Variants all = new Variants(variants(), new HashSet<>(getConfig().getStringList("disabled-variants")), rarityWeights);
-        MobService mobs = new MobService(this, all, Ratios.load(getConfig()),
+        Variants variants = new Variants(new HashSet<>(getConfig().getStringList("disabled-variants")));
+        MobService mobs = new MobService(this, variants, Ratios.load(getConfig()),
                 getConfig().getString("tag.format", "<white><name> <dark_gray>·</dark_gray> <status>"));
+        SpawnGuard guard = new SpawnGuard(getConfig().getConfigurationSection("guard"));
+        Services.init(this, mobs, guard);
+        loadVariants(variants);
+        TempBlocks.start(this);
 
-        getServer().getPluginManager().registerEvents(new MobListener(mobs, getConfig().getBoolean("creeper-block-damage", false)), this);
-        // Boss : seulement par commande pour l'instant (pas d'apparition naturelle)
-        bosses = new BossService(this, new BossRegistry(this), List.of());
+        BossService.configure(getConfig().getConfigurationSection("boss"));
+        bosses = new BossService(this, new BossRegistry(this), loadBosses());
+        mobs.setBossCasters(this::bossCaster);
         getServer().getPluginManager().registerEvents(new BossListener(bosses), this);
+
+        KillStats stats = new KillStats(this, lib.database("etermob_"));
+        SpawnDirector director = new SpawnDirector(this, mobs, guard, messages, getConfig(), lib.getServerName(), (id, location) -> {
+            Boss boss = bosses.boss(id);
+            return boss == null ? "boss inconnu : " + id : bosses.spawn(boss, location);
+        });
+        getServer().getPluginManager().registerEvents(new MobListener(mobs, director, stats,
+                getConfig().getBoolean("creeper-block-damage", false),
+                Math.clamp(getConfig().getDouble("damage-cap", 0.6), 0, 1),
+                Math.clamp(getConfig().getDouble("loot-share", 0.5), 0, 1)), this);
+
+        // Ténacité des monstres (contrôles plus courts) et des boss ; les boss ne subissent qu'un tiers des contrôles
+        lib.getStates().addTenacity(entity -> {
+            ActiveMob mob = mobs.get(entity);
+            return mob == null ? 0 : mob.level().tenacity() + mob.variant().tenacity();
+        });
+        lib.getStates().addImmunity((entity, type) -> type.category() == StateType.Category.CONTROL
+                && bosses.fight(entity) != null ? getConfig().getDouble("boss.control-factor", 0.33) : 1);
+        // Soins et protections des classes : les monstres en combat autour les comptent comme une menace
+        CombatRoles.addListener((player, about, amount) -> {
+            for (ActiveMob mob : mobs.active()) {
+                if (mob.brain().target() != null && mob.entity().getWorld().equals(about.getWorld())
+                        && mob.entity().getLocation().distanceSquared(about.getLocation()) < 24 * 24) {
+                    mob.brain().supportThreat(player, amount);
+                }
+            }
+            for (BossFight fight : bosses.fights()) {
+                Caster caster = bossCaster(fight.entity());
+                if (caster != null && fight.entity().getWorld().equals(about.getWorld())
+                        && fight.entity().getLocation().distanceSquared(about.getLocation()) < 48 * 48) {
+                    caster.brain().supportThreat(player, amount);
+                }
+            }
+        });
+
         MobMenu menu = new MobMenu(mobs, bosses);
         getServer().getPluginManager().registerEvents(menu, this);
         PluginCommand command = getCommand("etermob");
         if (command != null) {
-            MobCommand executor = new MobCommand(mobs, new BossCommand(bosses), menu);
+            MobCommand executor = new MobCommand(mobs, director, new BossCommand(bosses), menu, budgets(), sender -> {
+                reloadConfig();
+                loadVariants(variants);
+                director.reloadRules(getConfig());
+                sender.sendMessage(MiniMessage.miniMessage().deserialize("<green>EterMob relu : " + variants.all().size()
+                        + " variants, " + director.rules().size() + " règles <gray>(ratios et boss : au redémarrage)."));
+            });
             command.setExecutor(executor);
             command.setTabCompleter(executor);
         }
         mobs.start();
         bosses.start();
+        director.start();
     }
 
     @Override
@@ -65,5 +129,64 @@ public final class Main extends JavaPlugin {
             bosses.stop();
         }
         TempBlocks.clearAll();
+    }
+
+    private Caster bossCaster(Entity entity) {
+        BossFight fight = bosses == null ? null : bosses.fight(entity);
+        return fight != null && fight.boss() instanceof ConfiguredBoss configured ? configured.caster(fight) : null;
+    }
+
+    private void saveExample(String path) {
+        if (!new File(getDataFolder(), path).exists()) {
+            saveResource(path, false);
+        }
+    }
+
+    private void loadVariants(Variants variants) {
+        File folder = new File(getDataFolder(), "variants");
+        folder.mkdirs();
+        int count = variants.load(folder, getLogger());
+        getLogger().info(count + " variant(s) et meneur(s) chargé(s)");
+    }
+
+    /** Les boss de bosses/*.yml (section bosses:), sauf les fichiers en « _ » (exemples). */
+    private List<Boss> loadBosses() {
+        List<Boss> loaded = new ArrayList<>();
+        File folder = new File(getDataFolder(), "bosses");
+        folder.mkdirs();
+        File[] files = folder.listFiles((dir, name) -> name.endsWith(".yml") && !name.startsWith("_"));
+        if (files != null) {
+            java.util.Arrays.sort(files);
+            for (File file : files) {
+                ConfigurationSection section = YamlConfiguration.loadConfiguration(file).getConfigurationSection("bosses");
+                if (section == null) {
+                    continue;
+                }
+                for (String key : section.getKeys(false)) {
+                    String id = key.toLowerCase(Locale.ROOT);
+                    ConfigurationSection boss = section.getConfigurationSection(key);
+                    if (boss == null || loaded.stream().anyMatch(other -> other.id().equals(id))) {
+                        getLogger().warning(file.getName() + " : boss « " + key + " » illisible ou en double");
+                        continue;
+                    }
+                    ConfiguredBoss configured = ConfiguredBoss.load(id, boss, getLogger());
+                    if (configured != null) {
+                        loaded.add(configured);
+                    }
+                }
+            }
+        }
+        getLogger().info(loaded.size() + " boss chargé(s)");
+        return loaded;
+    }
+
+    /** Budget d'équilibrage par rareté (config.yml > budgets ; un meneur a 1,5 fois celui de sa rareté). */
+    private Map<Rarity, Double> budgets() {
+        Map<Rarity, Double> budgets = new EnumMap<>(Rarity.class);
+        double[] defaults = {40, 55, 75, 100, 140};
+        for (Rarity rarity : Rarity.values()) {
+            budgets.put(rarity, getConfig().getDouble("budgets." + rarity.id(), defaults[rarity.ordinal()]));
+        }
+        return budgets;
     }
 }

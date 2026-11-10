@@ -1,69 +1,191 @@
 # ============================================================
-#  EterMob : variants de mobs
+#  EterMob : les monstres du réseau
 # ============================================================
 #
-#  Chaque mob qui apparaît naturellement (jamais ceux des spawners, des œufs ni des commandes) devient un variant de
-#  son type, s'il en existe : le variant est tiré parmi ceux dont les conditions d'apparition (codées dans le plugin)
-#  sont remplies, selon sa rareté. Puis son ratio est tiré : il multiplie tout ce que fait le variant (vie, dégâts,
-#  capacités), à partir des valeurs de base propres à chaque variant.
-#  Toute modification nécessite un redémarrage du serveur.
+#  - Variants et meneurs : plugins/EterMob/variants/*.yml (modèle : variants/_exemple.yml)
+#  - Boss                : plugins/EterMob/bosses/*.yml   (modèle : bosses/_exemple.yml)
+#  - Où et quand ils sortent : spawns (plus bas)
+#  Les fichiers qui commencent par « _ » ne sont jamais chargés (modèles). /etermob reload relit les variants et les
+#  règles ; les ratios et les boss demandent un redémarrage.
 
-# Ratios, du plus faible au plus fort (ratio 1 = premier de la liste).
-#  multiplier : multiplie les valeurs de base du variant (vie, dégâts, rayon, durée...).
-#  weight     : chance d'être tiré, relative aux autres ratios (à la surface).
-#  status     : statut affiché au-dessus de la tête (MiniMessage).
-#  armor-piercing : part (0 à 1) de l'armure et des enchantements de protection d'un joueur que ses coups ignorent
-#                   (coups, flèches, capacités ; pas les explosions de creepers). L'armure encaisse très bien les petits
-#                   coups : sans cela, un Fléau ne fait presque rien à un joueur en netherite.
+# Ratios, du plus faible au plus fort (ratio 1 = premier de la liste). Chaque monstre d'EterMob en tire un.
+#  health / damage / ability : × la vie, × les dégâts des coups, × les dégâts et la puissance des états des capacités
+#                              (multiplier : les trois à la fois, ancien réglage)
+#  weight         : chance d'être tiré, relative aux autres ratios (à la surface, le jour)
+#  status         : statut affiché au-dessus de la tête (MiniMessage)
+#  armor-piercing : part (0 à 1) de l'armure et de la protection d'un joueur que ses coups ignorent (pas les explosions
+#                   de creepers). L'armure encaisse très bien les petits coups : sans cela, un Fléau ne fait presque rien
+#                   à un joueur en netherite. /etermob balance montre les coups pour tuer selon l'armure.
+#  tenacity       : part des contrôles (étourdi, enraciné...) qu'il ignore
+#  knockback-resistance, loot (× la chance de son butin), xp (× son expérience)
 ratios:
-  - multiplier: 1.0
+  - health: 1.0
+    damage: 1.0
+    ability: 1.0
     weight: 40
     status: '<gray>Ordinaire'
     armor-piercing: 0
-  - multiplier: 1.25
+    tenacity: 0
+    knockback-resistance: 0
+    loot: 1.0
+    xp: 1.0
+  - health: 1.3
+    damage: 1.15
+    ability: 1.15
     weight: 30
     status: '<green>Robuste'
     armor-piercing: 0.1
-  - multiplier: 1.5
+    tenacity: 0.05
+    knockback-resistance: 0.1
+    loot: 1.25
+    xp: 1.3
+  - health: 1.6
+    damage: 1.3
+    ability: 1.3
     weight: 18
     status: '<yellow>Dangereux'
     armor-piercing: 0.2
-  - multiplier: 1.8
+    tenacity: 0.1
+    knockback-resistance: 0.2
+    loot: 1.5
+    xp: 1.7
+  - health: 2.0
+    damage: 1.5
+    ability: 1.5
     weight: 9
     status: '<gold>Élite'
     armor-piercing: 0.35
-  - multiplier: 2.2
+    tenacity: 0.2
+    knockback-resistance: 0.35
+    loot: 2.0
+    xp: 2.2
+  - health: 2.6
+    damage: 1.75
+    ability: 1.75
     weight: 3
     status: '<red>Fléau'
     armor-piercing: 0.5
+    tenacity: 0.3
+    knockback-resistance: 0.5
+    loot: 3.0
+    xp: 3.0
 
-# Plus on est profond, plus les ratios forts sortent : chaque bloc sous le niveau de la mer du monde augmente la
-# chance du ratio n de (n - 1) × depth-bonus. Avec 0.01, à Y = -60 dans le monde normal, le ratio 5 sort environ
-# 6 fois plus souvent qu'à la surface. 0 : la profondeur ne compte pas.
+# Plus on est profond, plus les ratios forts sortent : chaque bloc sous le niveau de la mer augmente la chance du ratio n
+# de (n - 1) × depth-bonus. 0 : la profondeur ne compte pas.
 depth-bonus: 0.01
 
-# Rareté des variants : chance d'être choisi, relative aux autres variants du même mob qui peuvent apparaître là.
-rarities:
-  commun: 100
-  peu-commun: 40
-  rare: 15
-  epique: 5
-  legendaire: 1
-
-# Tag au-dessus de la tête, visible seulement en visant le mob : <status> = statut du ratio, <name> = nom du variant.
+# Tag au-dessus de la tête (en le visant ; toujours visible de près pour un meneur) : <status>, <name>.
 tag:
   format: '<white><name> <dark_gray>·</dark_gray> <status>'
 
-# Les explosions de creepers (variants ou non) cassent-elles les blocs, cadres et tableaux ? Les dégâts aux joueurs
-# et aux mobs restent. false conseillé : un creeper de ratio fort ferait de très gros trous.
+# Un coup d'un monstre (hors boss) ne retire jamais plus que cette part de la vie max d'un joueur (0 : sans plafond).
+damage-cap: 0.6
+# Butin et expérience en plus seulement si au moins cette part des dégâts vient des joueurs (pas la lave, la chute, un golem).
+loot-share: 0.5
+# Les explosions de creepers cassent-elles les blocs, cadres et tableaux ? false conseillé.
 creeper-block-damage: false
 
-# Variants désactivés (identifiants de /etermob list) : ils n'apparaissent plus naturellement.
+# Budget d'équilibrage par rareté : /etermob list compare la valeur de chaque variant (vie, dégâts, capacités par
+# seconde) à ce budget, en rouge s'il le dépasse. Un meneur a 1,5 fois celui de sa rareté.
+budgets:
+  commun: 40
+  peu-commun: 55
+  rare: 75
+  epique: 100
+  legendaire: 140
+
+# Variants désactivés (identifiants) : ils ne sortent plus d'eux-mêmes (commande et invocation restent possibles).
 disabled-variants: []
 
+# Où EterMob ne touche pas au monde : ni apparition, ni bloc temporaire (piliers). spawn-radius : autour du point
+# d'apparition de chaque monde ; claims : les terrains de clan (EterClan).
+guard:
+  spawn-radius: 48
+  claims: true
+
 # ============================================================
-#  Boss (apparition par /etermob boss ou le menu seulement)
+#  Apparitions
 # ============================================================
-#  Dégâts avant armure et avant la difficulté (Difficile : ×1,5 sur les coups qui passent par l'armure). L'aura
-#  traverse l'armure. Toute modification nécessite un redémarrage du serveur.
-bosses: {}
+spawning:
+  enabled: true
+  # × le nombre de monstres d'EterMob autour de chaque joueur
+  density: 1.0
+  # Réglages par serveur, selon le début de son nom (EterLib server-name) : lobby coupé, monde ressource plus dense
+  servers:
+    lobby:
+      enabled: false
+    ressource:
+      density: 1.4
+  # Mobs de Minecraft qui reçoivent un ratio en apparaissant naturellement (sans devenir un variant) : leur ciblage
+  # passe aussi par l'IA d'EterMob. Vide : seuls les variants des règles sont touchés.
+  natural-ratios: [ZOMBIE, HUSK, DROWNED, SKELETON, STRAY, BOGGED, SPIDER, CAVE_SPIDER, CREEPER, WITCH, PILLAGER, VINDICATOR,
+                   ZOMBIFIED_PIGLIN, PIGLIN, PIGLIN_BRUTE, WITHER_SKELETON, BLAZE, ENDERMAN, SLIME, MAGMA_CUBE, PHANTOM]
+  # Le directeur fait apparaître des groupes autour des joueurs (règles director) :
+  #  per-player : monstres d'EterMob au plus à 48 blocs d'un joueur (× densité) ; per-chunk, per-world : plafonds ;
+  #  distance [min, max] du joueur ; attempts : essais d'emplacement par joueur et par tour
+  director:
+    interval-seconds: 10
+    per-player: 6
+    per-chunk: 4
+    per-world: 200
+    distance: [24, 44]
+    attempts: 6
+  # Ratios forts plus fréquents (même formule que la profondeur)
+  ratio-bonus:
+    night: 0.3
+    nether: 0.5
+    end: 0.8
+  # Un seul monstre du ratio le plus fort (Fléau) dans ce rayon
+  top-ratio-radius: 64
+  # Les joueurs de moins de hours heures de jeu (sur ce serveur) ne croisent pas plus fort que max-ratio
+  beginner:
+    hours: 5
+    max-ratio: 3
+
+# Nuit de sang : certaines nuits (chance à la tombée de la nuit) ou /etermob event bloodnight : density fois plus de
+# monstres et ratio-shift rangs de plus. Annoncée (lang/).
+blood-night:
+  chance: 0.05
+  density: 2.0
+  ratio-shift: 1
+
+# Règles d'apparition (exemples commentés ; rien ne sort tant qu'aucun variant n'existe) :
+#  mode replace  : une apparition naturelle de ce type devient un des variants (chance)
+#  mode director : EterMob fait apparaître un groupe (weight : part des tirages entre règles qui marchent ici)
+#  mode boss     : un boss apparaît de lui-même (chance par tour, cooldown-minutes par monde, annoncé)
+#  conditions    : worlds, environments (NORMAL, NETHER, THE_END), biomes (plains, forests, dark, swamps, jungles,
+#                  mountains, dry, cold, rivers, ou minecraft:<biome>), y [min, max], light [min, max], cave,
+#                  time (day, night, any), weather (clear, rain, thunder, any)
+#  group         : { size: [min, max], leader: <meneur>, leader-chance: 0.2 } ; ratio-bonus
+spawns: {}
+#  ossuaire-nuit:
+#    mode: director
+#    weight: 3
+#    variants: { squelette-garde: 3, squelette-archer: 2 }
+#    environments: [NORMAL]
+#    biomes: [forests, dark, plains]
+#    time: night
+#    group: { size: [2, 3], leader: capitaine-os, leader-chance: 0.15 }
+#  zombies-cavernes:
+#    mode: replace
+#    chance: 0.25
+#    variants: { zombie-mineur: 1 }
+#    cave: true
+#    y: [-64, 40]
+#  roi-des-os:
+#    mode: boss
+#    boss: roi-des-os
+#    chance: 0.01
+#    cooldown-minutes: 180
+#    time: night
+#    environments: [NORMAL]
+
+# ============================================================
+#  Boss
+# ============================================================
+#  toughness-per-player : résistance en plus par joueur en plus dans le combat (les dégâts reçus en sont divisés),
+#  max-toughness : son plafond ; control-factor : part de la durée des contrôles (étourdi...) qu'un boss subit.
+boss:
+  toughness-per-player: 0.35
+  max-toughness: 3
+  control-factor: 0.33

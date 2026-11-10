@@ -1,0 +1,59 @@
+# ============================================================
+#  Modèle de boss (ce fichier n'est jamais chargé : il commence par « _ »)
+# ============================================================
+#  Copier dans un fichier sans « _ » (ex. ossuaire.yml), puis redémarrer. Apparition : /etermob boss <id>, le menu, ou
+#  une règle « mode: boss » (config.yml > spawns).
+#
+#  type, name, title, icon, lore
+#  health (1 024 au plus), toughness (résistance de base), height (place libre), scale (taille), piercing (perce-armure)
+#  enrage-minutes : rage de fin (+50 % sur tout)
+#  equipment, ai : comme les variants (ai d'un boss : portée 48, anti-cheese)
+#  lines : spawn, death (répliques)
+#  phases : la première dure jusqu'au below de la deuxième (part de la vie) ; chacune : name, color (RED, PURPLE, BLUE,
+#           GREEN, YELLOW, PINK, WHITE), line, abilities (briques, comme les variants)
+#  loot : butin personnel de chaque joueur qui a fait au moins loot-share des dégâts
+
+bosses:
+  roi-des-os:
+    type: WITHER_SKELETON
+    name: "Roi des os"
+    title: "Seigneur de l'ossuaire"
+    icon: WITHER_SKELETON_SKULL
+    health: 700
+    toughness: 1.8
+    height: 3
+    scale: 1.6
+    piercing: 0.35
+    enrage-minutes: 12
+    equipment: { main-hand: NETHERITE_SWORD }
+    lines:
+      spawn: "Mes os se souviennent de vous."
+      death: "La poussière... enfin."
+    phases:
+      - name: "Le gardien"
+        color: RED
+        abilities:
+          - { kind: slam, radius: 5, damage: 8, states: ["fragile 0.3 6"] }
+          - { kind: leap, damage: 7, states: ["slow 0.4 3"] }
+          - { kind: pillar, mode: cage, block: BONE_BLOCK, seconds: 5 }
+      - below: 0.6
+        name: "La colère"
+        color: PURPLE
+        line: "Levez-vous, mes soldats !"
+        abilities:
+          - { kind: slam, radius: 5, damage: 9, states: ["fragile 0.3 6"] }
+          - { kind: summon, mobs: [SKELETON], count: [2, 3], max-alive: 4 }
+          - { kind: pull, states: ["root 1 1.5"] }
+          - { kind: aura, cooldown: 3, radius: 6, damage: 1, particle: SOUL, states: ["weakness 0.15 3"] }
+      - below: 0.25
+        name: "Le dernier souffle"
+        color: WHITE
+        line: "Je ne tomberai pas seul."
+        abilities:
+          - { kind: charge, damage: 8, states: ["stun 1 1"] }
+          - { kind: pillar, mode: spike, damage: 9, states: ["bleed 1 5"] }
+          - { kind: burst, trigger: below-health, below: 0.1, radius: 6, damage: 10 }
+    loot-share: 0.05
+    loot:
+      - { item: NETHERITE_SCRAP, amount: [1, 2], chance: 0.5 }
+      - { item: BONE_BLOCK, amount: [4, 8], chance: 1 }

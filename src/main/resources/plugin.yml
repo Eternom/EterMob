@@ -5,15 +5,29 @@ main: fr.eternom.eterMob.Main
 api-version: '26.2'
 load: POSTWORLD
 authors: [ NadTum ]
-description: Variants de mobs avec capacités, apparition selon le lieu, ratio de puissance.
+description: Monstres du réseau (variants, meneurs, boss) avec capacités, IA de ciblage, apparition automatique et ratios de puissance.
+depend: [EterLib]
 
 commands:
   etermob:
-    description: Variants de mobs et boss (liste, apparition de test, suppression des boss).
-    usage: /etermob <menu|list|spawn <variant> [ratio]|boss <id|list|remove [numéro|all]>>
-    permission: etermob.admin
+    description: Variants, meneurs et boss (liste, apparition de test, inspection, équilibrage, règles, événements).
+    usage: /etermob <menu|list|info|spawn|inspect|debug|clear|balance|rules|event|reload|boss>
+    permission: etermob.use
 
 permissions:
-  etermob.admin:
-    description: Lister les variants, en faire apparaître pour les tester, faire apparaître et supprimer les boss.
+  etermob.use:
+    description: Ouvre /etermob (chaque partie demande sa permission).
     default: op
+  etermob.spawn:
+    description: Faire apparaître des variants et des boss pour les tester, retirer les monstres autour de soi.
+    default: op
+  etermob.debug:
+    description: Inspecter un monstre (IA, menace, capacités), voir les règles d'apparition, l'équilibrage.
+    default: op
+  etermob.admin:
+    description: Tout EterMob (rechargement, événements, suppression des boss).
+    default: op
+    children:
+      etermob.use: true
+      etermob.spawn: true
+      etermob.debug: true
