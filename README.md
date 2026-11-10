@@ -14,7 +14,7 @@ donjons seront des maps à part, gérées par leur propre plugin (qui pourra s'a
 
 - **EterLib 1.27.0+** (`depend`) : combat (dégâts physiques, magiques, bruts ; armure, résistance magique, pénétration), états (`getStates`), rôles de combat (`CombatRoles`), base, langues, pont des quêtes,
   classements, vanish.
-- **EterClan** (lu à l'usage, s'il est là) : pas d'apparition ni de bloc temporaire sur un terrain de clan.
+- **EterClan** (lu à l'usage, s'il est là) : pas d'apparition sur un terrain de clan.
 
 ## Rangs
 
@@ -53,7 +53,7 @@ Une capacité est une **brique** (`Ability`) assemblée dans le code d'un monstr
 | `pull` | Crochet qui ramène la cible (tireurs, joueurs perchés) |
 | `curse` | Sort à distance qui pose des états |
 | `blink` | Téléportation dans le dos de la cible, ou fuite (vie basse) |
-| `pillar` | Blocs temporaires (pic sous la cible, cage, mur), seulement dans l'air, jamais sur un terrain protégé |
+| `pillar` | Colonnes affichées (pic sous la cible ; cage qui retient ; mur qui repousse et arrête les projectiles) |
 | `aura` | Périodique : dégâts et états autour de lui |
 | `heal` | Soin sous un seuil, long télégraphe (un étourdissement l'interrompt) |
 | `call` | Appel à l'aide : les monstres sans cible prennent la sienne |
@@ -68,8 +68,8 @@ Une capacité est une **brique** (`Ability`) assemblée dans le code d'un monstr
 | `burrow` | Plonge sous terre, ressort sous sa cible (cercle qui se fige) |
 | `zone` | Flaques qui restent au sol (linger) ou impacts (impact) |
 
-Un autre plugin peut ajouter une sorte (`Abilities.register`). Les blocs temporaires (`TempBlocks`) sont notés dans
-`temp-blocks.yml` : un arrêt brutal ne les laisse jamais pour toujours.
+Un autre plugin peut ajouter une sorte (`Abilities.register`). **Rien ne touche la map** : pierres, tombes, piliers, éboulements sont des affichages (BlockDisplay) ou des
+particules qui imitent les blocs et disparaissent (et à l'arrêt) ; aucune explosion ne casse de bloc.
 
 **Équilibrage** : `Ability#value` (dégâts + valeur EterLib des états), par seconde de délai ; la valeur d'un variant
 (vie, dégâts, capacités) est comparée au **budget de sa rareté** (`budgets`, ×1,5 pour un meneur) dans `/etermob list`.

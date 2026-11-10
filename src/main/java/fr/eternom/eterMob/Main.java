@@ -187,6 +187,7 @@ public final class Main extends JavaPlugin {
             bosses.stop();
         }
         TempBlocks.clearAll();
+        fr.eternom.eterMob.module.ability.kind.Pillar.clearAll();
     }
 
     private Caster bossCaster(Entity entity) {
