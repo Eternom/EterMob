@@ -105,7 +105,7 @@ public final class Gravedigger extends SubBoss {
                 "cast", 0.7, "states", List.of("bleed 1 4", "bleed 1 4")));
         Ability spike = new Pillar(Spec.of("id", "pic-d-os", "mode", "spike", "damage", damage("spike"), "cooldown", 12, "cast", 1.2,
                 "states", List.of("root 1 1")));
-        Ability cage = new Pillar(Spec.of("id", "cage-d-os", "mode", "cage", "seconds", 5, "cooldown", 18, "cast", 1));
+        Ability cage = new Pillar(Spec.of("id", "cage-d-os", "mode", "cage", "seconds", 5, "health", 12, "cooldown", 18, "cast", 1));
         Ability burrow = new Burrow(Spec.of("id", "enterrement", "damage", damage("burrow"), "radius", 2.5, "cooldown", 16));
         phase1 = List.of(bleedHit, shovel, spike, cage, burrow);
         Ability shovelful = new Cleave(Spec.of("id", "pelletee", "angle", 70, "radius", 6, "damage", damage("shovelful"), "cooldown", 12,

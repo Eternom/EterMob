@@ -117,6 +117,8 @@ public final class Mortarius extends BrainBoss {
         final TextDisplay label;
         final Role role;
         double health;
+        /** Dernier coup compté de chaque joueur : un coup toutes les 500 ms (pas de spam). */
+        final Map<UUID, Long> lastHit = new HashMap<>();
 
         Pillar(BlockDisplay display, LivingEntity body, TextDisplay label, Role role, double health) {
             this.display = display;
@@ -715,6 +717,11 @@ public final class Mortarius extends BrainBoss {
         if (breaker == null) {
             return;
         }
+        long now = System.currentTimeMillis();
+        if (now - pillar.lastHit.getOrDefault(breaker.getUniqueId(), 0L) < fr.eternom.eterMob.module.ability.FakeBlocks.HIT_COOLDOWN) {
+            return;
+        }
+        pillar.lastHit.put(breaker.getUniqueId(), now);
         pillar.health -= event.getDamage() / Math.max(1, fight.toughness());
         Location at = owned.getLocation().add(0, 1.2, 0);
         at.getWorld().spawnParticle(Particle.BLOCK, at, 12, 0.3, 0.5, 0.3, 0.05, Material.BONE_BLOCK.createBlockData());

@@ -2,6 +2,7 @@ package fr.eternom.eterMob.module.ability.kind;
 
 import fr.eternom.eterMob.module.ability.Ability;
 import fr.eternom.eterMob.module.ability.AbilityContext;
+import fr.eternom.eterMob.module.ability.FakeBlocks;
 import fr.eternom.eterMob.module.ability.Services;
 import fr.eternom.eterMob.module.mob.Hits;
 import fr.eternom.eterMob.module.mob.Materials;
@@ -38,6 +39,7 @@ import java.util.Set;
  *            wall  : un mur en travers entre lui et la cible : on est repoussé en voulant passer, les projectiles s'y
  *                    arrêtent
  *   block    matière affichée (BONE_BLOCK)   height  hauteur (3)   seconds  durée (6)
+ *   health   > 0 : chaque colonne se casse (un coup compté par joueur toutes les 500 ms) ; une cage cassée s'ouvre
  * </pre>
  */
 public final class Pillar extends Ability {
@@ -46,13 +48,12 @@ public final class Pillar extends Ability {
 
     private static final double CAGE_RADIUS = 2.2;
     private static final double WALL_HALF = 2.5;
-    /** Tous les affichages en place (retirés à l'arrêt du plugin). */
-    private static final Set<BlockDisplay> ALIVE = new HashSet<>();
 
     private final Mode mode;
     private final Material block;
     private final int height;
     private final long ticks;
+    private final double health;
 
     public Pillar(ConfigurationSection config) {
         super("pillar", config, new Defaults(Trigger.ACTIVE, 14, 1.2, 2, 18, 1, 5, 1.2, 0, 0.9));
@@ -67,6 +68,7 @@ public final class Pillar extends Ability {
         this.block = material != null && Materials.block(material) ? material : Material.BONE_BLOCK;
         this.height = Math.clamp(config.getInt("height", 3), 1, 6);
         this.ticks = Math.round(Math.clamp(config.getDouble("seconds", 6), 1, 30) * 20);
+        this.health = Math.max(0, config.getDouble("health", 0));
     }
 
     @Override
@@ -104,7 +106,7 @@ public final class Pillar extends Ability {
     public void cast(AbilityContext context) {
         Location spot = context.spot();
         spot.getWorld().playSound(spot, Sound.BLOCK_BONE_BLOCK_BREAK, 1.2f, 0.6f);
-        List<BlockDisplay> shown = new ArrayList<>();
+        List<FakeBlocks.FakeBlock> shown = new ArrayList<>();
         switch (mode) {
             case SPIKE -> {
                 for (Player player : players(spot, radius)) {
@@ -131,41 +133,26 @@ public final class Pillar extends Ability {
         hold(context, spot, shown);
     }
 
-    /** Une colonne affichée (height blocs) qui sort du sol. */
-    private BlockDisplay column(Location base) {
-        BlockData data = block.createBlockData();
-        BlockDisplay display = base.getWorld().spawn(ground(base), BlockDisplay.class, shown -> {
-            shown.setBlock(data);
-            shown.setPersistent(false);
-            shown.setTransformation(new Transformation(new Vector3f(-0.5f, 0, -0.5f), new AxisAngle4f(), new Vector3f(1, 0.1f, 1), new AxisAngle4f()));
-        });
-        ALIVE.add(display);
-        // Elle pousse en 4 ticks
-        display.setInterpolationDelay(0);
-        display.setInterpolationDuration(4);
-        display.setTransformation(new Transformation(new Vector3f(-0.5f, 0, -0.5f), new AxisAngle4f(), new Vector3f(1, height, 1), new AxisAngle4f()));
-        base.getWorld().spawnParticle(Particle.BLOCK, base.clone().add(0, 0.5, 0), 12, 0.4, 0.4, 0.4, 0.05, data);
-        return display;
+    /** Une colonne affichée (height blocs) qui sort du sol ; cassable si health > 0. */
+    private FakeBlocks.FakeBlock column(Location base) {
+        return FakeBlocks.column(ground(base), block, height, health, null);
     }
 
     /** Pendant la durée : la cage retient, le mur repousse et arrête les projectiles ; puis tout disparaît. */
-    private void hold(AbilityContext context, Location spot, List<BlockDisplay> shown) {
+    private void hold(AbilityContext context, Location spot, List<FakeBlocks.FakeBlock> shown) {
         Vector side = mode == Mode.WALL ? side(context) : null;
         new BukkitRunnable() {
             private long elapsed;
 
             @Override
             public void run() {
-                if (elapsed++ >= ticks || shown.stream().noneMatch(BlockDisplay::isValid)) {
+                if (elapsed++ >= ticks || shown.stream().noneMatch(FakeBlocks.FakeBlock::intact)) {
                     cancel();
-                    shown.forEach(display -> {
-                        display.getWorld().spawnParticle(Particle.BLOCK, display.getLocation().add(0, 1, 0), 8, 0.3, 0.6, 0.3, 0.05, block.createBlockData());
-                        display.remove();
-                        ALIVE.remove(display);
-                    });
+                    shown.forEach(FakeBlocks::remove);
                     return;
                 }
-                if (mode == Mode.CAGE) {
+                // Une colonne de la cage cassée : la cage est ouverte
+                if (mode == Mode.CAGE && shown.stream().allMatch(FakeBlocks.FakeBlock::intact)) {
                     for (Player player : players(spot, CAGE_RADIUS + 1.5)) {
                         Vector out = player.getLocation().toVector().subtract(spot.toVector()).setY(0);
                         if (out.length() > CAGE_RADIUS - 0.6 && out.length() < CAGE_RADIUS + 1.2 && Hits.fighting(player)) {
@@ -197,10 +184,9 @@ public final class Pillar extends Ability {
         }.runTaskTimer(Services.plugin(), 1, 1);
     }
 
-    /** Arrêt du plugin : tous les affichages retirés. */
+    /** Arrêt du plugin : toutes les colonnes retirées (FakeBlocks). */
     public static void clearAll() {
-        ALIVE.forEach(Entity::remove);
-        ALIVE.clear();
+        FakeBlocks.clearAll();
     }
 
     /** Le premier bloc d'air au-dessus du sol, sous at. */

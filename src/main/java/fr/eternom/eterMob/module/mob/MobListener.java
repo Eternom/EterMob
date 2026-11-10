@@ -73,6 +73,9 @@ public class MobListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamage(EntityDamageEvent event) {
+        if (fr.eternom.eterMob.module.ability.FakeBlocks.onDamage(event)) {
+            return;
+        }
         States states = Services.states();
         boolean stateDamage = states != null && states.isStateDamage();
         Entity source = event instanceof EntityDamageByEntityEvent byEntity ? attacker(byEntity.getDamager()) : null;
@@ -188,6 +191,14 @@ public class MobListener implements Listener {
         if (TempBlocks.is(event.getBlock())) {
             event.setDropItems(false);
             TempBlocks.forget(event.getBlock());
+        }
+    }
+
+    /** Le corps invisible d'un faux bloc ne se manipule pas. */
+    @EventHandler(ignoreCancelled = true)
+    public void onArmorStand(org.bukkit.event.player.PlayerArmorStandManipulateEvent event) {
+        if (fr.eternom.eterMob.module.ability.FakeBlocks.is(event.getRightClicked())) {
+            event.setCancelled(true);
         }
     }
 

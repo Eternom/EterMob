@@ -53,7 +53,7 @@ Une capacité est une **brique** (`Ability`) assemblée dans le code d'un monstr
 | `pull` | Crochet qui ramène la cible (tireurs, joueurs perchés) |
 | `curse` | Sort à distance qui pose des états |
 | `blink` | Téléportation dans le dos de la cible, ou fuite (vie basse) |
-| `pillar` | Colonnes affichées (pic sous la cible ; cage qui retient ; mur qui repousse et arrête les projectiles) |
+| `pillar` | Faux blocs (pic sous la cible ; cage qui retient ; mur qui repousse et arrête les projectiles) ; `health` : cassables (une cage cassée s'ouvre) |
 | `aura` | Périodique : dégâts et états autour de lui |
 | `heal` | Soin sous un seuil, long télégraphe (un étourdissement l'interrompt) |
 | `call` | Appel à l'aide : les monstres sans cible prennent la sienne |
@@ -68,7 +68,8 @@ Une capacité est une **brique** (`Ability`) assemblée dans le code d'un monstr
 | `burrow` | Plonge sous terre, ressort sous sa cible (cercle qui se fige) |
 | `zone` | Flaques qui restent au sol (linger) ou impacts (impact) |
 
-Un autre plugin peut ajouter une sorte (`Abilities.register`). **Rien ne touche la map** : pierres, tombes, piliers, éboulements sont des affichages (BlockDisplay) ou des
+Un autre plugin peut ajouter une sorte (`Abilities.register`). **Faux blocs** (`FakeBlocks`) : colonnes affichées, avec ou sans vie (un coup compté par joueur toutes les 500 ms), pour
+les capacités et les boss (piliers de Mortarius). **Rien ne touche la map** : pierres, tombes, piliers, éboulements sont des affichages (BlockDisplay) ou des
 particules qui imitent les blocs et disparaissent (et à l'arrêt) ; aucune explosion ne casse de bloc.
 
 **Équilibrage** : `Ability#value` (dégâts + valeur EterLib des états), par seconde de délai ; la valeur d'un variant
