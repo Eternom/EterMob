@@ -235,13 +235,20 @@ public final class SpawnDirector {
         return Math.max(1, ratio);
     }
 
+    /** Débutants (temps de jeu et niveau de métier, Beginners) ; posé par Main. */
+    private Beginners beginners;
+
+    public void beginners(Beginners beginners) {
+        this.beginners = beginners;
+    }
+
     private boolean beginnerNear(Location at) {
-        if (beginnerHours <= 0) {
+        if (beginners == null && beginnerHours <= 0) {
             return false;
         }
         double limitTicks = beginnerHours * 3600 * 20;
         for (Player player : mobs.players().near(at, 48)) {
-            if (player.getStatistic(Statistic.PLAY_ONE_MINUTE) < limitTicks) {
+            if (beginners != null ? beginners.isBeginner(player) : player.getStatistic(Statistic.PLAY_ONE_MINUTE) < limitTicks) {
                 return true;
             }
         }

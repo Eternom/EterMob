@@ -26,6 +26,7 @@ import fr.eternom.eterMob.module.mob.Ratios;
 import fr.eternom.eterMob.module.mob.TempBlocks;
 import fr.eternom.eterMob.module.mob.Tier;
 import fr.eternom.eterMob.module.mob.Variants;
+import fr.eternom.eterMob.module.spawn.Beginners;
 import fr.eternom.eterMob.module.spawn.SpawnDirector;
 import fr.eternom.eterMob.module.spawn.SpawnGuard;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -99,6 +100,10 @@ public final class Main extends JavaPlugin {
 
         KillStats stats = new KillStats(this, lib.database("etermob_"));
         SpawnDirector director = new SpawnDirector(this, mobs, guard, messages, getConfig(), lib.getServerName());
+        Beginners beginners = new Beginners(this, messages, getConfig().getConfigurationSection("spawning.beginner"));
+        director.beginners(beginners);
+        getServer().getPluginManager().registerEvents(beginners, this);
+        beginners.start();
         // Flèches magiques des variants qui en ont (archer d'os)
         getServer().getPluginManager().registerEvents(new fr.eternom.eterMob.module.mob.MagicShots(this, mobs), this);
         getServer().getPluginManager().registerEvents(new MobListener(mobs, director, stats,

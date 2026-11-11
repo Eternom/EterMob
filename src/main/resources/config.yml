@@ -152,9 +152,12 @@ spawning:
   top-ratio-radius: 64
   # Sous-boss en vie au plus par monde (leur apparition : bosses.<id>.spawn)
   sub-bosses-per-world: 1
-  # Les joueurs de moins de hours heures de jeu (sur ce serveur) ne croisent pas plus fort que max-ratio
+  # Débutants : pas de monstre plus fort que max-ratio autour d'eux. Débutant = moins de hours heures de jeu (sur ce
+  # serveur), ou, jusqu'à max-hours, un niveau de métier (EterJob) sous job-level (0 : sans ce second critère).
   beginner:
     hours: 5
+    job-level: 5
+    max-hours: 15
     max-ratio: 3
 
 # Nuit de sang : certaines nuits (chance à la tombée de la nuit) ou /etermob event bloodnight : density fois plus de

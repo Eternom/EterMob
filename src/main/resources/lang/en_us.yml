@@ -13,3 +13,7 @@ soul-warden:
   pact-subtitle: "<gray>Strike the Warden within 5 s"
 ratios:
   explain: "<info>This monster is <rank></info><info>: monsters have a rank, <ladder></info><info>. The higher it is, the harder they hit and soak, and the more they drop. The rank shows in their name when you aim at them."
+beginner:
+  status: "<info>You are a <accent>beginner</accent>: monsters around you stay moderate for about <accent><hours> h</accent> of play."
+  status-job: "<info>You are still a <accent>beginner</accent>: monsters around you stay moderate until <accent>level <level></accent> of your job (at most <accent><hours> h</accent> of play)."
+  ended: "<info>You are no longer a beginner: stronger monsters (<accent>Elite, Scourge</accent>) can now spawn around you. Good luck!"

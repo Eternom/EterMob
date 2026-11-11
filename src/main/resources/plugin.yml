@@ -7,7 +7,7 @@ load: POSTWORLD
 authors: [ NadTum ]
 description: Monstres du réseau (variants, meneurs, boss) avec capacités, IA de ciblage, apparition automatique et ratios de puissance.
 depend: [EterLib]
-softdepend: [BetterModel]
+softdepend: [BetterModel, EterJob]
 
 commands:
   etermob:

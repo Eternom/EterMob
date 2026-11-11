@@ -23,6 +23,8 @@ dependencies {
     compileOnly("com.github.Eternom:EterLib:1.27.0")
     // Terrains des clans (lu à l'usage) : pas d'apparition ni de bloc temporaire sur un terrain
     compileOnly("com.github.Eternom:EterClan:1.7.0")
+    // Débutants : niveau de métier (facultatif)
+    compileOnly("com.github.Eternom:EterJob:3.2.0")
     // Modèles Blockbench des monstres (facultatif, Maven Central) : posés et animés s'il est installé
     compileOnly("io.github.toxicity188:bettermodel-bukkit-api:3.6.0")
 
