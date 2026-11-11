@@ -29,7 +29,8 @@ public final class Models {
 
     private static Bridge bridge;
     private static JavaPlugin owner;
-    private static boolean warned;
+    private static final java.util.Set<String> WARNED = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final java.util.Set<String> SEEN = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     private Models() {
     }
@@ -53,6 +54,22 @@ public final class Models {
         return bridge != null;
     }
 
+    /**
+     * Pose le modèle au tick suivant : pendant l'ajout d'une entité au monde (EntityAddToWorldEvent), elle n'est pas
+     * encore prête et BetterModel ne peut pas s'y attacher.
+     */
+    public static void attachLater(LivingEntity entity, String model) {
+        if (bridge == null || model == null || owner == null) {
+            return;
+        }
+        Bukkit.getScheduler().runTask(owner, () -> {
+            if (entity.isValid() && attach(entity, model) && SEEN.add(model)) {
+                // Une fois par modèle : la preuve qu'il est bien posé (diagnostic)
+                owner.getLogger().info("Modèles : « " + model + " » posé sur un " + entity.getType().name().toLowerCase());
+            }
+        });
+    }
+
     /** Pose le modèle de cet identifiant sur le monstre (sans effet s'il l'a déjà ou si le modèle n'existe pas). */
     public static boolean attach(LivingEntity entity, String model) {
         if (bridge == null || model == null) {
@@ -61,7 +78,7 @@ public final class Models {
         try {
             return bridge.attach(entity, model);
         } catch (RuntimeException | LinkageError e) {
-            fail(e);
+            fail("modèle " + model, e);
             return false;
         }
     }
@@ -74,7 +91,7 @@ public final class Models {
         try {
             return bridge.play(entity, animations);
         } catch (RuntimeException | LinkageError e) {
-            fail(e);
+            fail("animation", e);
             return false;
         }
     }
@@ -87,7 +104,7 @@ public final class Models {
         try {
             return bridge.reload();
         } catch (RuntimeException | LinkageError e) {
-            fail(e);
+            fail("BetterModel", e);
             return false;
         }
     }
@@ -103,15 +120,14 @@ public final class Models {
         try {
             bridge.onReloaded(() -> Bukkit.getScheduler().runTask(owner, task));
         } catch (RuntimeException | LinkageError e) {
-            fail(e);
+            fail("BetterModel", e);
         }
     }
 
-    /** Une erreur de BetterModel ne casse jamais un combat : signalée une fois, puis ignorée. */
-    private static void fail(Throwable error) {
-        if (!warned && owner != null) {
-            warned = true;
-            owner.getLogger().log(Level.WARNING, "BetterModel : erreur ignorée (signalée une seule fois)", error);
+    /** Une erreur de BetterModel ne casse jamais un combat : signalée une fois par cas (modèle et erreur), puis ignorée. */
+    private static void fail(String what, Throwable error) {
+        if (owner != null && WARNED.add(what + " " + error.getClass().getName())) {
+            owner.getLogger().log(Level.WARNING, "BetterModel : erreur ignorée (" + what + ", signalée une fois)", error);
         }
     }
 }

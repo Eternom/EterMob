@@ -213,9 +213,10 @@ public class MobService {
                 data.has(minionKey, PersistentDataType.BYTE));
         active.put(living.getEntityId(), mob);
         variant.load(living);
-        // Son modèle Blockbench (BetterModel), s'il en a un : même nom que le variant
+        // Son modèle Blockbench (BetterModel), s'il en a un : même nom que le variant. Au tick suivant : pendant l'ajout
+        // au monde, l'entité n'est pas encore prête et BetterModel ne peut pas s'y attacher
         if (!variant.vanilla()) {
-            fr.eternom.eterMob.module.model.Models.attach(living, variant.id());
+            fr.eternom.eterMob.module.model.Models.attachLater(living, variant.id());
         }
     }
 
