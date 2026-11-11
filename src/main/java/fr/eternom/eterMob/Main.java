@@ -81,6 +81,20 @@ public final class Main extends JavaPlugin {
                 new fr.eternom.eterMob.module.boss.hollow.HeartThief()));
         mobs.setBossCasters(this::bossCaster);
         getServer().getPluginManager().registerEvents(new BossListener(bosses), this);
+        if (fr.eternom.eterMob.module.model.Models.active()) {
+            // Après chaque rechargement de BetterModel, les monstres déjà là prennent les modèles qui viennent d'arriver
+            fr.eternom.eterMob.module.model.Models.onReloaded(() -> {
+                mobs.active().stream().filter(mob -> !mob.variant().vanilla())
+                        .forEach(mob -> fr.eternom.eterMob.module.model.Models.attach(mob.entity(), mob.variant().id()));
+                bosses.fights().forEach(fight -> fr.eternom.eterMob.module.model.Models.attach(fight.entity(), fight.boss().id()));
+            });
+            // Les modèles de ce serveur : ceux publiés avec le pack (EterCraft/resourcepack), sur tous les serveurs
+            if (getConfig().getBoolean("models.sync.enabled", true)) {
+                new fr.eternom.eterMob.module.model.ModelSync(this,
+                        getConfig().getString("models.sync.manifest-url", "https://ec-resourcepack-001.s3.gra.io.cloud.ovh.net/pack.json"),
+                        getConfig().getInt("models.sync.poll-minutes", 10)).start();
+            }
+        }
 
         KillStats stats = new KillStats(this, lib.database("etermob_"));
         SpawnDirector director = new SpawnDirector(this, mobs, guard, messages, getConfig(), lib.getServerName());

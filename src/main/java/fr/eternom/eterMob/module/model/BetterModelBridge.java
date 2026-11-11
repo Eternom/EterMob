@@ -1,6 +1,7 @@
 package fr.eternom.eterMob.module.model;
 
 import kr.toxicity.model.api.BetterModel;
+import kr.toxicity.model.api.BetterModelPlatform;
 import kr.toxicity.model.api.animation.AnimationModifier;
 import kr.toxicity.model.api.bukkit.platform.BukkitAdapter;
 import kr.toxicity.model.api.tracker.EntityTracker;
@@ -21,6 +22,20 @@ final class BetterModelBridge implements Models.Bridge {
         return BetterModel.model(model)
                 .map(renderer -> renderer.getOrCreate(BukkitAdapter.adapt(entity)) != null)
                 .orElse(false);
+    }
+
+    @Override
+    public boolean reload() {
+        return BetterModel.platform().reload() instanceof BetterModelPlatform.ReloadResult.Success;
+    }
+
+    @Override
+    public void onReloaded(Runnable task) {
+        BetterModel.platform().addReloadEndHandler(result -> {
+            if (result instanceof BetterModelPlatform.ReloadResult.Success) {
+                task.run();
+            }
+        });
     }
 
     @Override

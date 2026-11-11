@@ -90,6 +90,13 @@ creeper-block-damage: false
 # (coup au corps à corps), hurt (touché) et, pour une capacité, l'animation de son id ou de son type (leap...).
 models:
   enabled: true
+  # Les modèles de chaque serveur viennent du manifeste publié avec le pack des joueurs (dépôt EterCraft/resourcepack) :
+  # au démarrage puis toutes les poll-minutes, une nouvelle archive remplace le contenu de plugins/BetterModel/models
+  # (dossier géré par EterMob) et BetterModel est rechargé. use-obfuscation de BetterModel est remis à false.
+  sync:
+    enabled: true
+    manifest-url: 'https://ec-resourcepack-001.s3.gra.io.cloud.ovh.net/pack.json'
+    poll-minutes: 10
 
 # Budget d'équilibrage par rareté : /etermob list compare la valeur de chaque variant (vie, dégâts, capacités par
 # seconde) à ce budget, en rouge s'il le dépasse. Un meneur a 1,5 fois celui de sa rareté.

@@ -19,6 +19,12 @@ public final class Models {
         boolean attach(LivingEntity entity, String model);
 
         boolean play(Entity entity, String... animations);
+
+        /** Recharge BetterModel (modèles, config, pack) : bloquant, à lancer hors du thread principal. */
+        boolean reload();
+
+        /** Tâche lancée après chaque rechargement réussi (démarrage, /bm reload, synchronisation). */
+        void onReloaded(Runnable task);
     }
 
     private static Bridge bridge;
@@ -70,6 +76,34 @@ public final class Models {
         } catch (RuntimeException | LinkageError e) {
             fail(e);
             return false;
+        }
+    }
+
+    /** Recharge BetterModel (bloquant : hors du thread principal) ; false s'il n'a pas pu (absent, déjà en cours...). */
+    public static boolean reload() {
+        if (bridge == null) {
+            return false;
+        }
+        try {
+            return bridge.reload();
+        } catch (RuntimeException | LinkageError e) {
+            fail(e);
+            return false;
+        }
+    }
+
+    /**
+     * Après chaque rechargement réussi de BetterModel, cette tâche est lancée sur le thread principal : les monstres
+     * déjà là prennent les modèles qui viennent d'arriver.
+     */
+    public static void onReloaded(Runnable task) {
+        if (bridge == null) {
+            return;
+        }
+        try {
+            bridge.onReloaded(() -> Bukkit.getScheduler().runTask(owner, task));
+        } catch (RuntimeException | LinkageError e) {
+            fail(e);
         }
     }
 
