@@ -42,17 +42,23 @@ public final class PlayerIndex {
         double max = range * range;
         List<Player> found = new ArrayList<>();
         for (Player player : world) {
-            if (player.getLocation().distanceSquared(at) <= max) {
+            if (within(player, at, max)) {
                 found.add(player);
             }
         }
         return found;
     }
 
+    /** Le joueur a pu changer de monde depuis la dernière relecture (téléportation, portail) : il ne compte que dans le sien. */
+    private static boolean within(Player player, Location at, double max) {
+        Location there = player.getLocation();
+        return there.getWorld().equals(at.getWorld()) && there.distanceSquared(at) <= max;
+    }
+
     public boolean any(Location at, double range) {
         double max = range * range;
         for (Player player : in(at.getWorld())) {
-            if (player.getLocation().distanceSquared(at) <= max) {
+            if (within(player, at, max)) {
                 return true;
             }
         }
@@ -63,7 +69,7 @@ public final class PlayerIndex {
         double max = range * range;
         int count = 0;
         for (Player player : in(at.getWorld())) {
-            if (player.getLocation().distanceSquared(at) <= max) {
+            if (within(player, at, max)) {
                 count++;
             }
         }
