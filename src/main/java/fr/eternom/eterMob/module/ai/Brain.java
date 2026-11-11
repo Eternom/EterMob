@@ -290,6 +290,8 @@ public final class Brain {
 
     private void start(Ability ability, AbilityContext context, long now) {
         ability.begin(context);
+        // Animation du modèle : celle de la capacité (son id), sinon celle de son type (« leap » pour un bond)
+        fr.eternom.eterMob.module.model.Models.play(caster.entity(), ability.id(), ability.kind());
         readyAt.put(ability.id(), now + Math.round((ability.cooldown() + ability.castTime()) * 1000));
         uses.computeIfAbsent(ability.id(), id -> new ArrayDeque<>()).addLast(now);
         if (ability.castTime() <= 0) {

@@ -63,6 +63,11 @@ public final class Main extends JavaPlugin {
                 getConfig().getString("tag.format", "<white><name> <dark_gray>·</dark_gray> <status>"));
         SpawnGuard guard = new SpawnGuard(getConfig().getConfigurationSection("guard"));
         Services.init(this, mobs, guard);
+        // Modèles Blockbench par BetterModel (facultatif) : posés au suivi des monstres, donc avant mobs.start()
+        fr.eternom.eterMob.module.model.Models.init(this, getConfig().getBoolean("models.enabled", true));
+        if (fr.eternom.eterMob.module.model.Models.active()) {
+            getServer().getPluginManager().registerEvents(new fr.eternom.eterMob.module.model.ModelListener(mobs), this);
+        }
         fr.eternom.eterMob.module.variant.book.BookFamily.variants().forEach(variants::register);
         fr.eternom.eterMob.module.variant.hollow.HollowFamily.variants().forEach(variants::register);
         getLogger().info(variants.all().size() + " variant(s) codé(s)");

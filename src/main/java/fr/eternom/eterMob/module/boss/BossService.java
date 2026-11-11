@@ -214,6 +214,8 @@ public class BossService {
         if (phase > 1) {
             boss.onPhase(fight, phase, true);
         }
+        // Son modèle Blockbench (BetterModel), s'il en a un : même nom que le boss
+        fr.eternom.eterMob.module.model.Models.attach(living, boss.id());
     }
 
     private Location home(LivingEntity entity) {

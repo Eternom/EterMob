@@ -213,6 +213,10 @@ public class MobService {
                 data.has(minionKey, PersistentDataType.BYTE));
         active.put(living.getEntityId(), mob);
         variant.load(living);
+        // Son modèle Blockbench (BetterModel), s'il en a un : même nom que le variant
+        if (!variant.vanilla()) {
+            fr.eternom.eterMob.module.model.Models.attach(living, variant.id());
+        }
     }
 
     /**

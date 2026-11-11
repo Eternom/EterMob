@@ -85,6 +85,12 @@ loot-share: 0.5
 # Les explosions de creepers cassent-elles les blocs, cadres et tableaux ? false conseillé.
 creeper-block-damage: false
 
+# Modèles Blockbench (BetterModel, s'il est installé) : un monstre prend le modèle qui porte son identifiant (goule,
+# mortarius...), sinon il garde son apparence de Minecraft. BetterModel joue idle, walk et death ; EterMob joue attack
+# (coup au corps à corps), hurt (touché) et, pour une capacité, l'animation de son id ou de son type (leap...).
+models:
+  enabled: true
+
 # Budget d'équilibrage par rareté : /etermob list compare la valeur de chaque variant (vie, dégâts, capacités par
 # seconde) à ce budget, en rouge s'il le dépasse. Un meneur a 1,5 fois celui de sa rareté.
 budgets:
