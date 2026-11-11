@@ -11,3 +11,5 @@ soul-warden:
   pact-held: "<aqua>Pacte tenu."
   pact-title: "<aqua>Pacte"
   pact-subtitle: "<gray>Frappe la Gardienne dans les 5 s"
+ratios:
+  explain: "<info>Ce monstre est <rank></info><info> : les monstres ont un rang, <ladder></info><info>. Plus il est haut, plus ils frappent fort, encaissent et rapportent. Le rang s'affiche dans leur nom quand tu les vises."

@@ -11,3 +11,5 @@ soul-warden:
   pact-held: "<aqua>Pact kept."
   pact-title: "<aqua>Pact"
   pact-subtitle: "<gray>Strike the Warden within 5 s"
+ratios:
+  explain: "<info>This monster is <rank></info><info>: monsters have a rank, <ladder></info><info>. The higher it is, the harder they hit and soak, and the more they drop. The rank shows in their name when you aim at them."

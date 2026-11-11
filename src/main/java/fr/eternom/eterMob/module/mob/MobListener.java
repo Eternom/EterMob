@@ -45,6 +45,27 @@ public class MobListener implements Listener {
     /** Part des dégâts qui doit venir des joueurs pour le butin et l'expérience en plus. */
     private final double lootShare;
 
+    private static final org.bukkit.NamespacedKey RATIOS_SEEN = new org.bukkit.NamespacedKey("etermob", "ratios_seen");
+
+    /**
+     * Premier coup d'un joueur sur un monstre plus fort qu'Ordinaire : une seule fois, ce que veut dire son rang
+     * (l'échelle des rangs de la config, du plus faible au Fléau). Retenu sur le joueur (PDC etermob:ratios_seen).
+     */
+    private void explainRatios(Player player, ActiveMob mob) {
+        var lang = fr.eternom.eterMob.module.ability.Services.messages();
+        var data = player.getPersistentDataContainer();
+        if (mob.ratio() < 2 || lang == null || data.has(RATIOS_SEEN, org.bukkit.persistence.PersistentDataType.BYTE)) {
+            return;
+        }
+        data.set(RATIOS_SEEN, org.bukkit.persistence.PersistentDataType.BYTE, (byte) 1);
+        var mini = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage();
+        String ladder = java.util.stream.IntStream.rangeClosed(1, mobs.ratios().max()).mapToObj(mobs.ratios()::status)
+                .collect(java.util.stream.Collectors.joining(" <dark_gray>→</dark_gray> "));
+        player.sendMessage(lang.prefix().append(lang.get(player, "ratios.explain", net.kyori.adventure.text.minimessage.tag.resolver.TagResolver.resolver(
+                net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.component("rank", mini.deserialize(mobs.ratios().status(mob.ratio()))),
+                net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.component("ladder", mini.deserialize(ladder))))));
+    }
+
     public MobListener(MobService mobs, SpawnDirector director, KillStats stats, boolean creeperBlockDamage, double lootShare) {
         this.mobs = mobs;
         this.director = director;
@@ -84,6 +105,7 @@ public class MobListener implements Listener {
             if (source instanceof Player player) {
                 boolean ranged = ((EntityDamageByEntityEvent) event).getDamager() instanceof Projectile;
                 mobs.damagedBy(damaged, player.getUniqueId(), event.getDamage());
+                explainRatios(player, damaged);
                 damaged.brain().damagedBy(player, event.getDamage(), ranged);
             } else {
                 mobs.otherDamage(damaged, event.getDamage());
