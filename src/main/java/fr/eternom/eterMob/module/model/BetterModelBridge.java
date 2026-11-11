@@ -6,6 +6,7 @@ import kr.toxicity.model.api.animation.AnimationModifier;
 import kr.toxicity.model.api.bukkit.platform.BukkitAdapter;
 import kr.toxicity.model.api.tracker.EntityTracker;
 import kr.toxicity.model.api.tracker.EntityTrackerRegistry;
+import kr.toxicity.model.api.util.PackUtil;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 
@@ -19,7 +20,8 @@ final class BetterModelBridge implements Models.Bridge {
 
     @Override
     public boolean attach(LivingEntity entity, String model) {
-        return BetterModel.model(model)
+        // BetterModel range un modèle sous le nom de son fichier passé par toPackName (« page-volante » -> « page2dvolante »)
+        return BetterModel.model(PackUtil.toPackName(model))
                 .map(renderer -> renderer.getOrCreate(BukkitAdapter.adapt(entity)) != null)
                 .orElse(false);
     }
