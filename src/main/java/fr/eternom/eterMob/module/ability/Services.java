@@ -12,6 +12,7 @@ public final class Services {
     private static JavaPlugin plugin;
     private static MobService mobs;
     private static SpawnGuard guard;
+    private static fr.eternom.eterLib.helper.message.Messages messages;
 
     private Services() {
     }
@@ -34,6 +35,15 @@ public final class Services {
         } catch (LinkageError | IllegalStateException e) {
             return null;
         }
+    }
+
+    /** Les textes du plugin (lang/), pour les messages des boss aux joueurs. */
+    public static void messages(fr.eternom.eterLib.helper.message.Messages lang) {
+        messages = lang;
+    }
+
+    public static fr.eternom.eterLib.helper.message.Messages messages() {
+        return messages;
     }
 
     public static MobService mobs() {

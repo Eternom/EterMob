@@ -5,3 +5,9 @@ boss:
   appeared: "<dark_red><b>A boss</b> <red>appeared near <accent><x> <z></accent>."
 sub-boss:
   appeared: "<dark_red><b><name></b> <red>prowls near <accent><x> <z></accent>."
+soul-warden:
+  linked: "<aqua>Your soul is bound: move away from the others (8 blocks)."
+  pact-on: "<aqua>Pact on <white><player></white>: they must strike her."
+  pact-held: "<aqua>Pact kept."
+  pact-title: "<aqua>Pact"
+  pact-subtitle: "<gray>Strike the Warden within 5 s"

@@ -5,3 +5,9 @@ boss:
   appeared: "<dark_red><b>Un boss</b> <red>est apparu vers <accent><x> <z></accent>."
 sub-boss:
   appeared: "<dark_red><b><name></b> <red>rôde vers <accent><x> <z></accent>."
+soul-warden:
+  linked: "<aqua>Ton âme est liée : écarte-toi des autres (8 blocs)."
+  pact-on: "<aqua>Pacte sur <white><player></white> : il doit la frapper."
+  pact-held: "<aqua>Pacte tenu."
+  pact-title: "<aqua>Pacte"
+  pact-subtitle: "<gray>Frappe la Gardienne dans les 5 s"

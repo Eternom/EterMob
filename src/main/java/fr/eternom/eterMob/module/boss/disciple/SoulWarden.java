@@ -18,7 +18,6 @@ import fr.eternom.eterMob.module.mob.Hits;
 import fr.eternom.eterMob.module.mob.Minions;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -256,7 +255,7 @@ public final class SoulWarden extends SubBoss {
             }
             if (damager.getUniqueId().equals(state.pact)) {
                 state.pact = null;
-                damager.sendMessage(MiniMessage.miniMessage().deserialize("<aqua>Pacte tenu."));
+                Services.messages().send(damager, "soul-warden.pact-held");
             }
         }
         super.onDamaged(fight, event);
@@ -325,7 +324,7 @@ public final class SoulWarden extends SubBoss {
             SoulLinks.link(linked, seconds, context.self());
             context.self().getWorld().playSound(context.self().getLocation(), Sound.ENTITY_ALLAY_ITEM_THROWN, 1.2f, 0.5f);
             for (Player player : linked) {
-                player.sendMessage(MiniMessage.miniMessage().deserialize("<aqua>Ton âme est liée : écarte-toi des autres (8 blocs)."));
+                Services.messages().send(player, "soul-warden.linked");
             }
         }
     }
@@ -393,15 +392,15 @@ public final class SoulWarden extends SubBoss {
             State state = state(fightOf(context));
             state.pact = chosen.getUniqueId();
             state.pactUntil = System.currentTimeMillis() + PACT_MILLIS;
-            chosen.showTitle(net.kyori.adventure.title.Title.title(MiniMessage.miniMessage().deserialize("<aqua>Pacte"),
-                    MiniMessage.miniMessage().deserialize("<gray>Frappe la Gardienne dans les 5 s")));
+            chosen.showTitle(net.kyori.adventure.title.Title.title(Services.messages().get(chosen, "soul-warden.pact-title"),
+                    Services.messages().get(chosen, "soul-warden.pact-subtitle")));
             chosen.playSound(chosen, Sound.BLOCK_NOTE_BLOCK_BELL, 1f, 0.6f);
             if (Services.states() != null) {
                 Services.states().apply(chosen, "pact", 1, PACT_MILLIS / 1000.0, context.self());
             }
             for (Player player : near) {
                 if (player != chosen && Hits.fighting(player)) {
-                    player.sendMessage(MiniMessage.miniMessage().deserialize("<aqua>Pacte sur <white>" + chosen.getName() + "</white> : il doit la frapper."));
+                    Services.messages().send(player, "soul-warden.pact-on", "player", chosen.getName());
                 }
             }
         }
