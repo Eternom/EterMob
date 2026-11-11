@@ -98,6 +98,8 @@ public final class Main extends JavaPlugin {
 
         KillStats stats = new KillStats(this, lib.database("etermob_"));
         SpawnDirector director = new SpawnDirector(this, mobs, guard, messages, getConfig(), lib.getServerName());
+        // Flèches magiques des variants qui en ont (archer d'os)
+        getServer().getPluginManager().registerEvents(new fr.eternom.eterMob.module.mob.MagicShots(this, mobs), this);
         getServer().getPluginManager().registerEvents(new MobListener(mobs, director, stats,
                 getConfig().getBoolean("creeper-block-damage", false),
                 Math.clamp(getConfig().getDouble("loot-share", 0.5), 0, 1)), this);

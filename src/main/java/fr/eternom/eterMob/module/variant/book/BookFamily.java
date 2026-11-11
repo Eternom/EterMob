@@ -151,13 +151,15 @@ public final class BookFamily {
                 .stats(1.1, 1, 1, 0, 0, 0, 1)
                 .equip(EquipmentSlot.HAND, Material.BOW)
                 .ai(new AiProfile(24, 1, 0.3, 0.6, 0.5, 0.6, -0.2, 1.3, 1500, 3, 0.3, false))
-                .ability(ORDINARY, new Volley(Spec.of("id", "salve", "count", 3, "spread", 6, "damage", 3, "cooldown", 7, "cast", 0.5)))
+                // Flèches magiques : traînée bleue, dégâts magiques (résistance magique, pas l'armure)
+                .magicShots()
+                .ability(ORDINARY, new Volley(Spec.of("id", "salve", "count", 3, "spread", 6, "damage", 3, "cooldown", 7, "cast", 0.5, "damage-type", "magic")))
                 .stat(STURDY, Stat.CRIT_CHANCE, 0.15)
                 .ability(DANGEROUS, new Evade(Spec.of("id", "recul", "chance", 0.4, "cooldown", 6)))
                 .ability(ELITE, new Volley(Spec.of("id", "fleche-clouante", "count", 1, "spread", 0, "damage", 4, "cooldown", 12,
-                        "weight", 1.1, "states", List.of("root 1 1"))))
+                        "weight", 1.1, "states", List.of("root 1 1"), "damage-type", "magic")))
                 .ability(SCOURGE, new Zone(Spec.of("id", "pluie-de-fleches", "mode", "impact", "count", 5, "radius", 2, "damage", 5,
-                        "damage-type", "physical", "particle", "CRIT", "cooldown", 18, "cast", 1.2)))
+                        "damage-type", "magic", "particle", "CRIT", "cooldown", 18, "cast", 1.2)))
                 .loot(LootTable.of(List.of(new LootTable.Entry(Material.ARROW, 2, 6, 1, 1, null),
                         new LootTable.Entry(Material.BONE, 1, 2, 0.6, 1, null))))
                 .xp(5)

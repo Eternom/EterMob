@@ -62,6 +62,8 @@ public final class MobVariant {
     private final Consumer<LivingEntity> onLoad;
     private final LootTable loot;
     private final int xp;
+    /** Ses flèches sont magiques : traînée bleue, dégâts magiques, jamais ramassées (MagicShots). */
+    private final boolean magicShots;
     private final Map<String, Integer> followers;
     private final int followersMin;
     private final int followersMax;
@@ -89,6 +91,7 @@ public final class MobVariant {
         this.onLoad = builder.onLoad;
         this.loot = builder.loot;
         this.xp = builder.xp;
+        this.magicShots = builder.magicShots;
         this.followers = Collections.unmodifiableMap(new LinkedHashMap<>(builder.followers));
         this.followersMin = builder.followersMin;
         this.followersMax = builder.followersMax;
@@ -221,6 +224,10 @@ public final class MobVariant {
         return xp;
     }
 
+    public boolean magicShots() {
+        return magicShots;
+    }
+
     public Map<String, Integer> followers() {
         return followers;
     }
@@ -279,6 +286,7 @@ public final class MobVariant {
         private Consumer<LivingEntity> onLoad;
         private LootTable loot = LootTable.EMPTY;
         private int xp;
+        private boolean magicShots;
         private final Map<String, Integer> followers = new LinkedHashMap<>();
         private int followersMin;
         private int followersMax;
@@ -362,6 +370,12 @@ public final class MobVariant {
 
         public Builder xp(int xp) {
             this.xp = xp;
+            return this;
+        }
+
+        /** Flèches magiques : traînée bleue, dégâts magiques (résistance magique, pas l'armure), jamais ramassées. */
+        public Builder magicShots() {
+            this.magicShots = true;
             return this;
         }
 
