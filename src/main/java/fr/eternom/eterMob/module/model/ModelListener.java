@@ -17,6 +17,14 @@ public final class ModelListener implements Listener {
         this.mobs = mobs;
     }
 
+    /** Un tir à l'arc (archers) : l'animation d'attaque se joue au moment du tir, pas à l'impact de la flèche. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onShoot(org.bukkit.event.entity.EntityShootBowEvent event) {
+        if (!(event.getEntity() instanceof Player) && mobs.caster(event.getEntity()) != null) {
+            Models.play(event.getEntity(), "attack");
+        }
+    }
+
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onHit(EntityDamageByEntityEvent event) {
         Entity damager = event.getDamager();

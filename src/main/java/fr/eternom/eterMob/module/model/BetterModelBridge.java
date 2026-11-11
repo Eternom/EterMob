@@ -22,7 +22,14 @@ final class BetterModelBridge implements Models.Bridge {
     public boolean attach(LivingEntity entity, String model) {
         // BetterModel range un modèle sous le nom de son fichier passé par toPackName (« page-volante » -> « page2dvolante »)
         return BetterModel.model(PackUtil.toPackName(model))
-                .map(renderer -> renderer.getOrCreate(BukkitAdapter.adapt(entity)) != null)
+                .map(renderer -> {
+                    // BetterModel ne lit le nom que s'il est « visible » ; c'est lui qui ne l'affiche qu'en visant le mob
+                    // (moins de 5 blocs), et le mob d'origine est caché sous le modèle
+                    if (entity.customName() != null) {
+                        entity.setCustomNameVisible(true);
+                    }
+                    return renderer.getOrCreate(BukkitAdapter.adapt(entity)) != null;
+                })
                 .orElse(false);
     }
 
