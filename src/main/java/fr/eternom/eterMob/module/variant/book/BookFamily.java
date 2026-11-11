@@ -58,7 +58,7 @@ public final class BookFamily {
                 .lore("Mêlée qui fait saigner.", "La garder à distance, soigner le saignement.")
                 .stats(1.2, 1.1, 1.1, 0, 0, 0, 1)
                 .ai(new AiProfile(20, 1, 0.8, 0.9, 0.1, 0.3, 0, 1.3, 1500, 3, 0.3, false))
-                .ability(ORDINARY, new Strike(Spec.of("id", "griffes", "chance", 0.3, "damage", 0, "cooldown", 1, "states", List.of("bleed 1 4"))))
+                .ability(ORDINARY, new Strike(Spec.of("id", "griffes", "chance", 0.15, "damage", 0, "cooldown", 1, "states", List.of("bleed 1 4"))))
                 .ability(STURDY, new BookAbilities.Hungry(Spec.of("id", "affamee")))
                 .ability(DANGEROUS, new Leap(Spec.of("id", "bond", "range", List.of(5.0, 10.0), "damage", 4, "cooldown", 10, "cast", 0.5)))
                 .ability(ELITE, new BookAbilities.Devour(Spec.of("id", "devorer")))
