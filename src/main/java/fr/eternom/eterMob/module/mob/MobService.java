@@ -265,7 +265,8 @@ public class MobService {
         if (ratio < HEALTH_BAR_RATIO || max == null || max.getValue() <= 0) {
             return name;
         }
-        int filled = (int) Math.ceil(BAR * Math.max(0, entity.getHealth()) / max.getValue());
+        // À l'apparition, la vie peut dépasser un instant le maximum (il est posé après) : 0 à BAR traits
+        int filled = Math.clamp((int) Math.ceil(BAR * Math.max(0, entity.getHealth()) / max.getValue()), 0, BAR);
         return name.append(MiniMessage.miniMessage().deserialize(" <dark_gray>[<red>" + "|".repeat(filled) + "<dark_gray>"
                 + "|".repeat(BAR - filled) + "]"));
     }
