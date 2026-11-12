@@ -234,6 +234,7 @@ public class MobCommand implements TabExecutor {
                 + format(director.density()) + ")");
         say(sender, "<gray>Monstres d'EterMob à 48 blocs : <white>" + mobs.countNear(at, 48) + "<gray> · dans ce monde : <white>"
                 + mobs.countIn(at.getWorld()));
+        say(sender, "<gray>Modèles (pack) : <white>" + fr.eternom.eterMob.module.model.ModelSync.status());
         for (SpawnRule rule : director.rules()) {
             say(sender, (rule.matches(at) ? " <green>✔ " : " <dark_gray>✘ ") + rule.id() + " <gray>(" + rule.mode().name().toLowerCase(Locale.ROOT) + ")");
         }

@@ -66,6 +66,9 @@ public class MobListener implements Listener {
                 net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.component("ladder", mini.deserialize(ladder))))));
     }
 
+    /** Rang à partir duquel le butin brille au sol (Élite). */
+    private static final int SHINY_RATIO = 4;
+
     public MobListener(MobService mobs, SpawnDirector director, KillStats stats, boolean creeperBlockDamage, double lootShare) {
         this.mobs = mobs;
         this.director = director;
@@ -189,7 +192,24 @@ public class MobListener implements Listener {
             return;
         }
         MobVariant variant = mob.variant();
-        event.getDrops().addAll(variant.loot().roll(mob.ratio(), mob.level().loot()));
+        java.util.List<org.bukkit.inventory.ItemStack> loot = variant.loot().roll(mob.ratio(), mob.level().loot());
+        if (mob.ratio() >= SHINY_RATIO) {
+            // Élite, Fléau : son butin brille au sol, avec le nom de l'objet dans la couleur du rang (on le repère de loin)
+            org.bukkit.Location at = entity.getLocation();
+            String status = mobs.ratios().status(mob.ratio());
+            String color = status.startsWith("<") && status.indexOf('>') > 0 ? status.substring(0, status.indexOf('>') + 1) : "";
+            for (org.bukkit.inventory.ItemStack stack : loot) {
+                at.getWorld().dropItemNaturally(at, stack, item -> {
+                    item.setGlowing(true);
+                    item.customName(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(color)
+                            .append(stack.effectiveName())
+                            .append(net.kyori.adventure.text.Component.text(stack.getAmount() > 1 ? " ×" + stack.getAmount() : "")));
+                    item.setCustomNameVisible(true);
+                });
+            }
+        } else {
+            event.getDrops().addAll(loot);
+        }
         event.setDroppedExp((int) Math.round((event.getDroppedExp() + variant.xp()) * mob.level().xp()));
         stats.add(killer.getUniqueId(), variant.id(), mob.ratio());
         director.bloodNight().record(killer);

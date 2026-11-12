@@ -50,6 +50,12 @@ public final class ModelSync {
     private volatile boolean pendingReload;
     private volatile String lastError;
     private volatile boolean versionWarned;
+    /** Ce que /etermob debug affiche : version du pack de modèles installée, dernière vérification. */
+    private static volatile String status = "pas encore vérifié";
+
+    public static String status() {
+        return status;
+    }
 
     public ModelSync(JavaPlugin plugin, String manifestUrl, int pollMinutes) {
         this.plugin = plugin;
@@ -87,6 +93,9 @@ public final class ModelSync {
                             + (info.has("version") ? info.get("version").getAsString() : "?") + ")");
                     reload = true;
                 }
+                status = "version " + (info.has("version") ? info.get("version").getAsString() : "?")
+                        + (info.has("count") ? " · " + info.get("count").getAsString() + " modèle(s)" : "") + " · " + sha1.substring(0, Math.min(8, sha1.length()))
+                        + " · vérifié à " + java.time.LocalTime.now().withNano(0);
             } else if (!installed.isEmpty()) {
                 // Plus aucun modèle publié : le dossier géré est vidé
                 clear(dir, Set.of());
