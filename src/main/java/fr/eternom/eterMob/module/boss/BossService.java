@@ -210,10 +210,18 @@ public class BossService {
         int phase = phaseFor(fight);
         fight.phase(phase);
         refreshBar(fight);
-        boss.onLoad(fight);
-        if (phase > 1) {
-            boss.onPhase(fight, phase, true);
-        }
+        // Ce que le boss remet en place (IA, affichages, entités liées) se fait au tick suivant : pendant l'ajout au monde
+        // (EntityAddToWorldEvent), Paper refuse qu'on fasse apparaître d'autres entités dans un chunk en cours de mise à
+        // jour (« Cannot update chunk status… since entity chunk is receiving update »).
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (fights.get(living.getUniqueId()) != fight || !living.isValid()) {
+                return;
+            }
+            boss.onLoad(fight);
+            if (phase > 1) {
+                boss.onPhase(fight, phase, true);
+            }
+        });
         // Son modèle Blockbench (BetterModel), s'il en a un : même nom que le boss
         fr.eternom.eterMob.module.model.Models.attachLater(living, boss.id());
     }
