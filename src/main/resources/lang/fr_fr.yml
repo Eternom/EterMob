@@ -17,3 +17,20 @@ beginner:
   status: "<info>Tu es <accent>débutant</accent> : les monstres autour de toi restent modérés, encore environ <accent><hours> h</accent> de jeu."
   status-job: "<info>Tu es encore <accent>débutant</accent> : les monstres autour de toi restent modérés jusqu'au <accent>niveau <level></accent> de ton métier (au plus <accent><hours> h</accent> de jeu)."
   ended: "<info>Tu n'es plus débutant : les monstres plus forts (<accent>Élite, Fléau</accent>) peuvent maintenant apparaître autour de toi. Bonne chance !"
+bestiary:
+  title: "<primary>Bestiaire"
+  family-title: "<primary>Bestiaire <dark_gray>·</dark_gray> <family>"
+  found: "<dark_gray>▸ <info>Découvertes : <accent><found></accent>/<total>"
+  kills: "<dark_gray>▸ <info>Tués : <accent><count>"
+  open: "<accent>Clic <dark_gray>· <info>voir la famille"
+  ranks: "<dark_gray>▸ <info>Rangs croisés : <ranks>"
+  loot: "<dark_gray>▸ <info>Butin : <accent><loot>"
+  unknown: "<dark_gray>???"
+  unknown-lore: "<dark_gray>Pas encore rencontré. Tue-en un pour le découvrir."
+  family:
+    book:
+      name: "<accent>Les Serviteurs du Livre"
+      lore: "<info>Morts et pages animées par le Livre des morts."
+    hollow:
+      name: "<accent>Les Créatures du Creux"
+      lore: "<info>Ce qui rôde dans les galeries moussues et les cristaux."

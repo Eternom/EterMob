@@ -17,3 +17,20 @@ beginner:
   status: "<info>You are a <accent>beginner</accent>: monsters around you stay moderate for about <accent><hours> h</accent> of play."
   status-job: "<info>You are still a <accent>beginner</accent>: monsters around you stay moderate until <accent>level <level></accent> of your job (at most <accent><hours> h</accent> of play)."
   ended: "<info>You are no longer a beginner: stronger monsters (<accent>Elite, Scourge</accent>) can now spawn around you. Good luck!"
+bestiary:
+  title: "<primary>Bestiary"
+  family-title: "<primary>Bestiary <dark_gray>·</dark_gray> <family>"
+  found: "<dark_gray>▸ <info>Discovered: <accent><found></accent>/<total>"
+  kills: "<dark_gray>▸ <info>Killed: <accent><count>"
+  open: "<accent>Click <dark_gray>· <info>see the family"
+  ranks: "<dark_gray>▸ <info>Ranks met: <ranks>"
+  loot: "<dark_gray>▸ <info>Loot: <accent><loot>"
+  unknown: "<dark_gray>???"
+  unknown-lore: "<dark_gray>Not met yet. Kill one to discover it."
+  family:
+    book:
+      name: "<accent>Servants of the Book"
+      lore: "<info>The dead and pages brought to life by the Book of the Dead."
+    hollow:
+      name: "<accent>Creatures of the Hollow"
+      lore: "<info>What lurks in the mossy tunnels and crystals."

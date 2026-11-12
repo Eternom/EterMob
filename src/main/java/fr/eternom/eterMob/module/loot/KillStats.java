@@ -44,6 +44,15 @@ public final class KillStats {
                 player, variant, ratio), "Monstre tué non compté");
     }
 
+    /** Bloquant : tous les kills du joueur, variant -> (ratio -> kills), pour le bestiaire. */
+    public java.util.Map<String, java.util.Map<Integer, Long>> all(UUID player) {
+        java.util.Map<String, java.util.Map<Integer, Long>> kills = new java.util.HashMap<>();
+        for (Row row : database.query("SELECT variant, ratio, kills FROM " + database.table(TABLE) + " WHERE uuid = ?", player)) {
+            kills.computeIfAbsent(row.getString("variant"), id -> new java.util.TreeMap<>()).put(row.getInt("ratio"), row.getLong("kills"));
+        }
+        return kills;
+    }
+
     /** Bloquant : combien de fois ce joueur a tué ce variant (tous ratios). */
     public long kills(UUID player, String variant) {
         List<Row> rows = database.query("SELECT SUM(kills) AS total FROM " + database.table(TABLE) + " WHERE uuid = ? AND variant = ?",

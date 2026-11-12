@@ -51,6 +51,7 @@ import java.util.Map;
  */
 public final class Main extends JavaPlugin {
 
+    private java.util.List<fr.eternom.eterMob.module.menu.Bestiary.Family> bestiaryFamilies;
     private BossService bosses;
 
     @Override
@@ -70,8 +71,14 @@ public final class Main extends JavaPlugin {
         if (fr.eternom.eterMob.module.model.Models.active()) {
             getServer().getPluginManager().registerEvents(new fr.eternom.eterMob.module.model.ModelListener(mobs), this);
         }
-        fr.eternom.eterMob.module.variant.book.BookFamily.variants().forEach(variants::register);
-        fr.eternom.eterMob.module.variant.hollow.HollowFamily.variants().forEach(variants::register);
+        java.util.List<fr.eternom.eterMob.module.mob.MobVariant> book = fr.eternom.eterMob.module.variant.book.BookFamily.variants();
+        java.util.List<fr.eternom.eterMob.module.mob.MobVariant> hollow = fr.eternom.eterMob.module.variant.hollow.HollowFamily.variants();
+        book.forEach(variants::register);
+        hollow.forEach(variants::register);
+        // Le bestiaire, par famille (dans l'ordre où elles sont déclarées)
+        bestiaryFamilies = java.util.List.of(
+                new fr.eternom.eterMob.module.menu.Bestiary.Family("book", org.bukkit.Material.WRITABLE_BOOK, book.stream().map(fr.eternom.eterMob.module.mob.MobVariant::id).toList()),
+                new fr.eternom.eterMob.module.menu.Bestiary.Family("hollow", org.bukkit.Material.MOSS_BLOCK, hollow.stream().map(fr.eternom.eterMob.module.mob.MobVariant::id).toList()));
         getLogger().info(variants.all().size() + " variant(s) codé(s)");
         TempBlocks.start(this);
 
@@ -99,6 +106,9 @@ public final class Main extends JavaPlugin {
         }
 
         KillStats stats = new KillStats(this, lib.database("etermob_"));
+        fr.eternom.eterMob.module.menu.Bestiary bestiary = new fr.eternom.eterMob.module.menu.Bestiary(this, mobs, stats, messages, bestiaryFamilies);
+        java.util.Objects.requireNonNull(getCommand("bestiary")).setExecutor(bestiary);
+        java.util.Objects.requireNonNull(getCommand("bestiary")).setTabCompleter(bestiary);
         SpawnDirector director = new SpawnDirector(this, mobs, guard, messages, getConfig(), lib.getServerName());
         Beginners beginners = new Beginners(this, messages, getConfig().getConfigurationSection("spawning.beginner"));
         director.beginners(beginners);
