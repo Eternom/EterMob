@@ -91,7 +91,7 @@ public final class Scribe extends SubBoss {
                 "damage-type", "magic", "cooldown", 6, "cast", 0.5, "states", List.of("slow 0.2 2")));
         Ability curse = new Curse(Spec.of("id", "lecture-interdite", "damage", damage("curse"), "cast", 1, "cooldown", 14,
                 "states", List.of("silence 1 2"), "weight", 1.2));
-        Ability flee = new Blink(Spec.of("id", "page-envolee", "mode", "escape", "escape-health", 1.0, "cooldown", 12, "cast", 0.3));
+        Ability flee = new Blink(Spec.of("id", "page-envolee", "mode", "escape", "escape-health", 0.5, "cooldown", 20, "cast", 0.3));
         Ability servitude = new Servitude(Spec.of("id", "chapitre-de-la-servitude", "cooldown", 30, "cast", 1.5));
         phase1 = List.of(volley, curse, flee, servitude);
         Ability volley5 = new Volley(Spec.of("id", "trait-d-encre", "projectile", "snowball", "count", 5, "spread", 10, "damage", damage("volley"),
@@ -317,6 +317,7 @@ public final class Scribe extends SubBoss {
                     }
                 });
                 service().own(fight, page);
+                fr.eternom.eterMob.module.model.Models.attachLater(page, "page-volante");
                 state.pages.add(page.getUniqueId());
             }
             self.getWorld().playSound(self.getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 1.5f, 1.4f);
@@ -359,6 +360,8 @@ public final class Scribe extends SubBoss {
                     }
                 });
                 service().own(fight, copy);
+                // La copie a le même modèle que lui (seul le vrai garde la plume qui brille)
+                fr.eternom.eterMob.module.model.Models.attachLater(copy, "scribe");
                 state.copies.add(copy);
             }
             // Le vrai change de place avec une de ses copies : il faut regarder la plume

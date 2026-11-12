@@ -173,18 +173,18 @@ public final class BookFamily {
                 .lore("Soigne et bénit les morts-vivants.", "L'interrompre, le tuer en premier.")
                 .stats(1.4, 1, 1, 0, 0, 0.1, 1)
                 .ai(new AiProfile(24, 1, -0.2, 0.5, 0.5, 0.8, -0.3, 1.25, 2000, 3, 0.3, false))
-                // Pas de crocs ni de vex de Minecraft : il ne lance que les sorts du Livre
+                // Pas de crocs ni de vex de Minecraft (il ne lance que les sorts du Livre), et il ne fuit plus les joueurs
                 .onLoad(entity -> {
                     if (entity instanceof Mob mob) {
                         for (var goal : List.copyOf(Bukkit.getMobGoals().getAllGoals(mob))) {
-                            if (goal.getKey().getNamespacedKey().getKey().contains("spell")) {
+                            if (goal.getKey().getNamespacedKey().getKey().contains("spell") || goal.getKey().getNamespacedKey().getKey().contains("avoid")) {
                                 Bukkit.getMobGoals().removeGoal(mob, goal);
                             }
                         }
                     }
                 })
                 .ability(ORDINARY, new BookAbilities.BlackPrayer(Spec.of("id", "priere-noire")))
-                .ability(STURDY, new Blink(Spec.of("id", "fuyant", "mode", "escape", "escape-health", 1.0, "trigger", "on-damaged", "chance", 0.3, "cooldown", 12)))
+                .ability(STURDY, new Blink(Spec.of("id", "fuyant", "mode", "escape", "escape-health", 0.5, "trigger", "on-damaged", "chance", 0.2, "cooldown", 18)))
                 .ability(DANGEROUS, new Curse(Spec.of("id", "silence", "damage", 2, "cast", 1, "cooldown", 14, "states", List.of("silence 1 2"))))
                 .ability(ELITE, new Summon(Spec.of("id", "relever", "mobs", List.of("SKELETON"), "count", List.of(2, 2), "max-alive", 4,
                         "cooldown", 25, "cast", 1.5)))

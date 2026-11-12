@@ -344,6 +344,7 @@ public final class Gravedigger extends SubBoss {
             }
         });
         service().own(fight, ghoul);
+        fr.eternom.eterMob.module.model.Models.attachLater(ghoul, "goule");
         at.getWorld().spawnParticle(Particle.BLOCK, at.clone().add(0, 0.3, 0), 20, 0.4, 0.2, 0.4, 0,
                 at.getBlock().getRelative(0, -1, 0).getBlockData());
     }

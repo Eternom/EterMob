@@ -68,6 +68,8 @@ public final class MobVariant {
     private final int followersMin;
     private final int followersMax;
     private final boolean vanilla;
+    /** Un creeper qui n'explose pas (son attaque est une capacité) : il ne meurt pas en attaquant. */
+    private final boolean explodes;
 
     private MobVariant(Builder builder, boolean vanilla) {
         this.id = builder.id;
@@ -96,6 +98,7 @@ public final class MobVariant {
         this.followersMin = builder.followersMin;
         this.followersMax = builder.followersMax;
         this.vanilla = vanilla;
+        this.explodes = builder.explodes;
     }
 
     public static Builder builder(String id, EntityType type) {
@@ -244,6 +247,10 @@ public final class MobVariant {
         return vanilla;
     }
 
+    public boolean explodes() {
+        return explodes;
+    }
+
     /** Valeur d'équilibrage de ses capacités par seconde à ce ratio. */
     public double abilityValuePerSecond(int ratio) {
         double total = 0;
@@ -290,6 +297,7 @@ public final class MobVariant {
         private final Map<String, Integer> followers = new LinkedHashMap<>();
         private int followersMin;
         private int followersMax;
+        private boolean explodes = true;
 
         private Builder(String id, EntityType type) {
             this.id = id;
@@ -370,6 +378,12 @@ public final class MobVariant {
 
         public Builder xp(int xp) {
             this.xp = xp;
+            return this;
+        }
+
+        /** Un creeper qui n'explose jamais : son attaque est une capacité, il reste en vie. */
+        public Builder noExplosion() {
+            this.explodes = false;
             return this;
         }
 

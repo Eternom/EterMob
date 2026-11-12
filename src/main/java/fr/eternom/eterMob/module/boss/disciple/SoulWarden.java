@@ -206,6 +206,7 @@ public final class SoulWarden extends SubBoss {
                 vex.setGlowing(true);
             });
             service().own(fight, soul);
+            fr.eternom.eterMob.module.model.Models.attachLater(soul, "ame-enchainee");
             state.souls.add(soul.getUniqueId());
         }
     }

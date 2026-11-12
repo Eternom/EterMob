@@ -16,7 +16,6 @@ import fr.eternom.eterMob.module.ability.kind.Pull;
 import fr.eternom.eterMob.module.ability.kind.Slam;
 import fr.eternom.eterMob.module.ability.kind.Strike;
 import fr.eternom.eterMob.module.ability.kind.Summon;
-import fr.eternom.eterMob.module.ability.kind.Tombs;
 import fr.eternom.eterMob.module.ability.kind.Volley;
 import fr.eternom.eterMob.module.ability.kind.Vortex;
 import fr.eternom.eterMob.module.ability.kind.Zone;
@@ -54,13 +53,16 @@ public final class HollowFamily {
     static MobVariant mossCreeper() {
         return MobVariant.builder("creeper-moussu", EntityType.CREEPER)
                 .name("Creeper moussu").rarity(Rarity.COMMUN)
-                .lore("Nuage de spores à sa mort.", "Le tuer de loin.")
+                .lore("Il n'explose pas : il souffle des spores (s'écarter du cercle).", "Nuage de spores à sa mort.")
+                .noExplosion()
+                .ability(ORDINARY, new Burst(Spec.of("id", "souffle-de-spores", "trigger", "active", "radius", 3, "damage", 3,
+                        "damage-type", "magic", "cooldown", 4, "cast", 1.1, "range", List.of(0.0, 3.0), "particle", "SPORE_BLOSSOM_AIR",
+                        "knockback", 0.4, "lift", 0.1, "states", List.of("weakness 0.15 3"))))
                 .stats(1.2, 1, 1, 0, 0, 0, 1)
-                .ability(ORDINARY, new Burst(Spec.of("id", "nuage-de-spores", "trigger", "on-death", "radius", 3.5, "damage", 2,
+                .ability(STURDY, new Burst(Spec.of("id", "nuage-de-spores", "trigger", "on-death", "radius", 3.5, "damage", 2,
                         "damage-type", "magic", "particle", "SPORE_BLOSSOM_AIR", "knockback", 0, "lift", 0, "states", List.of("weakness 0.15 4"))))
-                .stat(STURDY, Stat.ARMOR, 30)
-                .ability(DANGEROUS, new Tombs(Spec.of("id", "racines", "targets", 1, "block", "MANGROVE_ROOTS", "damage", 2, "cooldown", 12,
-                        "cast", 1, "states", List.of("root 1 1"))))
+                .ability(DANGEROUS, new Curse(Spec.of("id", "racines", "damage", 2, "cooldown", 12,
+                        "cast", 1, "states", List.of("root 1 1.5"))))
                 .ability(ELITE, new Leap(Spec.of("id", "bond-moussu", "range", List.of(4.0, 10.0), "damage", 2, "radius", 2, "cooldown", 12,
                         "cast", 0.5)))
                 .ability(SCOURGE, new Pull(Spec.of("id", "liane", "range", List.of(4.0, 14.0), "damage", 0, "cooldown", 10, "cast", 0.6)))
@@ -135,8 +137,8 @@ public final class HollowFamily {
                 .stats(1.2, 1, 1, 0, 0, 0, 1)
                 .ability(ORDINARY, new Strike(Spec.of("id", "colle", "chance", 0.5, "damage", 0, "cooldown", 2, "states", List.of("slow 0.25 2"))))
                 .stat(STURDY, Stat.ARMOR, 30)
-                .ability(DANGEROUS, new Tombs(Spec.of("id", "racines", "targets", 1, "block", "MANGROVE_ROOTS", "damage", 2, "cooldown", 12,
-                        "cast", 1, "states", List.of("root 1 1"))))
+                .ability(DANGEROUS, new Curse(Spec.of("id", "racines", "damage", 2, "cooldown", 12,
+                        "cast", 1, "states", List.of("root 1 1.5"))))
                 .ability(ELITE, new Leap(Spec.of("id", "rebond", "range", List.of(3.0, 8.0), "damage", 3, "radius", 2, "cooldown", 10,
                         "cast", 0.4, "states", List.of("slow 0.25 2"))))
                 .ability(SCOURGE, new Pull(Spec.of("id", "liane", "range", List.of(4.0, 14.0), "damage", 0, "cooldown", 12, "cast", 0.6)))
@@ -195,8 +197,8 @@ public final class HollowFamily {
                         "damage", 1, "damage-type", "physical", "color", "E2C890", "blind", 1, "cooldown", 18, "cast", 0.8,
                         "states", List.of("slow 0.3 2"))))
                 .ability(ELITE, new Burrow(Spec.of("id", "enfouissement", "damage", 6, "radius", 2.5, "cooldown", 16)))
-                .ability(SCOURGE, new Tombs(Spec.of("id", "sables-mouvants", "targets", 3, "block", "SAND", "damage", 4, "cooldown", 18,
-                        "cast", 1.2, "states", List.of("root 1 2"))))
+                .ability(SCOURGE, new Zone(Spec.of("id", "sables-mouvants", "mode", "linger", "count", 3, "radius", 2.5, "seconds", 5,
+                        "damage", 2, "color", "C2A25A", "cooldown", 18, "cast", 1.2, "states", List.of("slow 0.4 2"))))
                 .loot(LootTable.of(List.of(new LootTable.Entry(Material.ROTTEN_FLESH, 1, 2, 1, 1, null),
                         new LootTable.Entry(Material.GOLD_NUGGET, 2, 6, 0.6, 1, null))))
                 .xp(6)
@@ -210,7 +212,7 @@ public final class HollowFamily {
                 .lore("Maléfices et fioles de spores.", "L'interrompre, la tuer vite.")
                 .stats(1.2, 1, 1, 0, 0, 0, 1)
                 .ability(ORDINARY, new Curse(Spec.of("id", "malefice", "damage", 2, "cast", 0.8, "cooldown", 10, "states", List.of("weakness 0.15 4"))))
-                .ability(STURDY, new Blink(Spec.of("id", "fuite", "mode", "escape", "escape-health", 1.0, "trigger", "on-damaged", "chance", 0.3, "cooldown", 14)))
+                .ability(STURDY, new Blink(Spec.of("id", "fuite", "mode", "escape", "escape-health", 0.5, "trigger", "on-damaged", "chance", 0.2, "cooldown", 18)))
                 .ability(DANGEROUS, new Zone(Spec.of("id", "fiole-de-spores", "mode", "linger", "count", 1, "radius", 2.5, "seconds", 6,
                         "damage", 1, "color", "6B8E23", "cooldown", 14, "cast", 0.8, "states", List.of("slow 0.2 2", "weakness 0.1 2"))))
                 .ability(ELITE, new Summon(Spec.of("id", "limons", "mobs", List.of("limon-moussu"), "count", List.of(1, 2), "max-alive", 3,

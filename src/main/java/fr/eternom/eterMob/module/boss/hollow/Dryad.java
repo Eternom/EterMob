@@ -7,7 +7,7 @@ import fr.eternom.eterMob.module.ability.Services;
 import fr.eternom.eterMob.module.ability.Spec;
 import fr.eternom.eterMob.module.ability.kind.Blink;
 import fr.eternom.eterMob.module.ability.kind.Pull;
-import fr.eternom.eterMob.module.ability.kind.Tombs;
+import fr.eternom.eterMob.module.ability.kind.Curse;
 import fr.eternom.eterMob.module.ability.kind.Volley;
 import fr.eternom.eterMob.module.ability.kind.Zone;
 import fr.eternom.eterMob.module.boss.BossFight;
@@ -79,10 +79,10 @@ public final class Dryad extends SubBoss {
     protected void build() {
         Ability spores = new Volley(Spec.of("id", "spores", "projectile", "snowball", "count", 3, "spread", 8, "damage", damage("spores"),
                 "damage-type", "magic", "cooldown", 6, "cast", 0.5, "states", List.of("slow 0.2 2")));
-        Ability brambles = new Tombs(Spec.of("id", "ronces", "targets", 2, "block", "MANGROVE_ROOTS", "damage", damage("brambles"),
+        Ability brambles = new Curse(Spec.of("id", "ronces", "damage", damage("brambles"),
                 "damage-type", "magic", "cooldown", 13, "cast", 1.1, "states", List.of("root 1 1.5")));
         Ability bud = new Bud(Spec.of("id", "bourgeon", "count", 1, "cooldown", 14, "cast", 1));
-        Ability flee = new Blink(Spec.of("id", "fuite-dans-les-feuilles", "mode", "escape", "escape-health", 1.0, "cooldown", 12, "cast", 0.3));
+        Ability flee = new Blink(Spec.of("id", "fuite-dans-les-feuilles", "mode", "escape", "escape-health", 0.5, "cooldown", 20, "cast", 0.3));
         phase1 = List.of(spores, brambles, bud, flee);
         Ability vine = new Pull(Spec.of("id", "liane", "damage", damage("vine"), "damage-type", "magic", "range", List.of(6.0, 22.0),
                 "cooldown", 14, "cast", 0.8, "states", List.of("slow 0.3 2")));
@@ -181,10 +181,10 @@ public final class Dryad extends SubBoss {
     @Override
     public void onLoad(BossFight fight) {
         super.onLoad(fight);
-        // Pas de crocs ni de vex de Minecraft : seulement ses sorts
+        // Pas de crocs ni de vex de Minecraft (seulement ses sorts), et elle ne fuit plus les joueurs
         if (fight.entity() instanceof Mob mob) {
             for (var goal : List.copyOf(Bukkit.getMobGoals().getAllGoals(mob))) {
-                if (goal.getKey().getNamespacedKey().getKey().contains("spell")) {
+                if (goal.getKey().getNamespacedKey().getKey().contains("spell") || goal.getKey().getNamespacedKey().getKey().contains("avoid")) {
                     Bukkit.getMobGoals().removeGoal(mob, goal);
                 }
             }

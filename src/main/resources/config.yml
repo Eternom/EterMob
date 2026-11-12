@@ -285,11 +285,11 @@ bosses:
   mortarius:
     health: 1000
     # Résistance de base (les dégâts reçus en sont divisés), puis × la résistance de groupe (boss.toughness-per-player)
-    toughness: 1.5
+    toughness: 1.2
     # Défense (combat d'EterLib) : armure EN PLUS de son équipement (≈ 90 : casque et plastron en netherite), résistance
     # magique, et part de l'armure des joueurs qu'il ignore
-    armor: 110
-    magic-resist: 80
+    armor: 60
+    magic-resist: 60
     piercing: 0.35
     leash-radius: 40
     enrage-minutes: 15
@@ -312,8 +312,8 @@ bosses:
   # Orveth, le Gardien du monument (Hollow Dungeon) : armure énorme, résistance magique faible
   orveth:
     health: 1000
-    toughness: 1.6
-    armor: 300
+    toughness: 1.25
+    armor: 130
     magic-resist: 40
     piercing: 0.3
     leash-radius: 40
@@ -325,9 +325,9 @@ bosses:
   # sans rayon de déplacement, et disparaissent après despawn-minutes sans joueur proche.
   scribe:
     health: 450
-    toughness: 1.2
-    armor: 60
-    magic-resist: 160
+    toughness: 1.0
+    armor: 40
+    magic-resist: 100
     piercing: 0
     despawn-minutes: 10
     enrage-minutes: 10
@@ -341,8 +341,8 @@ bosses:
       time: night
   fossoyeur:
     health: 600
-    toughness: 1.2
-    armor: 220
+    toughness: 1.0
+    armor: 100
     magic-resist: 30
     piercing: 0.25
     despawn-minutes: 10
@@ -357,9 +357,9 @@ bosses:
       time: night
   gardienne:
     health: 500
-    toughness: 1.2
-    armor: 120
-    magic-resist: 120
+    toughness: 1.0
+    armor: 70
+    magic-resist: 80
     piercing: 0.2
     despawn-minutes: 10
     enrage-minutes: 10
@@ -373,8 +373,8 @@ bosses:
   # ---- Sous-boss d'Orveth (Hollow Dungeon) : même règles que les disciples
   contremaitre:
     health: 550
-    toughness: 1.2
-    armor: 200
+    toughness: 1.0
+    armor: 90
     magic-resist: 40
     piercing: 0.25
     despawn-minutes: 10
@@ -389,9 +389,9 @@ bosses:
       y: [-64, 50]
   dryade:
     health: 450
-    toughness: 1.2
-    armor: 50
-    magic-resist: 170
+    toughness: 1.0
+    armor: 30
+    magic-resist: 100
     piercing: 0
     despawn-minutes: 10
     enrage-minutes: 10
@@ -404,9 +404,9 @@ bosses:
       biomes: [jungles, swamps]
   voleur:
     health: 480
-    toughness: 1.2
-    armor: 110
-    magic-resist: 90
+    toughness: 1.0
+    armor: 60
+    magic-resist: 60
     piercing: 0.3
     despawn-minutes: 10
     enrage-minutes: 10

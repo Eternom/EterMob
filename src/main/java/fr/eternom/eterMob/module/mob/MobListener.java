@@ -222,6 +222,16 @@ public class MobListener implements Listener {
         Volley.onHit(event);
     }
 
+    /** Un creeper qui ne doit pas exploser (noExplosion) : la mèche s'éteint, il reste en vie, ses capacités attaquent. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPrime(org.bukkit.event.entity.ExplosionPrimeEvent event) {
+        ActiveMob mob = mobs.get(event.getEntity());
+        if (mob != null && !mob.variant().explodes() && event.getEntity() instanceof Creeper creeper) {
+            event.setCancelled(true);
+            creeper.setFuseTicks(0);
+        }
+    }
+
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onExplode(EntityExplodeEvent event) {
         // Un creeper qui explose disparaît sans mourir : ses capacités « à la mort » partent quand même

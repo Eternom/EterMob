@@ -57,6 +57,7 @@ public final class Main extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        fr.eternom.eterMob.module.boss.BossBalance.migrate(this);
         EterLib lib = EterLib.get();
         Messages messages = lib.messages(this, "en_us", "fr_fr");
 

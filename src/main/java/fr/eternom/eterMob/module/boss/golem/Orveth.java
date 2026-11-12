@@ -11,7 +11,7 @@ import fr.eternom.eterMob.module.ability.kind.Boulder;
 import fr.eternom.eterMob.module.ability.kind.Charge;
 import fr.eternom.eterMob.module.ability.kind.Cleave;
 import fr.eternom.eterMob.module.ability.kind.Slam;
-import fr.eternom.eterMob.module.ability.kind.Tombs;
+import fr.eternom.eterMob.module.ability.kind.Curse;
 import fr.eternom.eterMob.module.ability.kind.Wave;
 import fr.eternom.eterMob.module.ai.AiProfile;
 import fr.eternom.eterMob.module.boss.BossFight;
@@ -131,7 +131,7 @@ public final class Orveth extends BrainBoss {
                 "range", List.of(6.0, 30.0), "cooldown", 10, "cast", 0.6, "interruptible", false, "states", List.of("slow 0.3 3")));
         Ability slam = new Slam(Spec.of("id", "frappe-sismique", "radius", 5, "damage", damage.get("slam"), "knockback", 1, "lift", 0.6,
                 "cooldown", 12, "cast", 1, "interruptible", false, "states", List.of("fragile 0.25 6")));
-        Ability brambles = new Tombs(Spec.of("id", "ronces", "targets", 2, "block", "MANGROVE_ROOTS", "damage", damage.get("brambles"),
+        Ability brambles = new Curse(Spec.of("id", "ronces", "damage", damage.get("brambles"),
                 "cooldown", 14, "cast", 1.1, "interruptible", false, "states", List.of("root 1 1.5", "bleed 1 4")));
         phase1 = List.of(fist, rock, slam, brambles);
         Ability roll = new Charge(Spec.of("id", "rouleau", "damage", damage.get("roll"), "range", List.of(8.0, 22.0), "speed", 1.0,
