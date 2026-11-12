@@ -102,6 +102,7 @@ public class MobListener implements Listener {
         Entity source = event instanceof EntityDamageByEntityEvent byEntity ? attacker(byEntity.getDamager()) : null;
         ActiveMob damaged = mobs.get(event.getEntity());
         if (damaged != null) {
+            mobs.refreshName(damaged);
             if (source instanceof Player player) {
                 boolean ranged = ((EntityDamageByEntityEvent) event).getDamager() instanceof Projectile;
                 mobs.damagedBy(damaged, player.getUniqueId(), event.getDamage());
@@ -191,6 +192,7 @@ public class MobListener implements Listener {
         event.getDrops().addAll(variant.loot().roll(mob.ratio(), mob.level().loot()));
         event.setDroppedExp((int) Math.round((event.getDroppedExp() + variant.xp()) * mob.level().xp()));
         stats.add(killer.getUniqueId(), variant.id(), mob.ratio());
+        director.bloodNight().record(killer);
         QuestBridge.signal(killer, "etermob:kill", Map.of("type", entity.getType().name().toLowerCase(Locale.ROOT),
                 "variant", variant.id(), "ratio", String.valueOf(mob.ratio()), "tier", variant.tier().id()), 1);
     }

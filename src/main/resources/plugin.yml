@@ -12,7 +12,7 @@ softdepend: [BetterModel, EterJob]
 commands:
   etermob:
     description: Variants, meneurs et boss (liste, apparition de test, inspection, équilibrage, règles, événements).
-    usage: /etermob <menu|list|info|spawn|inspect|debug|clear|balance|rules|event|reload|boss>
+    usage: /etermob <menu|list|info|spawn|inspect|debug|clear|balance|rules|event|reload|boss|anim>
     permission: etermob.use
   bestiary:
     description: "Le bestiaire : les monstres rencontrés, leurs rangs et leur butin."

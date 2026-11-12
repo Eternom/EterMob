@@ -1,10 +1,14 @@
 blood-night:
+  soon: "<dark_red>The moon turns red...</dark_red> <red>a <b>Blood Night</b> falls at nightfall. Get ready."
+  bar: "<dark_red><b>Blood Night</b></dark_red> <dark_gray>·</dark_gray> <red><time> left"
+  summary-mine: "<info>You slew <accent><count></accent> monster(s) during the Blood Night."
+  summary-best: "<info>Best hunter: <accent><player></accent> <dark_gray>(<count> monsters)"
   start: "<dark_red><b>Blood Night</b> <red>· monsters are more numerous and stronger until morning."
   end: "<gray>The Blood Night is over."
 boss:
   appeared: "<dark_red><b>A boss</b> <red>appeared near <accent><x> <z></accent>."
 sub-boss:
-  appeared: "<dark_red><b><name></b> <red>prowls near <accent><x> <z></accent>."
+  appeared: "<dark_red><b><name></b> <red>prowls <accent><distance> blocks</accent> <accent><direction></accent> <dark_gray>(<x>, <z>)"
 soul-warden:
   linked: "<aqua>Your soul is bound: move away from the others (8 blocks)."
   pact-on: "<aqua>Pact on <white><player></white>: they must strike her."
@@ -34,3 +38,12 @@ bestiary:
     hollow:
       name: "<accent>Creatures of the Hollow"
       lore: "<info>What lurks in the mossy tunnels and crystals."
+direction:
+  north: "to the north"
+  north_east: "to the north-east"
+  east: "to the east"
+  south_east: "to the south-east"
+  south: "to the south"
+  south_west: "to the south-west"
+  west: "to the west"
+  north_west: "to the north-west"

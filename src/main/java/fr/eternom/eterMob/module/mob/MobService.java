@@ -138,8 +138,7 @@ public class MobService {
         variant.equip(entity);
         // Un mob de Minecraft ordinaire (ratio 1) garde son nom ; les autres ont leur statut (et leur nom de variant)
         if (!variant.vanilla() || ratio > 1) {
-            entity.customName(MiniMessage.miniMessage().deserialize(variant.vanilla() ? "<status>" : tagFormat,
-                    Placeholder.parsed("status", ratios.status(ratio)), Placeholder.unparsed("name", variant.name())));
+            entity.customName(name(variant, ratio, entity));
         }
         // Visible seulement en le visant : jamais à travers les blocs
         entity.setCustomNameVisible(false);
@@ -254,6 +253,35 @@ public class MobService {
     }
 
     /** Monstre d'EterMob chargé de cette entité, ou null. */
+    /** Rang à partir duquel le nom porte une jauge de vie (Élite, Fléau). */
+    private static final int HEALTH_BAR_RATIO = 4;
+    private static final int BAR = 10;
+
+    /** Le nom affiché : « Nom · Rang », et pour une Élite ou un Fléau une jauge de vie à jour. */
+    private net.kyori.adventure.text.Component name(MobVariant variant, int ratio, LivingEntity entity) {
+        net.kyori.adventure.text.Component name = MiniMessage.miniMessage().deserialize(variant.vanilla() ? "<status>" : tagFormat,
+                Placeholder.parsed("status", ratios.status(ratio)), Placeholder.unparsed("name", variant.name()));
+        var max = entity.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+        if (ratio < HEALTH_BAR_RATIO || max == null || max.getValue() <= 0) {
+            return name;
+        }
+        int filled = (int) Math.ceil(BAR * Math.max(0, entity.getHealth()) / max.getValue());
+        return name.append(MiniMessage.miniMessage().deserialize(" <dark_gray>[<red>" + "|".repeat(filled) + "<dark_gray>"
+                + "|".repeat(BAR - filled) + "]"));
+    }
+
+    /** Après un coup : la jauge de vie d'une Élite ou d'un Fléau (au tick suivant, la vie est à jour). */
+    public void refreshName(ActiveMob mob) {
+        if (mob.ratio() < HEALTH_BAR_RATIO) {
+            return;
+        }
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (mob.entity().isValid()) {
+                mob.entity().customName(name(mob.variant(), mob.ratio(), mob.entity()));
+            }
+        });
+    }
+
     public ActiveMob get(Entity entity) {
         return entity == null ? null : active.get(entity.getEntityId());
     }

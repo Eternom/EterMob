@@ -43,7 +43,7 @@ import java.util.function.Consumer;
 public class MobCommand implements TabExecutor {
 
     private static final List<String> SUBS = List.of("menu", "list", "info", "spawn", "inspect", "debug", "rules", "balance",
-            "clear", "event", "reload", "boss");
+            "clear", "event", "reload", "boss", "anim");
 
     private final MobService mobs;
     private final SpawnDirector director;
@@ -69,7 +69,7 @@ public class MobCommand implements TabExecutor {
     private static String permission(String sub) {
         return switch (sub) {
             case "menu", "spawn", "clear" -> "etermob.spawn";
-            case "list", "info", "inspect", "debug", "rules", "balance" -> "etermob.debug";
+            case "list", "info", "inspect", "debug", "rules", "balance", "anim" -> "etermob.debug";
             default -> "etermob.admin";
         };
     }
@@ -95,6 +95,7 @@ public class MobCommand implements TabExecutor {
             case "info" -> info(sender, args.length > 1 ? mobs.variants().get(args[1]) : null);
             case "spawn" -> spawn(sender, args);
             case "inspect" -> inspect(sender);
+            case "anim" -> anim(sender, args.length > 1 ? args[1] : null);
             case "debug" -> debug(sender);
             case "rules" -> rules(sender);
             case "balance" -> balance(sender);
@@ -174,6 +175,26 @@ public class MobCommand implements TabExecutor {
         Location at = player.getLocation().add(player.getLocation().getDirection().setY(0).normalize().multiply(3));
         mobs.spawn(variant, ratio, at, null);
         say(sender, "<green>" + variant.name() + " apparu, ratio " + mobs.ratios().clamp(ratio) + ".");
+    }
+
+    /** /etermob anim <animation> : joue une animation BetterModel sur le monstre visé (vérifier un modèle en jeu). */
+    private void anim(CommandSender sender, String animation) {
+        if (!(sender instanceof Player player)) {
+            say(sender, "<red>En jeu seulement.");
+            return;
+        }
+        if (animation == null) {
+            say(sender, "<red>/etermob anim <animation> <gray>(idle, walk, attack, hurt, death, ou une capacité : salve...)");
+            return;
+        }
+        Entity looked = player.getTargetEntity(32);
+        if (looked == null || mobs.caster(looked) == null) {
+            say(sender, "<red>Vise un monstre d'EterMob (32 blocs).");
+            return;
+        }
+        say(sender, fr.eternom.eterMob.module.model.Models.play(looked, animation)
+                ? "<green>Animation <white>" + animation + "<green> jouée."
+                : "<red>Pas d'animation <white>" + animation + "<red> sur ce modèle (ou pas de modèle).");
     }
 
     private void inspect(CommandSender sender) {

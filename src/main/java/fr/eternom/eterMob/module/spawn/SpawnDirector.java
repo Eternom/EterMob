@@ -255,6 +255,13 @@ public final class SpawnDirector {
         return false;
     }
 
+    /** Direction de from vers to, parmi 8 (north, north_east... ; nord = -Z dans Minecraft). */
+    static String direction(Location from, Location to) {
+        double angle = Math.toDegrees(Math.atan2(to.getX() - from.getX(), -(to.getZ() - from.getZ())));
+        String[] names = {"north", "north_east", "east", "south_east", "south", "south_west", "west", "north_west"};
+        return names[(int) Math.floorMod(Math.round(angle / 45), 8)];
+    }
+
     // ---------- Directeur ----------
 
     private void tick() {
@@ -475,7 +482,8 @@ public final class SpawnDirector {
             for (Player online : world.getPlayers()) {
                 if (online.getLocation().distanceSquared(spot) < 200 * 200) {
                     messages.send(online, "sub-boss.appeared", "name", boss.name(), "x", String.valueOf(spot.getBlockX()),
-                            "z", String.valueOf(spot.getBlockZ()));
+                            "z", String.valueOf(spot.getBlockZ()), "distance", String.valueOf((int) online.getLocation().distance(spot)),
+                            "direction", messages.plain(online, "direction." + direction(online.getLocation(), spot)));
                     online.playSound(online, Sound.ENTITY_WITHER_AMBIENT, 0.4f, 0.7f);
                 }
             }

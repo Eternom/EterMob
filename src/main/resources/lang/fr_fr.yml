@@ -1,10 +1,14 @@
 blood-night:
+  soon: "<dark_red>La lune rougit...</dark_red> <red>une <b>Nuit de sang</b> tombe à la nuit. Prépare-toi."
+  bar: "<dark_red><b>Nuit de sang</b></dark_red> <dark_gray>·</dark_gray> <red>encore <time>"
+  summary-mine: "<info>Tu as abattu <accent><count></accent> monstre(s) pendant la Nuit de sang."
+  summary-best: "<info>Meilleur chasseur : <accent><player></accent> <dark_gray>(<count> monstres)"
   start: "<dark_red><b>Nuit de sang</b> <red>· les monstres sont plus nombreux et plus forts jusqu'au matin."
   end: "<gray>La Nuit de sang est finie."
 boss:
   appeared: "<dark_red><b>Un boss</b> <red>est apparu vers <accent><x> <z></accent>."
 sub-boss:
-  appeared: "<dark_red><b><name></b> <red>rôde vers <accent><x> <z></accent>."
+  appeared: "<dark_red><b><name></b> <red>rôde à <accent><distance> blocs</accent> <accent><direction></accent> <dark_gray>(<x>, <z>)"
 soul-warden:
   linked: "<aqua>Ton âme est liée : écarte-toi des autres (8 blocs)."
   pact-on: "<aqua>Pacte sur <white><player></white> : il doit la frapper."
@@ -34,3 +38,12 @@ bestiary:
     hollow:
       name: "<accent>Les Créatures du Creux"
       lore: "<info>Ce qui rôde dans les galeries moussues et les cristaux."
+direction:
+  north: "au nord"
+  north_east: "au nord-est"
+  east: "à l'est"
+  south_east: "au sud-est"
+  south: "au sud"
+  south_west: "au sud-ouest"
+  west: "à l'ouest"
+  north_west: "au nord-ouest"
